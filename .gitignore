@@ -2,6 +2,8 @@
 Examples
 build/* 
 
+# ESSI output file
+.feioutput
 # Compiled Object files
 *.slo
 *.lo
