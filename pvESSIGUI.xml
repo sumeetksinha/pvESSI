@@ -1,0 +1,5 @@
+<ParaViewReaders>
+  <Reader name="pvESSI" extensions="feioutput"
+    file_description="Example (.feioutput) Files">
+  </Reader>
+</ParaViewReaders>
