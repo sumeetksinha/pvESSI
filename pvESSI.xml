@@ -2,25 +2,63 @@
   <ProxyGroup name="sources">
     <!-- ================================================================== -->
     <SourceProxy name="pvESSI" class="pvESSI" label="pvESSI">
+      
       <Documentation
          long_help="Read a .abc file."
          short_help="Read a .abc file.">
       </Documentation>
-      <StringVectorProperty
-            name="FileName"
-            animateable="0"
-            command="SetFileName"
-            number_of_elements="1">
+      
+      <StringVectorProperty name="FileName" animateable="0" command="SetFileName" number_of_elements="1">
         <FileListDomain name="files"/>
         <Documentation>
           This property specifies the file name for the PNG reader.
         </Documentation>
       </StringVectorProperty>
- 
+
+<!--       <StringVectorProperty name="CellArrayInfo" information_only="1">
+         <ArraySelectionInformationHelper attribute_name="Cell"/>
+      </StringVectorProperty>
+
+      <StringVectorProperty name="CellArrayStatus" command="SetCellArrayStatus" number_of_elements="0" repeat_command="1" number_of_elements_per_command="2" element_types="2 0"
+          information_property="CellArrayInfo" label="Cell Arrays">
+          <ArraySelectionDomain name="array_list">
+              <RequiredProperties>
+                  <Property name="CellArrayInfo" function="ArrayList"/>
+              </RequiredProperties>
+          </ArraySelectionDomain>
+      </StringVectorProperty> -->
+
+      <!-- Display the number of Particles -->
+      <IntVectorProperty command="PrintX" default_values="1" number_of_elements="1" name="NumParticles"> 
+      </IntVectorProperty>
+     
+      <IntVectorProperty name="TransformMode" number_of_elements="1" default_values="1">
+        <EnumerationDomain name="enum">
+          <Entry value="6" text="RigidBody"/>
+          <Entry value="7" text="Similarity"/>
+          <Entry value="12" text="Affine"/>
+        </EnumerationDomain>
+        <Documentation>
+          This property indicates which transform mode will be used.
+        </Documentation>
+      </IntVectorProperty>
+
+      <!--  For Time Step  -->
+      <DoubleVectorProperty name="TimestepValues" repeatable="1" information_only="1">
+        <TimeStepsInformationHelper/>
+        <Documentation>
+          Available timestep values.
+        </Documentation>
+     </DoubleVectorProperty>
+     <!--  For Time Step  -->
+
+      <DoubleVectorProperty name="YourDoubleVectorVariable"  number_of_elements="3"  default_values="1.0 0.0 0.0">
+      </DoubleVectorProperty>
+
       <Hints>
-        <ReaderFactory extensions="feioutput"
-                       file_description="Example File Format" />
-     </Hints>
+        <ReaderFactory extensions="feioutput" file_description="Example File Format" />
+      </Hints>
+
     </SourceProxy>
     <!-- End Reader -->
   </ProxyGroup>

@@ -1,0 +1,5 @@
+<RCC>
+  <qresource prefix="/pvESSITOOLS">
+    <file>Icons/Solid.png</file>
+  </qresource>
+</RCC>

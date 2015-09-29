@@ -3,10 +3,13 @@
 #include "vtkObjectFactory.h"
 #include "vtkStreamingDemandDrivenPipeline.h"
 #include "vtkInformationVector.h"
+#include "vtkFloatArray.h"
 #include "vtkInformation.h"
 #include "vtkDataObject.h"
 #include "vtkSmartPointer.h"
 #include "vtkCell.h"
+#include "vtkCellData.h"
+#include "vtkPointData.h"
 #include "vtkVertexGlyphFilter.h"
 #include "vtkUnstructuredGrid.h"
 #include "H5Cpp.h"
@@ -14,9 +17,9 @@
 #include <iostream>
 #include <map>
 #include <vector>
+#include "vtkExecutive.h"
 
 // LINK_LIBRARIES(hdf5_cpp hdf5 )
-// include_directories(/usr/include/hdf5/serial)
 
 /************************************************************************************************************************************************/
 // cmake .. -DParaView_DIR=~/Softwares/Paraview/Paraview-Build/ -DGHOST_BUILD_CDAWEB=OFF
@@ -34,13 +37,104 @@ pvESSI::pvESSI(){
 	this->SetNumberOfOutputPorts(1);
 }
  
+
+
+// int pvESSI::RequestData(vtkInformation *request,vtkInformationVector **vtkNotUsed(inputVector),	vtkInformationVector *outputVector){
+ 
+
+//   if(request->Get( vtkDemandDrivenPipeline::FROM_OUTPUT_PORT() ) < 0)
+//     {
+//     this->GetExecutive()->GetOutputData(0)->Initialize();
+//     return 0;
+//     }
+
+//   this->CurrentTimeStep = this->TimeStep;
+
+//   // Get the output pipeline information and data object.
+//   vtkInformation* outInfo = outputVector->GetInformationObject(0);
+//   vtkDataObject* output = outInfo->Get(vtkDataObject::DATA_OBJECT());
+
+//   // Check if a particular time was requested.
+//   if(outInfo->Has(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP()))
+//     {
+//     // Get the requested time step.
+//     this->CurrentTimeStep =
+//       outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP());
+
+//     // Save the time value in the output data information.
+//     int length =
+//       outInfo->Length(vtkStreamingDemandDrivenPipeline::TIME_STEPS());
+//     if(this->CurrentTimeStep >= 0 && this->CurrentTimeStep < length)
+//       {
+//       double* steps =
+//         outInfo->Get(vtkStreamingDemandDrivenPipeline::TIME_STEPS());
+//       // output->GetInformation()->Set(vtkDataObject::DATA_TIME(),
+//       //                               steps[this->CurrentTimeStep]);
+//       }
+//     else
+//       {
+//       vtkErrorMacro("Time index " << this->CurrentTimeStep
+//                     << " requested but there are "
+//                     << length << " time steps.");
+//       }
+
+//     // Clamp the requested time step to be in bounds.
+//     if ( this->CurrentTimeStep < this->TimeStepRange[0] )
+//       {
+//       this->CurrentTimeStep = this->TimeStepRange[0];
+//       }
+//     else if ( this->CurrentTimeStep > this->TimeStepRange[1] )
+//       {
+//       this->CurrentTimeStep = this->TimeStepRange[1];
+//       }
+//     }
+
+//   // Set the time we will store in the output.
+//   // output->GetInformation()->Set(vtkDataObject::DATA_TIME_INDEX(),
+//   //                               this->CurrentTimeStep);
+
+//   // Re-open the input file.  If it fails, the error was already
+//   // reported by OpenVTKFile.
+
+// return 1;
+
+// }
 int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector **vtkNotUsed(inputVector),	vtkInformationVector *outputVector){
  
 	// get the info object
 	vtkInformation *outInfo = outputVector->GetInformationObject(0);
+	outInfo->Print(std::cout);
+
+	int extent[6] = {0,-1,0,-1,0,-1};
+  	outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_EXTENT(), extent);
+
+  	double Ctime = outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP());
+  	int Clength = outInfo->Length(vtkStreamingDemandDrivenPipeline::TIME_STEPS());
+  	double* Csteps = outInfo->Get(vtkStreamingDemandDrivenPipeline::TIME_STEPS());
+
+  	cout<< "Ctime " << "  " << Ctime << endl;
+  	cout<< "Clength " << "  " << Clength << endl;
+  	for (int i =0 ; i< Clength ; i++){
+  		cout << Csteps[i] << "  " << endl;
+  	}
+
+	// if (outInfo->Has(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP()))
+ //          std::cout << "Update Time" << endl;
+ //     if (!outInfo->Has(vtkDataObject::DATA_TIME_STEP()))
+ //     		std::cout << "DATA_TIME_STEP" << endl;
+
+    // return outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP())
+	// int piece, numPieces;
+	// piece = outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_PIECE_NUMBER());
+	// numPieces = outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_PIECES());
+
+	/////////////////////////////// Read in Paralll //////////////////////////////
+	// outInfo->Set(vtkStreamingDemandDrivenPipeline::MAXIMUM_NUMBER_OF_PIECES(), -1);
+	///////////////////////////////////////////////////////////////////////////////
 
 	// get the ouptut
 	vtkUnstructuredGrid *output = vtkUnstructuredGrid::SafeDownCast(outInfo->Get(vtkDataObject::DATA_OBJECT()));
+
 
 	///////////////////////////////////////////// Reading a HDF5 file ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -88,9 +182,9 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 	DataSpace Element_Gauss_Point_Coordinates_DataSpace = Element_Gauss_Point_Coordinates_DataSet.getSpace(); ndims = Element_Gauss_Point_Coordinates_DataSpace.getSimpleExtentDims( dims_out, NULL);
 	float Element_Gauss_Point_Coordinates[dims_out[0]]; Element_Gauss_Point_Coordinates_DataSet.read( Element_Gauss_Point_Coordinates, PredType::NATIVE_FLOAT);
 
-	// DataSet Element_Outputs_DataSet = file.openDataSet("Model/Elements/Outputs");
-	// DataSpace Element_Outputs_DataSpace = Element_Outputs_DataSet.getSpace(); ndims = Element_Outputs_DataSpace.getSimpleExtentDims( dims_out, NULL);
-	// float Element_Outputs[dims_out[0]][dims_out[1]]; Element_Outputs_DataSet.read( Element_Outputs, PredType::NATIVE_FLOAT);
+	DataSet Element_Outputs_DataSet = file.openDataSet("Model/Elements/Outputs");
+	DataSpace Element_Outputs_DataSpace = Element_Outputs_DataSet.getSpace(); ndims = Element_Outputs_DataSpace.getSimpleExtentDims( dims_out, NULL);
+	float Element_Outputs[dims_out[0]][dims_out[1]]; Element_Outputs_DataSet.read( Element_Outputs, PredType::NATIVE_FLOAT);
 
 	/////////////////////////////////////////////////// Reading Nodes datat //////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -100,9 +194,9 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 	DataSet Node_Index_to_Coordinates_DataSet = file.openDataSet("Model/Nodes/Index_to_Coordinates");
 	int Node_Index_to_Coordinates[Number_of_Nodes[0]+1]; Node_Index_to_Coordinates_DataSet.read( Node_Index_to_Coordinates, PredType::NATIVE_INT);
 
-	// DataSet Node_Generalized_Displacements_DataSet = file.openDataSet("Model/Nodes/Generalized_Displacements");
-	// DataSpace Node_Generalized_Displacements_DataSpace = Node_Generalized_Displacements_DataSet.getSpace(); ndims = Node_Generalized_Displacements_DataSpace.getSimpleExtentDims( dims_out, NULL);
-	// float Node_Generalized_Displacements[dims_out[0]][dims_out[1]]; Node_Generalized_Displacements_DataSet.read( Node_Generalized_Displacements, PredType::NATIVE_FLOAT);
+	DataSet Node_Generalized_Displacements_DataSet = file.openDataSet("Model/Nodes/Generalized_Displacements");
+	DataSpace Node_Generalized_Displacements_DataSpace = Node_Generalized_Displacements_DataSet.getSpace(); ndims = Node_Generalized_Displacements_DataSpace.getSimpleExtentDims( dims_out, NULL);
+	float Node_Generalized_Displacements[dims_out[0]][dims_out[1]]; Node_Generalized_Displacements_DataSet.read( Node_Generalized_Displacements, PredType::NATIVE_FLOAT);
 
 	DataSet Node_Index_to_Generalized_Displacements_DataSet = file.openDataSet("Model/Nodes/Index_to_Generalized_Displacements");
 	int Node_Index_to_Generalized_Displacements[Number_of_Nodes[0]+1]; Node_Index_to_Generalized_Displacements_DataSet.read( Node_Index_to_Generalized_Displacements, PredType::NATIVE_INT);
@@ -113,23 +207,46 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 
  	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
- 	//  //  H5T_class_t type_class = dataset.getTypeClass();
-	
-	// // if( type_class == H5T_INTEGER )
-	// // 	cout << "Data set has INTEGER type" << endl;
-	// // else 
-	// // 	cout << "Data set is different than Integers " << endl;
 
-	// // DataSpace dataspace = dataset.getSpace();
-	// // int rank = dataspace.getSimpleExtentNdims();
-	// // hsize_t dims_out[1];
-	// // int ndims = dataspace.getSimpleExtentDims( dims_out, NULL);
-	// // cout << "rank " << rank << ", dimensions " << (unsigned long)(dims_out[0])<< endl;
 
-	// // int nonode = dims_out[0];
 
- 	//  //  /* memory space dimensions */
-	// // float  data_out[nonode]; hsize_t dimsm[1]; dimsm[0] = nonode; DataSpace memspace( 1, dimsm );
+ 		////////////////////////////////////////////////// Changed ////////////////////////////////////////
+	// vtkDebugMacro( << "Send GMV data to Paraview");
+
+ //  this->UpdateProgress(0.0);
+
+ //    if (outInfo->Has(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP()))
+ //    {
+
+ //    // Get the requested time step. We only support requests of a single time
+ //    // step in this reader right now
+ //    double requestedTimeValue =
+ //      outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP());
+
+ //    // Snapping and clamping of the requested time step to be in bounds is done by
+ //    // FileSeriesReader class.
+ //    vtkDebugMacro( << "RequestData: requested time value: " << requestedTimeValue);
+
+ //    output->GetInformation()->Set(vtkDataObject::DATA_TIME_STEP(), requestedTimeValue);
+ //    }
+
+	// H5T_class_t type_class = dataset.getTypeClass();
+
+	// if( type_class == H5T_INTEGER )
+	// cout << "Data set has INTEGER type" << endl;
+	// else 
+	// cout << "Data set is different than Integers " << endl;
+
+	// DataSpace dataspace = dataset.getSpace();
+	// int rank = dataspace.getSimpleExtentNdims();
+	// hsize_t dims_out[1];
+	// int ndims = dataspace.getSimpleExtentDims( dims_out, NULL);
+	// cout << "rank " << rank << ", dimensions " << (unsigned long)(dims_out[0])<< endl;
+
+	// int nonode = dims_out[0];
+
+	// /* memory space dimensions */
+	// float  data_out[nonode]; hsize_t dimsm[1]; dimsm[0] = nonode; DataSpace memspace( 1, dimsm );
 
 	// dataset.read( data_out, PredType::NATIVE_FLOAT, memspace, dataspace);
 
@@ -151,6 +268,10 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 
 	this->set_VTK_To_ESSI_Elements_Connectivity();
 
+		vtkSmartPointer<vtkFloatArray> vtk_Generalized_Displacements = vtkSmartPointer<vtkFloatArray>::New();
+	vtk_Generalized_Displacements->SetName("Generalized_Displacements");
+	vtk_Generalized_Displacements->SetNumberOfComponents(3);
+
 	///////////////////////////////////////////////////////////////////////////////// Building up the elements //////////////////////////////////////////////////////
 
 	for (int i = 0; i <= Number_of_Elements[0]; i++){
@@ -160,7 +281,16 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 		if(connectivity_index==-1)
 			continue;
 
+		float tuple[3];
+		tuple[0]=i;
+		tuple[1]=i+1;
+		tuple[2]=i+2;
+
 		int No_of_Element_Nodes = Element_Number_of_Nodes[i];
+		vtk_Generalized_Displacements->InsertNextTuple(tuple);
+		vtk_Generalized_Displacements->SetComponentName(0,"X-axis");
+		vtk_Generalized_Displacements->SetComponentName(1,"Y-axis");
+		vtk_Generalized_Displacements->SetComponentName(2,"Z-axis");
 
 		vtkIdType Vertices[No_of_Element_Nodes];
 
@@ -173,10 +303,9 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 		UGrid->InsertNextCell(Cell_Type, No_of_Element_Nodes, Vertices);
 	}
 	
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////// Building Up Data Array    ///////////////////////////////////////////////////////////////
 
-
-
+	UGrid->GetCellData()->AddArray(vtk_Generalized_Displacements);
 
 
 	/****************************************************************************************************/
@@ -192,8 +321,29 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 	// glyphFilter->Update();
 
 	output->ShallowCopy(UGrid);
+	// UGrid->SetCells(NULL);
 	// cout << UGrid->GetNumberOfCells() << endl;
 	// cout << UGrid->GetNumberOfPoints() << endl;
+
+	return 1;
+}
+
+int pvESSI::RequestInformation( vtkInformation *request, vtkInformationVector **vtkNotUsed(inVec), vtkInformationVector* outVec){
+
+	vtkInformation* outInfo = outVec->GetInformationObject(0);
+	int extent[6]={0,100,0,100,0,100}; 
+	int  No_of_TimeSteps = 20;
+	this->NumberOfTimeSteps = No_of_TimeSteps;
+	double Time_Steps[No_of_TimeSteps];
+
+	for (int i =0;i<No_of_TimeSteps ;i++)
+		Time_Steps[i] = i;
+	double Time_range[2]={0,No_of_TimeSteps-1};
+	outInfo->Set(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT(),extent,6);
+	outInfo->Set(vtkStreamingDemandDrivenPipeline::TIME_STEPS(),Time_Steps,No_of_TimeSteps);
+	outInfo->Set(vtkStreamingDemandDrivenPipeline::TIME_RANGE(),Time_range,2);
+	// outInfo->Set(vtkAlgorithm::CAN_PRODUCE_SUB_EXTENT(),1);
+
 
 	return 1;
 }
@@ -207,6 +357,7 @@ void pvESSI::PrintSelf(ostream& os, vtkIndent indent){
 void pvESSI::set_VTK_To_ESSI_Elements_Connectivity(){
 
 	std::vector<int> connectivity_vector;
+	// this->TimestepValues[0]=1;
 
 	ESSI_to_VTK_Element[1] = VTK_VERTEX;		ESSI_to_VTK_Element[2]  = VTK_LINE;		ESSI_to_VTK_Element[4] = VTK_QUAD;
 	ESSI_to_VTK_Element[8] = VTK_HEXAHEDRON;	/*ESSI_to_VTK_Element[20] = VTK_VERTEX;*/	ESSI_to_VTK_Element[27] = VTK_TRIQUADRATIC_HEXAHEDRON;
