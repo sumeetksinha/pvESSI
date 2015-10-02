@@ -27,7 +27,7 @@ public:
   vtkSetMacro(TimeStep, int);
   vtkGetMacro(TimeStep, int);
   int GetNumberOfTimeSteps(){
-    return this->NumberOfTimeSteps;
+    return this->Number_Of_Time_Steps;
   }
  
 protected:
@@ -41,11 +41,11 @@ protected:
   //////////////////////// Important Variables /////////////////////////////////////////
 
   int TimeStep;
-  int CurrentTimeStep; 
-  int NumberOfTimeSteps;
-  vtkTimeStamp ReadMTime;
-  int ReadError;
-  int TimeStepRange[2];
+  int Current_Time; 
+  int Number_Of_Time_Steps;
+  // vtkTimeStamp ReadMTime;
+  // int ReadError;
+  int Time_Step_Range[2];
 
 // // incrementally fine-tuned progress updates.
 //   virtual void GetProgressRange(float* range);

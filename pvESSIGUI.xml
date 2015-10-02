@@ -3,3 +3,9 @@
     file_description="Example (.feioutput) Files">
   </Reader>
 </ParaViewReaders>
+ <ParaViewFilters>
+    <Category name="pvESSI" menu_label="&amp;pvESSI">
+      <!-- adds a new category and then adds our filter to it -->
+      <Filter name="pvESSI" icon=":/Icons/Solid.png" />
+    </Category>
+ </ParaViewFilters

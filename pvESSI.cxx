@@ -2,6 +2,12 @@
  
 #include "vtkObjectFactory.h"
 #include "vtkStreamingDemandDrivenPipeline.h"
+#include "vtkQuadratureSchemeDefinition.h"
+#include "vtkQuadraturePointInterpolator.h"
+#include "vtkQuadraturePointsGenerator.h"
+#include "vtkQuadratureSchemeDictionaryGenerator.h"
+#include "vtkInformationQuadratureSchemeDefinitionVectorKey.h"
+#include "vtkIdTypeArray.h"
 #include "vtkInformationVector.h"
 #include "vtkFloatArray.h"
 #include "vtkInformation.h"
@@ -18,6 +24,102 @@
 #include <map>
 #include <vector>
 #include "vtkExecutive.h"
+#include <sstream>
+using std::ostringstream;
+
+
+// Here are some default shape functions weights which
+// we will use to create dictionaries in a gvien data set.
+// Unused weights are commented out to avoid compiler warnings.
+namespace
+{
+// double W_T_11_A[]={
+//     3.33333333333334e-01, 3.33333333333333e-01, 3.33333333333333e-01};
+
+double W_T_32_A[] = { 1.66666666666660e-01, 6.66666666666670e-01,
+    1.66666666666670e-01, 6.66666666666660e-01, 1.66666666666670e-01,
+    1.66666666666670e-01, 1.66666666666660e-01, 1.66666666666670e-01,
+    6.66666666666670e-01 };
+
+// double W_T_32_B[]={
+//     5.00000000000000e-01, 5.00000000000000e-01, 0.00000000000000e+00,
+//     5.00000000000000e-01, 0.00000000000000e+00, 5.00000000000000e-01,
+//     0.00000000000000e+00, 5.00000000000000e-01, 5.00000000000000e-01};
+
+double W_QT_43_A[] = { -1.11111111111111e-01, -1.11111111111111e-01,
+    -1.11111111111111e-01, 4.44444444444445e-01, 4.44444444444444e-01,
+    4.44444444444445e-01, -1.20000000000000e-01, 1.20000000000000e-01,
+    -1.20000000000000e-01, 4.80000000000000e-01, 4.80000000000000e-01,
+    1.60000000000000e-01, 1.20000000000000e-01, -1.20000000000000e-01,
+    -1.20000000000000e-01, 4.80000000000000e-01, 1.60000000000000e-01,
+    4.80000000000000e-01, -1.20000000000000e-01, -1.20000000000000e-01,
+    1.20000000000000e-01, 1.60000000000000e-01, 4.80000000000000e-01,
+    4.80000000000000e-01 };
+
+double W_Q_42_A[] = { 6.22008467928145e-01, 1.66666666666667e-01,
+    4.46581987385206e-02, 1.66666666666667e-01, 1.66666666666667e-01,
+    4.46581987385206e-02, 1.66666666666667e-01, 6.22008467928145e-01,
+    1.66666666666667e-01, 6.22008467928145e-01, 1.66666666666667e-01,
+    4.46581987385206e-02, 4.46581987385206e-02, 1.66666666666667e-01,
+    6.22008467928145e-01, 1.66666666666667e-01 };
+
+double W_QQ_93_A[] = { 4.32379000772438e-01, -1.00000000000001e-01,
+    -3.23790007724459e-02, -1.00000000000001e-01, 3.54919333848301e-01,
+    4.50806661517046e-02, 4.50806661517046e-02, 3.54919333848301e-01,
+    -1.00000000000001e-01, -1.00000000000001e-01, -1.00000000000001e-01,
+    -1.00000000000001e-01, 2.00000000000003e-01, 1.12701665379260e-01,
+    2.00000000000003e-01, 8.87298334620740e-01, -1.00000000000001e-01,
+    -3.23790007724459e-02, -1.00000000000001e-01, 4.32379000772438e-01,
+    4.50806661517046e-02, 4.50806661517046e-02, 3.54919333848301e-01,
+    3.54919333848301e-01, -1.00000000000001e-01, -1.00000000000001e-01,
+    -1.00000000000001e-01, -1.00000000000001e-01, 8.87298334620740e-01,
+    2.00000000000003e-01, 1.12701665379260e-01, 2.00000000000003e-01,
+    -2.50000000000000e-01, -2.50000000000000e-01, -2.50000000000000e-01,
+    -2.50000000000000e-01, 5.00000000000000e-01, 5.00000000000000e-01,
+    5.00000000000000e-01, 5.00000000000000e-01, -1.00000000000001e-01,
+    -1.00000000000001e-01, -1.00000000000001e-01, -1.00000000000001e-01,
+    1.12701665379260e-01, 2.00000000000003e-01, 8.87298334620740e-01,
+    2.00000000000003e-01, -1.00000000000001e-01, 4.32379000772438e-01,
+    -1.00000000000001e-01, -3.23790007724459e-02, 3.54919333848301e-01,
+    3.54919333848301e-01, 4.50806661517046e-02, 4.50806661517046e-02,
+    -1.00000000000001e-01, -1.00000000000001e-01, -1.00000000000001e-01,
+    -1.00000000000001e-01, 2.00000000000003e-01, 8.87298334620740e-01,
+    2.00000000000003e-01, 1.12701665379260e-01, -3.23790007724459e-02,
+    -1.00000000000001e-01, 4.32379000772438e-01, -1.00000000000001e-01,
+    4.50806661517046e-02, 3.54919333848301e-01, 3.54919333848301e-01,
+    4.50806661517046e-02 };
+
+// double W_E_41_A[]={
+//      2.50000000000000e-01, 2.50000000000000e-01, 2.50000000000000e-01, 2.50000000000000e-01};
+
+double W_E_42_A[] = { 6.25000000000000e-01, 1.25000000000000e-01,
+    1.25000000000000e-01, 1.25000000000000e-01, 1.25000000000000e-01,
+    5.62500000000000e-01, 1.87500000000000e-01, 1.25000000000000e-01,
+    1.25000000000000e-01, 1.87500000000000e-01, 5.62500000000000e-01,
+    1.25000000000000e-01, 1.25000000000000e-01, 6.25000000000000e-02,
+    6.25000000000000e-02, 7.50000000000000e-01 };
+
+// double W_QE_41_A[]={
+//     -1.25000000000000e-01, -1.25000000000000e-01, -1.25000000000000e-01, -1.25000000000000e-01, 2.50000000000000e-01, 2.50000000000000e-01, 2.50000000000000e-01, 2.50000000000000e-01, 2.50000000000000e-01, 2.50000000000000e-01};
+
+double W_QE_42_A[] = { 1.56250000000000e-01, -9.37500000000000e-02,
+    -9.37500000000000e-02, -9.37500000000000e-02, 3.12500000000000e-01,
+    6.25000000000000e-02, 3.12500000000000e-01, 3.12500000000000e-01,
+    6.25000000000000e-02, 6.25000000000000e-02, -9.37500000000000e-02,
+    7.03125000000000e-02, -1.17187500000000e-01, -9.37500000000000e-02,
+    2.81250000000000e-01, 4.21875000000000e-01, 9.37500000000000e-02,
+    6.25000000000000e-02, 2.81250000000000e-01, 9.37500000000000e-02,
+    -9.37500000000000e-02, -1.17187500000000e-01, 7.03125000000000e-02,
+    -9.37500000000000e-02, 9.37500000000000e-02, 4.21875000000000e-01,
+    2.81250000000000e-01, 6.25000000000000e-02, 9.37500000000000e-02,
+    2.81250000000000e-01, -9.37500000000000e-02, -5.46875000000000e-02,
+    -5.46875000000000e-02, 3.75000000000000e-01, 3.12500000000000e-02,
+    1.56250000000000e-02, 3.12500000000000e-02, 3.75000000000000e-01,
+    1.87500000000000e-01, 1.87500000000000e-01 };
+
+}
+;
+
 
 // LINK_LIBRARIES(hdf5_cpp hdf5 )
 
@@ -37,93 +139,34 @@ pvESSI::pvESSI(){
 	this->SetNumberOfOutputPorts(1);
 }
  
-
-
-// int pvESSI::RequestData(vtkInformation *request,vtkInformationVector **vtkNotUsed(inputVector),	vtkInformationVector *outputVector){
- 
-
-//   if(request->Get( vtkDemandDrivenPipeline::FROM_OUTPUT_PORT() ) < 0)
-//     {
-//     this->GetExecutive()->GetOutputData(0)->Initialize();
-//     return 0;
-//     }
-
-//   this->CurrentTimeStep = this->TimeStep;
-
-//   // Get the output pipeline information and data object.
-//   vtkInformation* outInfo = outputVector->GetInformationObject(0);
-//   vtkDataObject* output = outInfo->Get(vtkDataObject::DATA_OBJECT());
-
-//   // Check if a particular time was requested.
-//   if(outInfo->Has(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP()))
-//     {
-//     // Get the requested time step.
-//     this->CurrentTimeStep =
-//       outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP());
-
-//     // Save the time value in the output data information.
-//     int length =
-//       outInfo->Length(vtkStreamingDemandDrivenPipeline::TIME_STEPS());
-//     if(this->CurrentTimeStep >= 0 && this->CurrentTimeStep < length)
-//       {
-//       double* steps =
-//         outInfo->Get(vtkStreamingDemandDrivenPipeline::TIME_STEPS());
-//       // output->GetInformation()->Set(vtkDataObject::DATA_TIME(),
-//       //                               steps[this->CurrentTimeStep]);
-//       }
-//     else
-//       {
-//       vtkErrorMacro("Time index " << this->CurrentTimeStep
-//                     << " requested but there are "
-//                     << length << " time steps.");
-//       }
-
-//     // Clamp the requested time step to be in bounds.
-//     if ( this->CurrentTimeStep < this->TimeStepRange[0] )
-//       {
-//       this->CurrentTimeStep = this->TimeStepRange[0];
-//       }
-//     else if ( this->CurrentTimeStep > this->TimeStepRange[1] )
-//       {
-//       this->CurrentTimeStep = this->TimeStepRange[1];
-//       }
-//     }
-
-//   // Set the time we will store in the output.
-//   // output->GetInformation()->Set(vtkDataObject::DATA_TIME_INDEX(),
-//   //                               this->CurrentTimeStep);
-
-//   // Re-open the input file.  If it fails, the error was already
-//   // reported by OpenVTKFile.
-
-// return 1;
-
-// }
 int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector **vtkNotUsed(inputVector),	vtkInformationVector *outputVector){
  
 	// get the info object
 	vtkInformation *outInfo = outputVector->GetInformationObject(0);
 	outInfo->Print(std::cout);
 
-	int extent[6] = {0,-1,0,-1,0,-1};
-  	outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_EXTENT(), extent);
 
-  	double Ctime = outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP());
-  	int Clength = outInfo->Length(vtkStreamingDemandDrivenPipeline::TIME_STEPS());
-  	double* Csteps = outInfo->Get(vtkStreamingDemandDrivenPipeline::TIME_STEPS());
+	// int extent[6] = {0,-1,0,-1,0,-1};
+	// outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_EXTENT(), extent);
+
+  	int Ctime = outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP());
+  	// int Clength = outInfo->Length(vtkStreamingDemandDrivenPipeline::TIME_STEPS());
+  	// double* Csteps = outInfo->Get(vtkStreamingDemandDrivenPipeline::TIME_STEPS());
+
+
 
   	cout<< "Ctime " << "  " << Ctime << endl;
-  	cout<< "Clength " << "  " << Clength << endl;
-  	for (int i =0 ; i< Clength ; i++){
-  		cout << Csteps[i] << "  " << endl;
-  	}
+	// cout<< "Clength " << "  " << Clength << endl;
+	// for (int i =0 ; i< Clength ; i++){
+	// 	cout << Csteps[i] << "  " << endl;
+	// }
 
 	// if (outInfo->Has(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP()))
- //          std::cout << "Update Time" << endl;
- //     if (!outInfo->Has(vtkDataObject::DATA_TIME_STEP()))
- //     		std::cout << "DATA_TIME_STEP" << endl;
+	//          std::cout << "Update Time" << endl;
+	//     if (!outInfo->Has(vtkDataObject::DATA_TIME_STEP()))
+	//     		std::cout << "DATA_TIME_STEP" << endl;
 
-    // return outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP())
+	// return outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP())
 	// int piece, numPieces;
 	// piece = outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_PIECE_NUMBER());
 	// numPieces = outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_PIECES());
@@ -207,28 +250,25 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 
  	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-
-
-
- 		////////////////////////////////////////////////// Changed ////////////////////////////////////////
+	// //////////////////////////////////////////////// Changed ////////////////////////////////////////
 	// vtkDebugMacro( << "Send GMV data to Paraview");
 
- //  this->UpdateProgress(0.0);
+	//  this->UpdateProgress(0.0);
 
- //    if (outInfo->Has(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP()))
- //    {
+	//    if (outInfo->Has(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP()))
+	//    {
 
- //    // Get the requested time step. We only support requests of a single time
- //    // step in this reader right now
- //    double requestedTimeValue =
- //      outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP());
+	//    // Get the requested time step. We only support requests of a single time
+	//    // step in this reader right now
+	//    double requestedTimeValue =
+	//      outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP());
 
- //    // Snapping and clamping of the requested time step to be in bounds is done by
- //    // FileSeriesReader class.
- //    vtkDebugMacro( << "RequestData: requested time value: " << requestedTimeValue);
+	//    // Snapping and clamping of the requested time step to be in bounds is done by
+	//    // FileSeriesReader class.
+	//    vtkDebugMacro( << "RequestData: requested time value: " << requestedTimeValue);
 
- //    output->GetInformation()->Set(vtkDataObject::DATA_TIME_STEP(), requestedTimeValue);
- //    }
+	//    output->GetInformation()->Set(vtkDataObject::DATA_TIME_STEP(), requestedTimeValue);
+	//    }
 
 	// H5T_class_t type_class = dataset.getTypeClass();
 
@@ -253,6 +293,14 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 	vtkSmartPointer<vtkUnstructuredGrid> UGrid = vtkSmartPointer<vtkUnstructuredGrid>::New();
 	vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
 
+	vtkSmartPointer<vtkFloatArray> vtk_Generalized_Displacements = vtkSmartPointer<vtkFloatArray>::New();
+	vtk_Generalized_Displacements->SetName("Generalized_Displacements");
+	vtk_Generalized_Displacements->SetComponentName(0,"X-axis");
+	vtk_Generalized_Displacements->SetComponentName(1,"Y-axis");
+	vtk_Generalized_Displacements->SetComponentName(2,"Z-axis");
+	vtk_Generalized_Displacements->SetNumberOfComponents(3);
+	
+
 	points->SetNumberOfPoints(Number_of_Nodes[0]);
 	UGrid->Allocate(Number_of_Elements[0]);
 	float *pts  = (float *) points->GetVoidPointer(0);
@@ -260,6 +308,9 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 	for (int i = 0; i <= Number_of_Nodes[0]; i++){
 		if (Node_Index_to_Coordinates[i]>-1){
 			points->InsertPoint(i, Node_Coordinates[Node_Index_to_Coordinates[i]],Node_Coordinates[Node_Index_to_Coordinates[i]+1],Node_Coordinates[Node_Index_to_Coordinates[i]+2]);
+			
+			float tuple[3]={Node_Generalized_Displacements[Node_Index_to_Generalized_Displacements[i]][Ctime],Node_Generalized_Displacements[Node_Index_to_Generalized_Displacements[i]+1][Ctime],Node_Generalized_Displacements[Node_Index_to_Generalized_Displacements[i]+2][Ctime]};	
+			vtk_Generalized_Displacements->InsertTupleValue(i,tuple);
 		}
 	}
 
@@ -268,9 +319,6 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 
 	this->set_VTK_To_ESSI_Elements_Connectivity();
 
-		vtkSmartPointer<vtkFloatArray> vtk_Generalized_Displacements = vtkSmartPointer<vtkFloatArray>::New();
-	vtk_Generalized_Displacements->SetName("Generalized_Displacements");
-	vtk_Generalized_Displacements->SetNumberOfComponents(3);
 
 	///////////////////////////////////////////////////////////////////////////////// Building up the elements //////////////////////////////////////////////////////
 
@@ -280,18 +328,8 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 
 		if(connectivity_index==-1)
 			continue;
-
-		float tuple[3];
-		tuple[0]=i;
-		tuple[1]=i+1;
-		tuple[2]=i+2;
-
+	
 		int No_of_Element_Nodes = Element_Number_of_Nodes[i];
-		vtk_Generalized_Displacements->InsertNextTuple(tuple);
-		vtk_Generalized_Displacements->SetComponentName(0,"X-axis");
-		vtk_Generalized_Displacements->SetComponentName(1,"Y-axis");
-		vtk_Generalized_Displacements->SetComponentName(2,"Z-axis");
-
 		vtkIdType Vertices[No_of_Element_Nodes];
 
 		int Cell_Type = ESSI_to_VTK_Element.find(No_of_Element_Nodes)->second;
@@ -305,20 +343,10 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 	
 	/////////////////////////////////////////////////////////////////////// Building Up Data Array    ///////////////////////////////////////////////////////////////
 
-	UGrid->GetCellData()->AddArray(vtk_Generalized_Displacements);
+	UGrid->GetPointData()->AddArray(vtk_Generalized_Displacements);
 
 
 	/****************************************************************************************************/
-
-	// Here is where you would read the data from the file. In this example,
-	// we simply create a point.
-
-	
-	// polydata->SetPoints(points);
-
-	// vtkSmartPointer<vtkVertexGlyphFilter> glyphFilter = vtkSmartPointer<vtkVertexGlyphFilter>::New();
-	// glyphFilter->SetInputData(UGrid);
-	// glyphFilter->Update();
 
 	output->ShallowCopy(UGrid);
 	// UGrid->SetCells(NULL);
@@ -330,19 +358,34 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 
 int pvESSI::RequestInformation( vtkInformation *request, vtkInformationVector **vtkNotUsed(inVec), vtkInformationVector* outVec){
 
-	vtkInformation* outInfo = outVec->GetInformationObject(0);
-	int extent[6]={0,100,0,100,0,100}; 
-	int  No_of_TimeSteps = 20;
-	this->NumberOfTimeSteps = No_of_TimeSteps;
-	double Time_Steps[No_of_TimeSteps];
 
-	for (int i =0;i<No_of_TimeSteps ;i++)
+	vtkInformation* outInfo = outVec->GetInformationObject(0);
+
+	H5File file = H5File(this->FileName, H5F_ACC_RDONLY );
+
+	//////////////////////////////////////// Reading General Outside Data ////////////////////////////////////////////////////////////////////////////////////////////
+
+	DataSet No_of_TimeSteps_DataSet = file.openDataSet("Number_of_Time_Steps");
+	int No_of_TimeSteps[1]; No_of_TimeSteps_DataSet.read( No_of_TimeSteps, PredType::NATIVE_INT);
+
+	// DataSet Time_DataSet = file.openDataSet("time");
+	// double Time[No_of_TimeSteps[0]]; Time_DataSet.read( Time, PredType::NATIVE_INT);
+
+	this->Number_Of_Time_Steps = No_of_TimeSteps[0];
+	double Time_Steps[No_of_TimeSteps[0]]; Time_Steps[0]=0;
+
+	for (int i =0;i<No_of_TimeSteps[0] ;i++)
 		Time_Steps[i] = i;
-	double Time_range[2]={0,No_of_TimeSteps-1};
-	outInfo->Set(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT(),extent,6);
-	outInfo->Set(vtkStreamingDemandDrivenPipeline::TIME_STEPS(),Time_Steps,No_of_TimeSteps);
+
+	double Time_range[2]={0,No_of_TimeSteps[0]};
+
+	// // int extent[6]={0,100,0,100,0,100}; 
+
+
+	// // outInfo->Set(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT(),extent,6);
+	outInfo->Set(vtkStreamingDemandDrivenPipeline::TIME_STEPS(),Time_Steps, No_of_TimeSteps[0]);
 	outInfo->Set(vtkStreamingDemandDrivenPipeline::TIME_RANGE(),Time_range,2);
-	// outInfo->Set(vtkAlgorithm::CAN_PRODUCE_SUB_EXTENT(),1);
+	// // outInfo->Set(vtkAlgorithm::CAN_PRODUCE_SUB_EXTENT(),1);
 
 
 	return 1;
