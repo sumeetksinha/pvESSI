@@ -28,99 +28,6 @@
 using std::ostringstream;
 
 
-// Here are some default shape functions weights which
-// we will use to create dictionaries in a gvien data set.
-// Unused weights are commented out to avoid compiler warnings.
-namespace
-{
-// double W_T_11_A[]={
-//     3.33333333333334e-01, 3.33333333333333e-01, 3.33333333333333e-01};
-
-double W_T_32_A[] = { 1.66666666666660e-01, 6.66666666666670e-01,
-    1.66666666666670e-01, 6.66666666666660e-01, 1.66666666666670e-01,
-    1.66666666666670e-01, 1.66666666666660e-01, 1.66666666666670e-01,
-    6.66666666666670e-01 };
-
-// double W_T_32_B[]={
-//     5.00000000000000e-01, 5.00000000000000e-01, 0.00000000000000e+00,
-//     5.00000000000000e-01, 0.00000000000000e+00, 5.00000000000000e-01,
-//     0.00000000000000e+00, 5.00000000000000e-01, 5.00000000000000e-01};
-
-double W_QT_43_A[] = { -1.11111111111111e-01, -1.11111111111111e-01,
-    -1.11111111111111e-01, 4.44444444444445e-01, 4.44444444444444e-01,
-    4.44444444444445e-01, -1.20000000000000e-01, 1.20000000000000e-01,
-    -1.20000000000000e-01, 4.80000000000000e-01, 4.80000000000000e-01,
-    1.60000000000000e-01, 1.20000000000000e-01, -1.20000000000000e-01,
-    -1.20000000000000e-01, 4.80000000000000e-01, 1.60000000000000e-01,
-    4.80000000000000e-01, -1.20000000000000e-01, -1.20000000000000e-01,
-    1.20000000000000e-01, 1.60000000000000e-01, 4.80000000000000e-01,
-    4.80000000000000e-01 };
-
-double W_Q_42_A[] = { 6.22008467928145e-01, 1.66666666666667e-01,
-    4.46581987385206e-02, 1.66666666666667e-01, 1.66666666666667e-01,
-    4.46581987385206e-02, 1.66666666666667e-01, 6.22008467928145e-01,
-    1.66666666666667e-01, 6.22008467928145e-01, 1.66666666666667e-01,
-    4.46581987385206e-02, 4.46581987385206e-02, 1.66666666666667e-01,
-    6.22008467928145e-01, 1.66666666666667e-01 };
-
-double W_QQ_93_A[] = { 4.32379000772438e-01, -1.00000000000001e-01,
-    -3.23790007724459e-02, -1.00000000000001e-01, 3.54919333848301e-01,
-    4.50806661517046e-02, 4.50806661517046e-02, 3.54919333848301e-01,
-    -1.00000000000001e-01, -1.00000000000001e-01, -1.00000000000001e-01,
-    -1.00000000000001e-01, 2.00000000000003e-01, 1.12701665379260e-01,
-    2.00000000000003e-01, 8.87298334620740e-01, -1.00000000000001e-01,
-    -3.23790007724459e-02, -1.00000000000001e-01, 4.32379000772438e-01,
-    4.50806661517046e-02, 4.50806661517046e-02, 3.54919333848301e-01,
-    3.54919333848301e-01, -1.00000000000001e-01, -1.00000000000001e-01,
-    -1.00000000000001e-01, -1.00000000000001e-01, 8.87298334620740e-01,
-    2.00000000000003e-01, 1.12701665379260e-01, 2.00000000000003e-01,
-    -2.50000000000000e-01, -2.50000000000000e-01, -2.50000000000000e-01,
-    -2.50000000000000e-01, 5.00000000000000e-01, 5.00000000000000e-01,
-    5.00000000000000e-01, 5.00000000000000e-01, -1.00000000000001e-01,
-    -1.00000000000001e-01, -1.00000000000001e-01, -1.00000000000001e-01,
-    1.12701665379260e-01, 2.00000000000003e-01, 8.87298334620740e-01,
-    2.00000000000003e-01, -1.00000000000001e-01, 4.32379000772438e-01,
-    -1.00000000000001e-01, -3.23790007724459e-02, 3.54919333848301e-01,
-    3.54919333848301e-01, 4.50806661517046e-02, 4.50806661517046e-02,
-    -1.00000000000001e-01, -1.00000000000001e-01, -1.00000000000001e-01,
-    -1.00000000000001e-01, 2.00000000000003e-01, 8.87298334620740e-01,
-    2.00000000000003e-01, 1.12701665379260e-01, -3.23790007724459e-02,
-    -1.00000000000001e-01, 4.32379000772438e-01, -1.00000000000001e-01,
-    4.50806661517046e-02, 3.54919333848301e-01, 3.54919333848301e-01,
-    4.50806661517046e-02 };
-
-// double W_E_41_A[]={
-//      2.50000000000000e-01, 2.50000000000000e-01, 2.50000000000000e-01, 2.50000000000000e-01};
-
-double W_E_42_A[] = { 6.25000000000000e-01, 1.25000000000000e-01,
-    1.25000000000000e-01, 1.25000000000000e-01, 1.25000000000000e-01,
-    5.62500000000000e-01, 1.87500000000000e-01, 1.25000000000000e-01,
-    1.25000000000000e-01, 1.87500000000000e-01, 5.62500000000000e-01,
-    1.25000000000000e-01, 1.25000000000000e-01, 6.25000000000000e-02,
-    6.25000000000000e-02, 7.50000000000000e-01 };
-
-// double W_QE_41_A[]={
-//     -1.25000000000000e-01, -1.25000000000000e-01, -1.25000000000000e-01, -1.25000000000000e-01, 2.50000000000000e-01, 2.50000000000000e-01, 2.50000000000000e-01, 2.50000000000000e-01, 2.50000000000000e-01, 2.50000000000000e-01};
-
-double W_QE_42_A[] = { 1.56250000000000e-01, -9.37500000000000e-02,
-    -9.37500000000000e-02, -9.37500000000000e-02, 3.12500000000000e-01,
-    6.25000000000000e-02, 3.12500000000000e-01, 3.12500000000000e-01,
-    6.25000000000000e-02, 6.25000000000000e-02, -9.37500000000000e-02,
-    7.03125000000000e-02, -1.17187500000000e-01, -9.37500000000000e-02,
-    2.81250000000000e-01, 4.21875000000000e-01, 9.37500000000000e-02,
-    6.25000000000000e-02, 2.81250000000000e-01, 9.37500000000000e-02,
-    -9.37500000000000e-02, -1.17187500000000e-01, 7.03125000000000e-02,
-    -9.37500000000000e-02, 9.37500000000000e-02, 4.21875000000000e-01,
-    2.81250000000000e-01, 6.25000000000000e-02, 9.37500000000000e-02,
-    2.81250000000000e-01, -9.37500000000000e-02, -5.46875000000000e-02,
-    -5.46875000000000e-02, 3.75000000000000e-01, 3.12500000000000e-02,
-    1.56250000000000e-02, 3.12500000000000e-02, 3.75000000000000e-01,
-    1.87500000000000e-01, 1.87500000000000e-01 };
-
-}
-;
-
-
 // LINK_LIBRARIES(hdf5_cpp hdf5 )
 
 /************************************************************************************************************************************************/
@@ -137,14 +44,18 @@ pvESSI::pvESSI(){
 	this->FileName = NULL;
 	this->SetNumberOfInputPorts(0);
 	this->SetNumberOfOutputPorts(1);
-}
+	Energy_Database_Status=-1;
+	this->set_VTK_To_ESSI_Elements_Connectivity();	
+	}
  
 int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector **vtkNotUsed(inputVector),	vtkInformationVector *outputVector){
  
 	// get the info object
 	vtkInformation *outInfo = outputVector->GetInformationObject(0);
-	outInfo->Print(std::cout);
+	// outInfo->Print(std::cout);
 
+	if(Energy_Database_Status==-1)
+		this->Make_Energy_Database();
 
 	// int extent[6] = {0,-1,0,-1,0,-1};
 	// outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_EXTENT(), extent);
@@ -155,7 +66,7 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 
 
 
-  	cout<< "Ctime " << "  " << Ctime << endl;
+  	// cout<< "Ctime " << "  " << Ctime << endl;
 	// cout<< "Clength " << "  " << Clength << endl;
 	// for (int i =0 ; i< Clength ; i++){
 	// 	cout << Csteps[i] << "  " << endl;
@@ -178,8 +89,7 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 	// get the ouptut
 	vtkUnstructuredGrid *output = vtkUnstructuredGrid::SafeDownCast(outInfo->Get(vtkDataObject::DATA_OBJECT()));
 
-
-	///////////////////////////////////////////// Reading a HDF5 file ////////////////////////////////////////////////////////////////////////////////////////////////////
+		///////////////////////////////////////////// Reading a HDF5 file ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	H5File file = H5File(this->FileName, H5F_ACC_RDONLY );
 
@@ -295,30 +205,95 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 
 	vtkSmartPointer<vtkFloatArray> vtk_Generalized_Displacements = vtkSmartPointer<vtkFloatArray>::New();
 	vtk_Generalized_Displacements->SetName("Generalized_Displacements");
+	vtk_Generalized_Displacements->SetNumberOfComponents(3);
 	vtk_Generalized_Displacements->SetComponentName(0,"X-axis");
 	vtk_Generalized_Displacements->SetComponentName(1,"Y-axis");
 	vtk_Generalized_Displacements->SetComponentName(2,"Z-axis");
-	vtk_Generalized_Displacements->SetNumberOfComponents(3);
-	
+
+	vtkSmartPointer<vtkFloatArray> vtk_Generalized_Velocity = vtkSmartPointer<vtkFloatArray>::New();
+	vtk_Generalized_Velocity->SetName("Velocity");
+	vtk_Generalized_Velocity->SetNumberOfComponents(3);
+	vtk_Generalized_Velocity->SetComponentName(0,"X-axis");
+	vtk_Generalized_Velocity->SetComponentName(1,"Y-axis");
+	vtk_Generalized_Velocity->SetComponentName(2,"Z-axis");
+
+	vtkSmartPointer<vtkFloatArray> vtk_Generalized_Acceleration = vtkSmartPointer<vtkFloatArray>::New();
+	vtk_Generalized_Acceleration->SetName("Acceleration");
+	vtk_Generalized_Acceleration->SetNumberOfComponents(3);
+	vtk_Generalized_Acceleration->SetComponentName(0,"X-axis");
+	vtk_Generalized_Acceleration->SetComponentName(1,"Y-axis");
+	vtk_Generalized_Acceleration->SetComponentName(2,"Z-axis");
+
+	vtkSmartPointer<vtkFloatArray> Elastic_Strain_Tensor = vtkSmartPointer<vtkFloatArray>::New();
+	Elastic_Strain_Tensor->SetName("Elastic_Strain");
+	Elastic_Strain_Tensor->SetNumberOfComponents(9);
+	Elastic_Strain_Tensor->SetComponentName(0,"El-Strain-xx");
+	Elastic_Strain_Tensor->SetComponentName(1,"El-Strain-xy");
+	Elastic_Strain_Tensor->SetComponentName(2,"El-Strain-xz");
+	Elastic_Strain_Tensor->SetComponentName(3,"El-Strain-yx");
+	Elastic_Strain_Tensor->SetComponentName(4,"El-Strain-yy");
+	Elastic_Strain_Tensor->SetComponentName(5,"El-Strain-yz");
+	Elastic_Strain_Tensor->SetComponentName(6,"El-Strain-zx");
+	Elastic_Strain_Tensor->SetComponentName(7,"El-Strain-zy");
+	Elastic_Strain_Tensor->SetComponentName(8,"El-Strain-zz");
+
+	vtkSmartPointer<vtkFloatArray> Plastic_Strain_Tensor = vtkSmartPointer<vtkFloatArray>::New();
+	Plastic_Strain_Tensor->SetName("Plastic_Strain");
+	Plastic_Strain_Tensor->SetNumberOfComponents(9);
+	Plastic_Strain_Tensor->SetComponentName(0,"Pl-Strain-xx");
+	Plastic_Strain_Tensor->SetComponentName(1,"Pl-Strain-xy");
+	Plastic_Strain_Tensor->SetComponentName(2,"Pl-Strain-xz");
+	Plastic_Strain_Tensor->SetComponentName(3,"Pl-Strain-yx");
+	Plastic_Strain_Tensor->SetComponentName(4,"Pl-Strain-yy");
+	Plastic_Strain_Tensor->SetComponentName(5,"Pl-Strain-yz");
+	Plastic_Strain_Tensor->SetComponentName(6,"Pl-Strain-zx");
+	Plastic_Strain_Tensor->SetComponentName(7,"Pl-Strain-zy");
+	Plastic_Strain_Tensor->SetComponentName(8,"Pl-Strain-zz");	
+
+	vtkSmartPointer<vtkFloatArray> Stress_Tensor = vtkSmartPointer<vtkFloatArray>::New();
+	Stress_Tensor->SetName("Stress");
+	Stress_Tensor->SetNumberOfComponents(9);
+	Stress_Tensor->SetComponentName(0,"Stress-xx");
+	Stress_Tensor->SetComponentName(1,"Stress-xy");
+	Stress_Tensor->SetComponentName(2,"Stress-xz");
+	Stress_Tensor->SetComponentName(3,"Stress-yx");
+	Stress_Tensor->SetComponentName(4,"Stress-yy");
+	Stress_Tensor->SetComponentName(5,"Stress-yz");
+	Stress_Tensor->SetComponentName(6,"Stress-zx");
+	Stress_Tensor->SetComponentName(7,"Stress-zy");
+	Stress_Tensor->SetComponentName(8,"Stress-zz");	
+
+	vtkSmartPointer<vtkFloatArray> Material_Properties = vtkSmartPointer<vtkFloatArray>::New();
+	Material_Properties->SetName("Material_Properties");
+	Material_Properties->SetNumberOfComponents(1);
+
+	vtkSmartPointer<vtkFloatArray> Total_Energy = vtkSmartPointer<vtkFloatArray>::New();
+	Total_Energy->SetName("Total-Energy");
+	Total_Energy->SetNumberOfComponents(1);
+
+	vtkSmartPointer<vtkFloatArray> Incremental_Energy = vtkSmartPointer<vtkFloatArray>::New();
+	Incremental_Energy->SetName("Incremental_Energy");
+	Incremental_Energy->SetNumberOfComponents(1);
+
 
 	points->SetNumberOfPoints(Number_of_Nodes[0]);
 	UGrid->Allocate(Number_of_Elements[0]);
 	float *pts  = (float *) points->GetVoidPointer(0);
 
 	for (int i = 0; i <= Number_of_Nodes[0]; i++){
-		if (Node_Index_to_Coordinates[i]>-1){
+		if (Node_Index_to_Coordinates[i]!=-1){
 			points->InsertPoint(i, Node_Coordinates[Node_Index_to_Coordinates[i]],Node_Coordinates[Node_Index_to_Coordinates[i]+1],Node_Coordinates[Node_Index_to_Coordinates[i]+2]);
 			
 			float tuple[3]={Node_Generalized_Displacements[Node_Index_to_Generalized_Displacements[i]][Ctime],Node_Generalized_Displacements[Node_Index_to_Generalized_Displacements[i]+1][Ctime],Node_Generalized_Displacements[Node_Index_to_Generalized_Displacements[i]+2][Ctime]};	
 			vtk_Generalized_Displacements->InsertTupleValue(i,tuple);
+
+			vtk_Generalized_Velocity->InsertTupleValue(i,tuple);
+			vtk_Generalized_Acceleration->InsertTupleValue(i,tuple);
 		}
 	}
 
 	UGrid->SetPoints(points);
 	// cout << UGrid->GetNumberOfPoints() << endl;
-
-	this->set_VTK_To_ESSI_Elements_Connectivity();
-
 
 	///////////////////////////////////////////////////////////////////////////////// Building up the elements //////////////////////////////////////////////////////
 
@@ -326,27 +301,87 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 
 		int connectivity_index = Element_Index_to_Connectivity[i];
 
-		if(connectivity_index==-1)
-			continue;
+		if(connectivity_index!=-1){
 	
-		int No_of_Element_Nodes = Element_Number_of_Nodes[i];
-		vtkIdType Vertices[No_of_Element_Nodes];
+			int No_of_Element_Nodes = Element_Number_of_Nodes[i];
+			vtkIdType Vertices[No_of_Element_Nodes];
 
-		int Cell_Type = ESSI_to_VTK_Element.find(No_of_Element_Nodes)->second;
-		std::vector<int> Nodes_Connectivity_Order = ESSI_to_VTK_Connectivity.find(No_of_Element_Nodes)->second;
+			int Cell_Type = ESSI_to_VTK_Element.find(No_of_Element_Nodes)->second;
+			std::vector<int> Nodes_Connectivity_Order = ESSI_to_VTK_Connectivity.find(No_of_Element_Nodes)->second;
 
-		for(int j=0; j<No_of_Element_Nodes ; j++)
-			Vertices[j] = Element_Connectivity[connectivity_index+Nodes_Connectivity_Order[j]];
+			/************************************************** Gauss Calculations **********************************************/
 
-		UGrid->InsertNextCell(Cell_Type, No_of_Element_Nodes, Vertices);
+			int NOF_Gauss_Points = Element_Number_of_Gauss_Points[i];
+			int Output_Index = Element_Index_to_Outputs[i];
+			int NOF_Output_Fields = Element_No_of_Output_Fields[i];
+			float Energy_Increment=0;
+
+			for(int j=0; j< NOF_Gauss_Points ; j++){
+				float El_Strain_Tuple[9] ={Element_Outputs[Output_Index][Ctime],Element_Outputs[Output_Index+1][Ctime],Element_Outputs[Output_Index+3][Ctime],Element_Outputs[Output_Index+1][Ctime],Element_Outputs[Output_Index+2][Ctime],Element_Outputs[Output_Index+4][Ctime],Element_Outputs[Output_Index+3][Ctime],Element_Outputs[Output_Index+4][Ctime],Element_Outputs[Output_Index+5][Ctime]};
+				Output_Index = Output_Index+6;
+				float Pl_Strain_Tuple[9] ={Element_Outputs[Output_Index][Ctime],Element_Outputs[Output_Index+1][Ctime],Element_Outputs[Output_Index+3][Ctime],Element_Outputs[Output_Index+1][Ctime],Element_Outputs[Output_Index+2][Ctime],Element_Outputs[Output_Index+4][Ctime],Element_Outputs[Output_Index+3][Ctime],Element_Outputs[Output_Index+4][Ctime],Element_Outputs[Output_Index+5][Ctime]};
+				Output_Index = Output_Index+6;
+				float Stress_Tuple[9] ={Element_Outputs[Output_Index][Ctime],Element_Outputs[Output_Index+1][Ctime],Element_Outputs[Output_Index+3][Ctime],Element_Outputs[Output_Index+1][Ctime],Element_Outputs[Output_Index+2][Ctime],Element_Outputs[Output_Index+4][Ctime],Element_Outputs[Output_Index+3][Ctime],Element_Outputs[Output_Index+4][Ctime],Element_Outputs[Output_Index+5][Ctime]};
+				Output_Index = Output_Index+6;
+				Elastic_Strain_Tensor->InsertNextTuple(El_Strain_Tuple);
+				Plastic_Strain_Tensor->InsertNextTuple(Pl_Strain_Tuple);
+				Stress_Tensor->InsertNextTuple(Stress_Tuple);
+			}
+
+			Incremental_Energy->InsertValue(i,this->Incremental_Energy_Database[Ctime*(Number_of_Elements[0]+1)+i]);
+			Total_Energy->InsertValue(i,this->Total_Energy_Database[Ctime*(Number_of_Elements[0]+1)+i]);
+
+			/********************************************************************************************************************/
+
+			for(int j=0; j<No_of_Element_Nodes ; j++){
+				Vertices[j] = Element_Connectivity[connectivity_index+Nodes_Connectivity_Order[j]];
+			}
+
+			UGrid->InsertNextCell(Cell_Type, No_of_Element_Nodes, Vertices);
+
+			Material_Properties->InsertValue(i,i%10);
+		}
 	}
 	
 	/////////////////////////////////////////////////////////////////////// Building Up Data Array    ///////////////////////////////////////////////////////////////
 
 	UGrid->GetPointData()->AddArray(vtk_Generalized_Displacements);
+  	UGrid->GetPointData()->AddArray(vtk_Generalized_Velocity);
+  	UGrid->GetPointData()->AddArray(vtk_Generalized_Acceleration);
+ 	UGrid->GetFieldData()->AddArray(Stress_Tensor);
+  	UGrid->GetFieldData()->AddArray(Plastic_Strain_Tensor);
+  	UGrid->GetFieldData()->AddArray(Elastic_Strain_Tensor);
+  	UGrid->GetCellData()->AddArray(Material_Properties);
+  	UGrid->GetCellData()->AddArray(Total_Energy);
+  	UGrid->GetCellData()->AddArray(Incremental_Energy);
 
+	// /////////////////////////////////////////////////////////////////////// Gauss Point Visualization ///////////////////////////////////////////////////////////////
 
-	/****************************************************************************************************/
+	// // Add a quadrature scheme dictionary to the data set. This filter is
+	// // solely for our convinience. Typically we would expect that users
+	// // provide there own in XML format and use the readers or to generate
+	// // them on the fly.
+
+	//   vtkUnstructuredGrid *input=0;
+	// vtkSmartPointer<vtkQuadratureSchemeDictionaryGenerator> dictGen = vtkSmartPointer<vtkQuadratureSchemeDictionaryGenerator>::New();
+	// dictGen->SetInputData(UGrid);
+
+	// // Interpolate fields to the quadrature points. This generates new field data
+	// // arrays, but not a set of points.
+	// vtkSmartPointer<vtkQuadraturePointInterpolator> fieldInterp =vtkSmartPointer<vtkQuadraturePointInterpolator>::New();
+	// fieldInterp->SetInputArrayToProcess(0, 0, 0, vtkDataObject::FIELD_ASSOCIATION_CELLS, "QuadratureOffset");
+	// fieldInterp->SetInputConnection(dictGen->GetOutputPort());
+
+	// // Generate the quadrature point set using a specific array as point data.
+	// vtkSmartPointer<vtkQuadraturePointsGenerator> pointGen = vtkSmartPointer<vtkQuadraturePointsGenerator>::New();
+	// pointGen->SetInputArrayToProcess(0, 0, 0, vtkDataObject::FIELD_ASSOCIATION_CELLS, "QuadratureOffset");
+	// // pointGen->SetInputConnection(thresholder->GetOutputPort());
+	// vtkPolyData *Coutput=vtkPolyData::SafeDownCast(pointGen->GetOutput());
+	// pointGen->Update();
+	// const char* activeScalars = "pressure";
+	// UGrid->GetPointData()->SetActiveScalars(activeScalars);
+
+	// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	output->ShallowCopy(UGrid);
 	// UGrid->SetCells(NULL);
@@ -388,6 +423,12 @@ int pvESSI::RequestInformation( vtkInformation *request, vtkInformationVector **
 	// // outInfo->Set(vtkAlgorithm::CAN_PRODUCE_SUB_EXTENT(),1);
 
 
+	///////////////////////////////////////////////// Assign Key /////////////////////////////////////////////////////
+	// vtkSmartPointer<vtkInformationQuadratureSchemeDefinitionVectorKey> Quadrature_Definition_Vector = vtkSmartPointer<vtkInformationQuadratureSchemeDefinitionVectorKey> ::New();
+
+	// vtkSmartPointer<vtkQuadratureSchemeDefinition> Quadrature_Definition = vtkSmartPointer<vtkQuadratureSchemeDefinition>::New();
+	// Quadrature_Definition->Initialize(VTK_HEXAHEDRON,8,8,W_QQ_64_A);
+
 	return 1;
 }
  
@@ -411,3 +452,104 @@ void pvESSI::set_VTK_To_ESSI_Elements_Connectivity(){
 	int Hexahedron[8] = {4,5,6,7,0,1,2,3}; 	connectivity_vector.assign(Hexahedron,Hexahedron+8);	ESSI_to_VTK_Connectivity[8] = connectivity_vector;	connectivity_vector.clear();
 	int TriQudratic_hexahedron[27] = {6,5,4,7,2,1,0,3,13,12,15,14,9,8,11,10,18,17,16,19,23,21,22,24,26,25,20}; 											connectivity_vector.assign(TriQudratic_hexahedron,TriQudratic_hexahedron+27);					ESSI_to_VTK_Connectivity[27]= connectivity_vector;	connectivity_vector.clear();
 }
+
+void pvESSI::Make_Energy_Database(){
+
+	H5File file = H5File(this->FileName, H5F_ACC_RDONLY );
+
+	//////////////////////////////////////// Reading General Outside Data ////////////////////////////////////////////////////////////////////////////////////////////
+
+	DataSet No_of_Elements_DataSet = file.openDataSet("Number_of_Elements");
+	int Number_of_Elements[1]; No_of_Elements_DataSet.read( Number_of_Elements, PredType::NATIVE_INT);
+
+	DataSet No_of_TimeSteps_DataSet = file.openDataSet("Number_of_Time_Steps");
+	int No_of_TimeSteps[1]; No_of_TimeSteps_DataSet.read( No_of_TimeSteps, PredType::NATIVE_INT);
+
+	//////////////////////////////////////////////////// Reading Element Data ///////////////////////////////////////////////////////////////////////////////////////////
+
+	DataSet Element_Index_to_Connectivity_DataSet = file.openDataSet("Model/Elements/Index_to_Connectivity");
+	int Element_Index_to_Connectivity[Number_of_Elements[0]+1]; Element_Index_to_Connectivity_DataSet.read( Element_Index_to_Connectivity, PredType::NATIVE_INT);
+
+	DataSet Element_Index_to_Outputs_DataSet = file.openDataSet("Model/Elements/Index_to_Outputs");
+	int Element_Index_to_Outputs[Number_of_Elements[0]+1]; Element_Index_to_Outputs_DataSet.read( Element_Index_to_Outputs, PredType::NATIVE_INT);
+
+	DataSet Element_No_of_Output_Fields_DataSet = file.openDataSet("Model/Elements/Number_of_Output_Fields");
+	int Element_No_of_Output_Fields[Number_of_Elements[0]+1]; Element_No_of_Output_Fields_DataSet.read( Element_No_of_Output_Fields, PredType::NATIVE_INT);
+
+	DataSet Element_Number_of_Gauss_Points_DataSet = file.openDataSet("Model/Elements/Number_of_Gauss_Points");
+	int Element_Number_of_Gauss_Points[Number_of_Elements[0]+1]; Element_Number_of_Gauss_Points_DataSet.read( Element_Number_of_Gauss_Points, PredType::NATIVE_INT);
+
+	hsize_t dims_out[2]; int ndims; DataSet Element_Outputs_DataSet = file.openDataSet("Model/Elements/Outputs");
+	DataSpace Element_Outputs_DataSpace = Element_Outputs_DataSet.getSpace(); ndims = Element_Outputs_DataSpace.getSimpleExtentDims( dims_out, NULL);
+	float Element_Outputs[dims_out[0]][dims_out[1]]; Element_Outputs_DataSet.read( Element_Outputs, PredType::NATIVE_FLOAT);
+
+	///////////////////////////////////////////////////////////////////////////////// Building up the elements //////////////////////////////////////////////////////
+
+	Incremental_Energy_Database = new float [(Number_of_Elements[0]+1)*No_of_TimeSteps[0]];
+  	Total_Energy_Database = new float [(Number_of_Elements[0]+1)*No_of_TimeSteps[0]];
+
+	for(int Ctime=0; Ctime < No_of_TimeSteps[0];  Ctime++){
+
+		for (int i = 0; i <= Number_of_Elements[0]; i++){
+
+			int connectivity_index = Element_Index_to_Connectivity[i];
+
+			if(connectivity_index!=-1){
+		
+				int NOF_Gauss_Points = Element_Number_of_Gauss_Points[i];
+				int Output_Index = Element_Index_to_Outputs[i];
+				int NOF_Output_Fields = Element_No_of_Output_Fields[i];
+				float Energy_Increment=0;
+
+				for(int j=0; j< NOF_Gauss_Points ; j++){
+					float El_Strain_Tuple[9] ={Element_Outputs[Output_Index][Ctime],Element_Outputs[Output_Index+1][Ctime],Element_Outputs[Output_Index+3][Ctime],Element_Outputs[Output_Index+1][Ctime],Element_Outputs[Output_Index+2][Ctime],Element_Outputs[Output_Index+4][Ctime],Element_Outputs[Output_Index+3][Ctime],Element_Outputs[Output_Index+4][Ctime],Element_Outputs[Output_Index+5][Ctime]};
+					Output_Index = Output_Index+6;
+					float Pl_Strain_Tuple[9] ={Element_Outputs[Output_Index][Ctime],Element_Outputs[Output_Index+1][Ctime],Element_Outputs[Output_Index+3][Ctime],Element_Outputs[Output_Index+1][Ctime],Element_Outputs[Output_Index+2][Ctime],Element_Outputs[Output_Index+4][Ctime],Element_Outputs[Output_Index+3][Ctime],Element_Outputs[Output_Index+4][Ctime],Element_Outputs[Output_Index+5][Ctime]};
+					Output_Index = Output_Index+6;
+					float Stress_Tuple[9] ={Element_Outputs[Output_Index][Ctime],Element_Outputs[Output_Index+1][Ctime],Element_Outputs[Output_Index+3][Ctime],Element_Outputs[Output_Index+1][Ctime],Element_Outputs[Output_Index+2][Ctime],Element_Outputs[Output_Index+4][Ctime],Element_Outputs[Output_Index+3][Ctime],Element_Outputs[Output_Index+4][Ctime],Element_Outputs[Output_Index+5][Ctime]};
+					Output_Index = Output_Index+6;
+
+					Output_Index = Output_Index-18;
+
+					if(Ctime>0){
+						float Prev_El_Strain_Tuple[9] ={Element_Outputs[Output_Index][Ctime-1],Element_Outputs[Output_Index+1][Ctime-1],Element_Outputs[Output_Index+3][Ctime-1],Element_Outputs[Output_Index+1][Ctime-1],Element_Outputs[Output_Index+2][Ctime-1],Element_Outputs[Output_Index+4][Ctime-1],Element_Outputs[Output_Index+3][Ctime-1],Element_Outputs[Output_Index+4][Ctime-1],Element_Outputs[Output_Index+5][Ctime-1]};
+						Output_Index = Output_Index+6;
+						float Prev_Pl_Strain_Tuple[9] ={Element_Outputs[Output_Index][Ctime-1],Element_Outputs[Output_Index+1][Ctime-1],Element_Outputs[Output_Index+3][Ctime-1],Element_Outputs[Output_Index+1][Ctime-1],Element_Outputs[Output_Index+2][Ctime-1],Element_Outputs[Output_Index+4][Ctime-1],Element_Outputs[Output_Index+3][Ctime-1],Element_Outputs[Output_Index+4][Ctime-1],Element_Outputs[Output_Index+5][Ctime-1]};
+						Output_Index = Output_Index+6;
+						float Prev_Stress_Tuple[9] ={Element_Outputs[Output_Index][Ctime-1],Element_Outputs[Output_Index+1][Ctime-1],Element_Outputs[Output_Index+3][Ctime-1],Element_Outputs[Output_Index+1][Ctime-1],Element_Outputs[Output_Index+2][Ctime-1],Element_Outputs[Output_Index+4][Ctime-1],Element_Outputs[Output_Index+3][Ctime-1],Element_Outputs[Output_Index+4][Ctime-1],Element_Outputs[Output_Index+5][Ctime-1]};
+						Output_Index = Output_Index+6;
+						Energy_Increment+=(Stress_Tuple[0]-Prev_Stress_Tuple[0])*(El_Strain_Tuple[0]+Pl_Strain_Tuple[0]-Prev_El_Strain_Tuple[0]-Prev_Pl_Strain_Tuple[0])+
+										(Stress_Tuple[1]-Prev_Stress_Tuple[1])*(El_Strain_Tuple[1]+Pl_Strain_Tuple[1]-Prev_El_Strain_Tuple[1]-Prev_Pl_Strain_Tuple[1])+
+										(Stress_Tuple[2]-Prev_Stress_Tuple[2])*(El_Strain_Tuple[2]+Pl_Strain_Tuple[2]-Prev_El_Strain_Tuple[2]-Prev_Pl_Strain_Tuple[2])+
+										(Stress_Tuple[3]-Prev_Stress_Tuple[3])*(El_Strain_Tuple[3]+Pl_Strain_Tuple[3]-Prev_El_Strain_Tuple[3]-Prev_Pl_Strain_Tuple[3])+
+										(Stress_Tuple[4]-Prev_Stress_Tuple[4])*(El_Strain_Tuple[4]+Pl_Strain_Tuple[4]-Prev_El_Strain_Tuple[4]-Prev_Pl_Strain_Tuple[4])+
+										(Stress_Tuple[5]-Prev_Stress_Tuple[5])*(El_Strain_Tuple[5]+Pl_Strain_Tuple[5]-Prev_El_Strain_Tuple[5]-Prev_Pl_Strain_Tuple[5])+
+										(Stress_Tuple[6]-Prev_Stress_Tuple[6])*(El_Strain_Tuple[6]+Pl_Strain_Tuple[6]-Prev_El_Strain_Tuple[6]-Prev_Pl_Strain_Tuple[6])+
+										(Stress_Tuple[7]-Prev_Stress_Tuple[7])*(El_Strain_Tuple[7]+Pl_Strain_Tuple[7]-Prev_El_Strain_Tuple[7]-Prev_Pl_Strain_Tuple[7])+
+										(Stress_Tuple[8]-Prev_Stress_Tuple[8])*(El_Strain_Tuple[8]+Pl_Strain_Tuple[8]-Prev_El_Strain_Tuple[8]-Prev_Pl_Strain_Tuple[8]);
+					}
+					else{
+						Energy_Increment+=(Stress_Tuple[0])*(El_Strain_Tuple[0]+Pl_Strain_Tuple[0])+
+										(Stress_Tuple[1])*(El_Strain_Tuple[1]+Pl_Strain_Tuple[1])+
+										(Stress_Tuple[2])*(El_Strain_Tuple[2]+Pl_Strain_Tuple[2])+
+										(Stress_Tuple[3])*(El_Strain_Tuple[3]+Pl_Strain_Tuple[3])+
+										(Stress_Tuple[4])*(El_Strain_Tuple[4]+Pl_Strain_Tuple[4])+
+										(Stress_Tuple[5])*(El_Strain_Tuple[5]+Pl_Strain_Tuple[5])+
+										(Stress_Tuple[6])*(El_Strain_Tuple[6]+Pl_Strain_Tuple[6])+
+										(Stress_Tuple[7])*(El_Strain_Tuple[7]+Pl_Strain_Tuple[7])+
+										(Stress_Tuple[8])*(El_Strain_Tuple[8]+Pl_Strain_Tuple[8]);
+						Output_Index = Output_Index+18;
+					}
+				}
+
+				Incremental_Energy_Database[Ctime*(Number_of_Elements[0]+1)+i] = Energy_Increment/8;
+				if(Ctime>0)
+					Total_Energy_Database[Ctime*(Number_of_Elements[0]+1)+i] = Total_Energy_Database[(Ctime-1)*(Number_of_Elements[0]+1)+i] + Incremental_Energy_Database[Ctime*(Number_of_Elements[0]+1)+i];
+				else
+					Total_Energy_Database[Ctime*(Number_of_Elements[0]+1)+i] = Incremental_Energy_Database[Ctime*(Number_of_Elements[0]+1)+i];
+			}
+		}
+	}
+	Energy_Database_Status=1;
+}
+

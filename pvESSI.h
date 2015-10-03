@@ -4,6 +4,11 @@
 #include "vtkPolyDataAlgorithm.h"
 #include "vtkPolyDataAlgorithm.h"
 #include "vtkUnstructuredGridAlgorithm.h"
+#include "vtkQuadratureSchemeDictionaryGenerator.h"
+#include "vtkInformationQuadratureSchemeDefinitionVectorKey.h"
+#include "vtkInformationStringKey.h"
+#include "vtkFloatArray.h"
+#include "vtkSmartPointer.h"
 #include <map>
 #include <vector>
 #include <iostream>
@@ -13,9 +18,11 @@ class pvESSI : public vtkUnstructuredGridAlgorithm
 public:
   vtkTypeMacro(pvESSI,vtkUnstructuredGridAlgorithm);
   void PrintSelf(ostream& os, vtkIndent indent);
-  void PrintX(int x){
-  	std::cout << x << std::endl;
-  }
+  void PrintX(int x){std::cout << x << std::endl;}
+
+  // static vtkInformationQuadratureSchemeDefinitionVectorKey* DICTIONARY();
+  // static vtkInformationStringKey* QUADRATURE_OFFSET_ARRAY_NAME();
+
   // void GetNumberOfCellArrays();
  
   static pvESSI *New();
@@ -65,6 +72,10 @@ private:
   pvESSI(const pvESSI&);  // Not implemented.
   void operator=(const pvESSI&);  // Not implemented.
   void set_VTK_To_ESSI_Elements_Connectivity();
+  void Make_Energy_Database();
+  int Energy_Database_Status;
+  float *Incremental_Energy_Database;
+  float *Total_Energy_Database;
  
   char* FileName;
 };
