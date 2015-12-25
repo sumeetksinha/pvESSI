@@ -12,13 +12,39 @@
 #include <map>
 #include <vector>
 #include <iostream>
+#include "vtkObjectFactory.h"
+#include "vtkStreamingDemandDrivenPipeline.h"
+#include "vtkQuadratureSchemeDefinition.h"
+#include "vtkQuadraturePointInterpolator.h"
+#include "vtkQuadraturePointsGenerator.h"
+#include "vtkQuadratureSchemeDictionaryGenerator.h"
+#include "vtkInformationQuadratureSchemeDefinitionVectorKey.h"
+#include "vtkIdTypeArray.h"
+#include "vtkInformationVector.h"
+#include "vtkFloatArray.h"
+#include "vtkInformation.h"
+#include "vtkDataObject.h"
+#include "vtkSmartPointer.h"
+#include "vtkCell.h"
+#include "vtkCellData.h"
+#include "vtkPointData.h"
+#include "vtkVertexGlyphFilter.h"
+#include "vtkUnstructuredGrid.h"
+#include "vtkLookupTable.h"
+#include "H5Cpp.h"
+#include <string>
+#include <iostream>
+#include <map>
+#include <vector>
+#include "vtkExecutive.h"
+#include <sstream>
 
 class pvESSI : public vtkUnstructuredGridAlgorithm
 {
 public:
   vtkTypeMacro(pvESSI,vtkUnstructuredGridAlgorithm);
   void PrintSelf(ostream& os, vtkIndent indent);
-  void PrintX(int x){std::cout << x << std::endl;}
+  void PrintX(int x){/*std::cout << x << std::endl;*/}
 
   // static vtkInformationQuadratureSchemeDefinitionVectorKey* DICTIONARY();
   // static vtkInformationStringKey* QUADRATURE_OFFSET_ARRAY_NAME();
@@ -63,7 +89,6 @@ protected:
 
   vtkDataObject* GetCurrentOutput();
   vtkInformation* GetCurrentOutputInformation();
-
  
 private:
 
@@ -78,6 +103,20 @@ private:
   float *Total_Energy_Database;
  
   char* FileName;
+
+  /******************************************* Mesh ******************************************/
+  vtkSmartPointer<vtkUnstructuredGrid> UGrid_Mesh = vtkSmartPointer<vtkUnstructuredGrid>::New();
+  void GetMesh(); // Building the mesh skeleton
+
+  int mesh_build = 0;
+
+  // int Number_of_Elements=0, Number_of_Nodes=0, No_of_TimeSteps=0;
+
+void SetMetaArrays( vtkSmartPointer<vtkFloatArray> &vtk_Generalized_Displacements, vtkSmartPointer<vtkFloatArray> &vtk_Generalized_Velocity, vtkSmartPointer<vtkFloatArray> &vtk_Generalized_Acceleration, vtkSmartPointer<vtkFloatArray> &Elastic_Strain_Tensor, vtkSmartPointer<vtkFloatArray> &Plastic_Strain_Tensor, vtkSmartPointer<vtkFloatArray> &Stress_Tensor, vtkSmartPointer<vtkFloatArray> &Material_Properties, vtkSmartPointer<vtkFloatArray> &Total_Energy, vtkSmartPointer<vtkFloatArray> &Incremental_Energy);
+
+
+  /*******************************************************************************************/
+
 };
  
 #endif
