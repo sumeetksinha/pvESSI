@@ -105,10 +105,10 @@ private:
   char* FileName;
 
   /******************************************* Mesh ******************************************/
-  vtkSmartPointer<vtkUnstructuredGrid> UGrid_Mesh = vtkSmartPointer<vtkUnstructuredGrid>::New();
+  vtkSmartPointer<vtkUnstructuredGrid> UGrid_Mesh;
   void GetMesh(); // Building the mesh skeleton
 
-  int mesh_build = 0;
+  int mesh_build;
 
   // int Number_of_Elements=0, Number_of_Nodes=0, No_of_TimeSteps=0;
 

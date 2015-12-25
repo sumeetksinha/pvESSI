@@ -4,14 +4,14 @@
     <SourceProxy name="pvESSI" class="pvESSI" label="pvESSI">
       
       <Documentation
-         long_help="Read a .abc file."
-         short_help="Read a .abc file.">
+         long_help="Read a .feioutput file produced by UCD ESSI (Earthquake Soil-Structure Interaction Simulator Program) "
+         short_help="Read a .feioutput file produced by UCD ESSI (Earthquake Soil-Structure Interaction Simulator Program) ">
       </Documentation>
       
       <StringVectorProperty name="FileName" animateable="0" command="SetFileName" number_of_elements="1">
         <FileListDomain name="files"/>
         <Documentation>
-          This property specifies the file name for the PNG reader.
+          This property specifies the file name for the pvESSI reader in ESSI.
         </Documentation>
       </StringVectorProperty>
 

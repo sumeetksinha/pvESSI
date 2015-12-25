@@ -47,6 +47,8 @@ pvESSI::pvESSI(){
 	this->SetNumberOfInputPorts(0);
 	this->SetNumberOfOutputPorts(1);
 	Energy_Database_Status=-1;
+	mesh_build =0;
+	UGrid_Mesh = vtkSmartPointer<vtkUnstructuredGrid>::New();
 	this->set_VTK_To_ESSI_Elements_Connectivity();
 }
 
