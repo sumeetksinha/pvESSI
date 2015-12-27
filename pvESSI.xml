@@ -15,6 +15,20 @@
         </Documentation>
       </StringVectorProperty>
 
+      <IntVectorProperty command="PlotGaussMesh" default_values="0" number_of_elements="1" name="ShowGaussPoints">
+        <BooleanDomain name="bool"/>
+        <Documentation>
+          This property specifies specifies whether to plot the gaussian coordinates or general coordinates.
+        </Documentation>        
+      </IntVectorProperty>
+
+      <IntVectorProperty command="PlotGeneralMesh" default_values="1" number_of_elements="1" name="ShowGeneralMesh">
+        <BooleanDomain name="bool"/>
+        <Documentation>
+          This property specifies specifies whether to show the general coordinates.
+        </Documentation>        
+      </IntVectorProperty>
+
 <!--       <StringVectorProperty name="CellArrayInfo" information_only="1">
          <ArraySelectionInformationHelper attribute_name="Cell"/>
       </StringVectorProperty>
@@ -63,4 +77,68 @@
     <!-- End Reader -->
   </ProxyGroup>
   <!-- End Filters Group -->
+
+<!--   <ProxyGroup name="filters">
+    <SourceProxy name="LandmarkTransformFilter"  label="LandmarkTransformFilter">
+      <Documentation
+         long_help="Align two point sets using vtkLandmarkTransform to compute the best transformation between the two point sets."
+         short_help="vtkLandmarkTransformFilter.">
+      </Documentation>
+ 
+      <InputProperty
+         name="SourceLandmarks"
+   port_index="0"
+         command="SetInputConnection">
+        <ProxyGroupDomain name="groups">
+          <Group name="sources"/>
+          <Group name="filters"/>
+        </ProxyGroupDomain>
+        <DataTypeDomain name="input_type">
+          <DataType value="vtkPolyData"/>
+        </DataTypeDomain>
+        <Documentation>
+          Set the source data set. This data set that will move towards the target data set.
+        </Documentation>
+      </InputProperty>
+ 
+      <InputProperty
+         name="TargetLandmarks"
+   port_index="1"
+         command="SetInputConnection">
+        <ProxyGroupDomain name="groups">
+          <Group name="sources"/>
+          <Group name="filters"/>
+        </ProxyGroupDomain>
+        <DataTypeDomain name="input_type">
+          <DataType value="vtkPolyData"/>
+        </DataTypeDomain>
+        <Documentation>
+          Set the target data set. This data set will stay stationary.
+        </Documentation>
+      </InputProperty>
+ 
+      <InputProperty
+         name="SourceDataSet"
+   port_index="2"
+         command="SetInputConnection">
+        <ProxyGroupDomain name="groups">
+          <Group name="sources"/>
+          <Group name="filters"/>
+        </ProxyGroupDomain>
+        <DataTypeDomain name="input_type">
+          <DataType value="vtkPolyData"/>
+        </DataTypeDomain>
+        <Documentation>
+          Set the source data set landmark points.
+        </Documentation>
+      </InputProperty>
+ 
+      <Hints> 
+        <ShowInMenu category="pvESSI" />
+        <ShowInMenu icon=":pvESSI_Icons/Icons/Solid.png" />
+      </Hints>
+ 
+    </SourceProxy>
+  </ProxyGroup> -->
+
 </ServerManagerConfiguration>

@@ -44,7 +44,29 @@ class pvESSI : public vtkUnstructuredGridAlgorithm
 public:
   vtkTypeMacro(pvESSI,vtkUnstructuredGridAlgorithm);
   void PrintSelf(ostream& os, vtkIndent indent);
-  void PrintX(int x){/*std::cout << x << std::endl;*/}
+  void PlotGaussMesh(int x){
+  	if(x) {
+  		std::cout << "Displaying Gauss Mesh" <<std::endl;
+  		Display_Gauss_Mesh=1;
+  	}
+  	else{
+  		std::cout << "Displaying General Mesh" <<std::endl;
+  		Display_Gauss_Mesh =0;
+  	}
+  }
+
+  void PlotGeneralMesh(int x){
+  	if(x) {
+  		std::cout << "Displaying General Mesh" <<std::endl;
+  		Display_General_Mesh =1;
+  	}
+  	else{
+  		std::cout << "Displaying Gauss Mesh" <<std::endl;
+  		Display_General_Mesh =0;
+  	}
+  }
+
+  void PrintX(int x){}
 
   // static vtkInformationQuadratureSchemeDefinitionVectorKey* DICTIONARY();
   // static vtkInformationStringKey* QUADRATURE_OFFSET_ARRAY_NAME();
@@ -97,22 +119,23 @@ private:
   pvESSI(const pvESSI&);  // Not implemented.
   void operator=(const pvESSI&);  // Not implemented.
   void set_VTK_To_ESSI_Elements_Connectivity();
-  void Make_Energy_Database();
+  void Build_Gauss_Attributes();
+  void Build_Node_Attributes();
   int Energy_Database_Status;
-  float *Incremental_Energy_Database;
-  float *Total_Energy_Database;
+  float *Prev_Total_Energy_Database;
  
   char* FileName;
 
   /******************************************* Mesh ******************************************/
   vtkSmartPointer<vtkUnstructuredGrid> UGrid_Mesh;
-  void GetMesh(); // Building the mesh skeleton
+  vtkSmartPointer<vtkUnstructuredGrid> UGrid_Gauss_Mesh;
+  vtkSmartPointer<vtkUnstructuredGrid> *UGrid_All_Mesh;
+  int Number_of_Elements, Number_of_Nodes, Number_of_Gauss_Nodes;
+  int Display_Gauss_Mesh=0, Display_General_Mesh =1, whetehr_general_mesh_build=0, whetehr_gauss_mesh_build=0;
 
-  int mesh_build;
-
-  // int Number_of_Elements=0, Number_of_Nodes=0, No_of_TimeSteps=0;
-
-void SetMetaArrays( vtkSmartPointer<vtkFloatArray> &vtk_Generalized_Displacements, vtkSmartPointer<vtkFloatArray> &vtk_Generalized_Velocity, vtkSmartPointer<vtkFloatArray> &vtk_Generalized_Acceleration, vtkSmartPointer<vtkFloatArray> &Elastic_Strain_Tensor, vtkSmartPointer<vtkFloatArray> &Plastic_Strain_Tensor, vtkSmartPointer<vtkFloatArray> &Stress_Tensor, vtkSmartPointer<vtkFloatArray> &Material_Properties, vtkSmartPointer<vtkFloatArray> &Total_Energy, vtkSmartPointer<vtkFloatArray> &Incremental_Energy);
+  void GetGeneralMesh(); 	// Building the general mesh skeleton
+  void GetGaussMesh(); 		// Building the gauss mesh skeleton
+  void SetMetaArrays( vtkSmartPointer<vtkFloatArray> &vtk_Generalized_Displacements, vtkSmartPointer<vtkFloatArray> &vtk_Generalized_Velocity, vtkSmartPointer<vtkFloatArray> &vtk_Generalized_Acceleration, vtkSmartPointer<vtkFloatArray> &Elastic_Strain_Tensor, vtkSmartPointer<vtkFloatArray> &Plastic_Strain_Tensor, vtkSmartPointer<vtkFloatArray> &Stress_Tensor, vtkSmartPointer<vtkFloatArray> &Material_Properties, vtkSmartPointer<vtkFloatArray> &Total_Energy, vtkSmartPointer<vtkFloatArray> &Incremental_Energy);
 
 
   /*******************************************************************************************/
