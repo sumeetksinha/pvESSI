@@ -46,18 +46,20 @@ pvESSI::pvESSI(){
 
 	this->FileName = NULL;
 	this->SetNumberOfInputPorts(0);
-	this->SetNumberOfOutputPorts(1);
+	this->SetNumberOfOutputPorts(2);
 	Energy_Database_Status=-1;
 	UGrid_Mesh = vtkSmartPointer<vtkUnstructuredGrid>::New();
 	UGrid_Gauss_Mesh = vtkSmartPointer<vtkUnstructuredGrid>:: New();
 	UGrid_All_Mesh = new vtkSmartPointer<vtkUnstructuredGrid>[2];
 	this->set_VTK_To_ESSI_Elements_Connectivity();
+	Current_Time =0;
 }
 
 int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector **vtkNotUsed(inputVector),	vtkInformationVector *outputVector){
  
 	// get the info object
-	vtkInformation *outInfo = outputVector->GetInformationObject(0);
+	vtkInformation *outInfo1 = outputVector->GetInformationObject(0);
+	vtkInformation *outInfo2 = outputVector->GetInformationObject(1);
 	// outInfo->Print(std::cout);
 
 	if (!whetehr_general_mesh_build){ this->GetGaussMesh(); this->GetGeneralMesh();} 
@@ -68,11 +70,12 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 	// int extent[6] = {0,-1,0,-1,0,-1};
 	// outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_EXTENT(), extent);
 
-  	int Ctime = outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP());
+  	Current_Time = outInfo1->Get(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP());
+  	// int Ctime2 = outInfo2->Get(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP());
   	// int Clength = outInfo->Length(vtkStreamingDemandDrivenPipeline::TIME_STEPS());
   	// double* Csteps = outInfo->Get(vtkStreamingDemandDrivenPipeline::TIME_STEPS());
 
- 	// cout<< "Ctime " << "  " << Ctime << endl;
+ 	cout<< "Current_Time " << Current_Time<< endl;
 	// cout<< "Clength " << "  " << Clength << endl;
 	// for (int i =0 ; i< Clength ; i++){
 	// 	cout << Csteps[i] << "  " << endl;
@@ -93,7 +96,8 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 	///////////////////////////////////////////////////////////////////////////////
 
 	// get the ouptut pointer to paraview 
-	vtkUnstructuredGrid *output = vtkUnstructuredGrid::SafeDownCast(outInfo->Get(vtkDataObject::DATA_OBJECT()));
+	vtkUnstructuredGrid *GeneralMesh = vtkUnstructuredGrid::SafeDownCast(outInfo1->Get(vtkDataObject::DATA_OBJECT()));
+	vtkUnstructuredGrid *GaussMesh = vtkUnstructuredGrid::SafeDownCast(outInfo2->Get(vtkDataObject::DATA_OBJECT()));
 
 	// /////////////////////////////////////////////////////////////////////// Gauss Point Visualization ///////////////////////////////////////////////////////////////
 
@@ -123,11 +127,13 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	UGrid_All_Mesh[0] = UGrid_Mesh;
-	UGrid_All_Mesh[1] = UGrid_Gauss_Mesh;
 
-	output->ShallowCopy(UGrid_Mesh);
-	output->ShallowCopy(UGrid_Gauss_Mesh);
+	Build_Gauss_Attributes();
+	Build_Node_Attributes();
+
+
+	GeneralMesh->ShallowCopy(UGrid_Mesh);
+	GaussMesh->ShallowCopy(UGrid_Gauss_Mesh);
 
 	// output->ShallowCopy(UGrid_All_Mesh);
 
@@ -136,7 +142,8 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 
 int pvESSI::RequestInformation( vtkInformation *request, vtkInformationVector **vtkNotUsed(inVec), vtkInformationVector* outVec){
 
-	vtkInformation* outInfo = outVec->GetInformationObject(0);
+	vtkInformation* outInfo1 = outVec->GetInformationObject(0);
+	vtkInformation* outInfo2 = outVec->GetInformationObject(1);
 
 	//////////////////////////////////////////////////////// Reading Hdf5 File ///////////////////////////////////////////////////////////////////////////////////////
 
@@ -187,8 +194,11 @@ int pvESSI::RequestInformation( vtkInformation *request, vtkInformationVector **
 
 
 	// outInfo->Set(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT(),extent,6);
-	outInfo->Set(vtkStreamingDemandDrivenPipeline::TIME_STEPS(),Time_Steps, No_of_TimeSteps[0]);
-	outInfo->Set(vtkStreamingDemandDrivenPipeline::TIME_RANGE(),Time_range,2);
+	outInfo1->Set(vtkStreamingDemandDrivenPipeline::TIME_STEPS(),Time_Steps, No_of_TimeSteps[0]);
+	outInfo1->Set(vtkStreamingDemandDrivenPipeline::TIME_RANGE(),Time_range,2);
+
+	outInfo2->Set(vtkStreamingDemandDrivenPipeline::TIME_STEPS(),Time_Steps, No_of_TimeSteps[0]);
+	outInfo2->Set(vtkStreamingDemandDrivenPipeline::TIME_RANGE(),Time_range,2);
 	// outInfo->Set(vtkAlgorithm::CAN_PRODUCE_SUB_EXTENT(),1);
 
 
@@ -284,10 +294,6 @@ void pvESSI::Build_Node_Attributes(){
 	UGrid_Mesh->GetPointData()->AddArray(vtk_Generalized_Displacements);
   	// UGrid_Mesh->GetPointData()->AddArray(vtk_Generalized_Velocity);
   	// UGrid_Mesh->GetPointData()->AddArray(vtk_Generalized_Acceleration);
-
-
-
-
 }
 
 void pvESSI::Build_Gauss_Attributes(){
@@ -331,19 +337,20 @@ void pvESSI::Build_Gauss_Attributes(){
 			/************************************************** Gauss Calculations **********************************************/
 
 			int No_of_Element_Gauss_Nodes = Element_Number_of_Gauss_Points[i];
-			int Output_Index = Element_Index_to_Outputs[i];	int Gauss_Incremental_Energy = 0, Gauss_Total_Energy =0 ;
+			int Output_Index = Element_Index_to_Outputs[i];
 
 			for(int j=0; j< No_of_Element_Gauss_Nodes ; j++){
 
+				float Gauss_Incremental_Energy[1] = {0}, Gauss_Total_Energy[1]= {0} ;
 				float El_Strain_Tuple[9] ={Element_Outputs[Output_Index],Element_Outputs[Output_Index+1],Element_Outputs[Output_Index+3],Element_Outputs[Output_Index+1],Element_Outputs[Output_Index+2],Element_Outputs[Output_Index+4],Element_Outputs[Output_Index+3],Element_Outputs[Output_Index+4],Element_Outputs[Output_Index+5]};
 				Output_Index = Output_Index+6;
 				float Pl_Strain_Tuple[9] ={Element_Outputs[Output_Index],Element_Outputs[Output_Index+1],Element_Outputs[Output_Index+3],Element_Outputs[Output_Index+1],Element_Outputs[Output_Index+2],Element_Outputs[Output_Index+4],Element_Outputs[Output_Index+3],Element_Outputs[Output_Index+4],Element_Outputs[Output_Index+5]};
 				Output_Index = Output_Index+6;
 				float Stress_Tuple[9] ={Element_Outputs[Output_Index],Element_Outputs[Output_Index+1],Element_Outputs[Output_Index+3],Element_Outputs[Output_Index+1],Element_Outputs[Output_Index+2],Element_Outputs[Output_Index+4],Element_Outputs[Output_Index+3],Element_Outputs[Output_Index+4],Element_Outputs[Output_Index+5]};
 				Output_Index = Output_Index+6;
-				Elastic_Strain_Tensor->InsertNextTuple(El_Strain_Tuple);
-				Plastic_Strain_Tensor->InsertNextTuple(Pl_Strain_Tuple);
-				Stress_Tensor->InsertNextTuple(Stress_Tuple);
+				Elastic_Strain_Tensor->InsertTupleValue(Index_of_Gauss_Nodes,El_Strain_Tuple);
+				Plastic_Strain_Tensor->InsertTupleValue(Index_of_Gauss_Nodes,Pl_Strain_Tuple);
+				Stress_Tensor->InsertTupleValue(Index_of_Gauss_Nodes,Stress_Tuple);
 
 				if(Current_Time>0){
 
@@ -361,7 +368,7 @@ void pvESSI::Build_Gauss_Attributes(){
 					float Prev_Stress_Tuple[9] ={Element_Outputs[Output_Index],Element_Outputs[Output_Index+1],Element_Outputs[Output_Index+3],Element_Outputs[Output_Index+1],Element_Outputs[Output_Index+2],Element_Outputs[Output_Index+4],Element_Outputs[Output_Index+3],Element_Outputs[Output_Index+4],Element_Outputs[Output_Index+5]};
 					Output_Index = Output_Index+6;
 
-					Gauss_Incremental_Energy+=(Stress_Tuple[0]-Prev_Stress_Tuple[0])*(El_Strain_Tuple[0]+Pl_Strain_Tuple[0]-Prev_El_Strain_Tuple[0]-Prev_Pl_Strain_Tuple[0])+
+					Gauss_Incremental_Energy[0]+=(Stress_Tuple[0]-Prev_Stress_Tuple[0])*(El_Strain_Tuple[0]+Pl_Strain_Tuple[0]-Prev_El_Strain_Tuple[0]-Prev_Pl_Strain_Tuple[0])+
 											  (Stress_Tuple[1]-Prev_Stress_Tuple[1])*(El_Strain_Tuple[1]+Pl_Strain_Tuple[1]-Prev_El_Strain_Tuple[1]-Prev_Pl_Strain_Tuple[1])+
 											  (Stress_Tuple[2]-Prev_Stress_Tuple[2])*(El_Strain_Tuple[2]+Pl_Strain_Tuple[2]-Prev_El_Strain_Tuple[2]-Prev_Pl_Strain_Tuple[2])+
 											  (Stress_Tuple[3]-Prev_Stress_Tuple[3])*(El_Strain_Tuple[3]+Pl_Strain_Tuple[3]-Prev_El_Strain_Tuple[3]-Prev_Pl_Strain_Tuple[3])+
@@ -371,27 +378,27 @@ void pvESSI::Build_Gauss_Attributes(){
 											  (Stress_Tuple[7]-Prev_Stress_Tuple[7])*(El_Strain_Tuple[7]+Pl_Strain_Tuple[7]-Prev_El_Strain_Tuple[7]-Prev_Pl_Strain_Tuple[7])+
 											  (Stress_Tuple[8]-Prev_Stress_Tuple[8])*(El_Strain_Tuple[8]+Pl_Strain_Tuple[8]-Prev_El_Strain_Tuple[8]-Prev_Pl_Strain_Tuple[8]);
 					
-					Gauss_Total_Energy = Prev_Total_Energy_Database[Index_of_Gauss_Nodes] + Gauss_Incremental_Energy;
+					Gauss_Total_Energy[0] = Prev_Total_Energy_Database[Index_of_Gauss_Nodes] + Gauss_Incremental_Energy[0];
 			
 				}
 				else{
 
-					Gauss_Incremental_Energy+=(Stress_Tuple[0])*(El_Strain_Tuple[0]+Pl_Strain_Tuple[0])+
-			  			 					  (Stress_Tuple[1])*(El_Strain_Tuple[1]+Pl_Strain_Tuple[1])+
-			  			 					  (Stress_Tuple[2])*(El_Strain_Tuple[2]+Pl_Strain_Tuple[2])+
-			  			 					  (Stress_Tuple[3])*(El_Strain_Tuple[3]+Pl_Strain_Tuple[3])+
-			  			 					  (Stress_Tuple[4])*(El_Strain_Tuple[4]+Pl_Strain_Tuple[4])+
-			  			 					  (Stress_Tuple[5])*(El_Strain_Tuple[5]+Pl_Strain_Tuple[5])+
-			  			 					  (Stress_Tuple[6])*(El_Strain_Tuple[6]+Pl_Strain_Tuple[6])+
-			  			 					  (Stress_Tuple[7])*(El_Strain_Tuple[7]+Pl_Strain_Tuple[7])+
-			  			 					  (Stress_Tuple[8])*(El_Strain_Tuple[8]+Pl_Strain_Tuple[8]);
+					Gauss_Incremental_Energy[0]=(Stress_Tuple[0])*(El_Strain_Tuple[0]+Pl_Strain_Tuple[0])+
+			  			 					  	(Stress_Tuple[1])*(El_Strain_Tuple[1]+Pl_Strain_Tuple[1])+
+			  			 					  	(Stress_Tuple[2])*(El_Strain_Tuple[2]+Pl_Strain_Tuple[2])+
+			  			 					  	(Stress_Tuple[3])*(El_Strain_Tuple[3]+Pl_Strain_Tuple[3])+
+			  			 					  	(Stress_Tuple[4])*(El_Strain_Tuple[4]+Pl_Strain_Tuple[4])+
+			  			 					  	(Stress_Tuple[5])*(El_Strain_Tuple[5]+Pl_Strain_Tuple[5])+
+			  			 					  	(Stress_Tuple[6])*(El_Strain_Tuple[6]+Pl_Strain_Tuple[6])+
+			  			 					  	(Stress_Tuple[7])*(El_Strain_Tuple[7]+Pl_Strain_Tuple[7])+
+			  			 					  	(Stress_Tuple[8])*(El_Strain_Tuple[8]+Pl_Strain_Tuple[8]);
 
-					Gauss_Total_Energy = Gauss_Incremental_Energy;
-					Prev_Total_Energy_Database[Index_of_Gauss_Nodes] = Gauss_Total_Energy;
+					Gauss_Total_Energy[0] = Gauss_Incremental_Energy[0];
+					Prev_Total_Energy_Database[Index_of_Gauss_Nodes] = Gauss_Total_Energy[0];
 				}
 
-				Incremental_Energy->InsertValue(Index_of_Gauss_Nodes,Gauss_Incremental_Energy);
-				Total_Energy->InsertValue(Index_of_Gauss_Nodes,Gauss_Total_Energy);
+				Incremental_Energy->InsertTupleValue(Index_of_Gauss_Nodes,Gauss_Incremental_Energy);
+				Total_Energy->InsertTupleValue(Index_of_Gauss_Nodes,Gauss_Total_Energy);
 
 			}
 
@@ -401,9 +408,9 @@ void pvESSI::Build_Gauss_Attributes(){
 		}
 	}
 
-	UGrid_Gauss_Mesh->GetFieldData()->AddArray(Stress_Tensor);
-  	UGrid_Gauss_Mesh->GetFieldData()->AddArray(Plastic_Strain_Tensor);
-  	UGrid_Gauss_Mesh->GetFieldData()->AddArray(Elastic_Strain_Tensor);
+	UGrid_Gauss_Mesh->GetCellData()->AddArray(Stress_Tensor);
+  	UGrid_Gauss_Mesh->GetCellData()->AddArray(Plastic_Strain_Tensor);
+  	UGrid_Gauss_Mesh->GetCellData()->AddArray(Elastic_Strain_Tensor);
   	UGrid_Gauss_Mesh->GetCellData()->AddArray(Total_Energy);
 	UGrid_Gauss_Mesh->GetCellData()->AddArray(Incremental_Energy);
 

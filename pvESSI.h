@@ -44,28 +44,8 @@ class pvESSI : public vtkUnstructuredGridAlgorithm
 public:
   vtkTypeMacro(pvESSI,vtkUnstructuredGridAlgorithm);
   void PrintSelf(ostream& os, vtkIndent indent);
-  void PlotGaussMesh(int x){
-  	if(x) {
-  		std::cout << "Displaying Gauss Mesh" <<std::endl;
-  		Display_Gauss_Mesh=1;
-  	}
-  	else{
-  		std::cout << "Displaying General Mesh" <<std::endl;
-  		Display_Gauss_Mesh =0;
-  	}
-  }
-
-  void PlotGeneralMesh(int x){
-  	if(x) {
-  		std::cout << "Displaying General Mesh" <<std::endl;
-  		Display_General_Mesh =1;
-  	}
-  	else{
-  		std::cout << "Displaying Gauss Mesh" <<std::endl;
-  		Display_General_Mesh =0;
-  	}
-  }
-
+  void PlotGaussMesh(int x){ if(x) Display_Gauss_Mesh=1;	else Display_Gauss_Mesh =0; }
+  void PlotGeneralMesh(int x){ if(x)	Display_General_Mesh =1; else	Display_General_Mesh =0; }
   void PrintX(int x){}
 
   // static vtkInformationQuadratureSchemeDefinitionVectorKey* DICTIONARY();
