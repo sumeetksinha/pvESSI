@@ -35,7 +35,7 @@ using std::ostringstream;
 
 /************************************************************************************************************************************************/
 // cmake .. -DParaView_DIR=~/Softwares/Paraview/Paraview-Build/ -DGHOST_BUILD_CDAWEB=OFF
-// cmake .. -DParaView_DIR=/home/sumeet/Softwares/Apllications/Paraview -DGHOST_BUILD_CDAWEB=OFF
+// cmake .. -DParaView_DIR=/home/sumeet/Softwares/Paraview-v4.4.0 -DGHOST_BUILD_CDAWEB=OFF
 /************************************************************************************************************************************************/
 
 using namespace::H5;
@@ -46,11 +46,11 @@ pvESSI::pvESSI(){
 
 	this->FileName = NULL;
 	this->SetNumberOfInputPorts(0);
-	this->SetNumberOfOutputPorts(2);
-	Energy_Database_Status=-1;
-	UGrid_Mesh = vtkSmartPointer<vtkUnstructuredGrid>::New();
-	UGrid_Gauss_Mesh = vtkSmartPointer<vtkUnstructuredGrid>:: New();
-	UGrid_All_Mesh = new vtkSmartPointer<vtkUnstructuredGrid>[2];
+	this->SetNumberOfOutputPorts(1);
+	// Energy_Database_Status=-1;
+	// GeneralMesh = vtkSmartPointer<vtkUnstructuredGrid>::New();
+	UGrid_Mesh = vtkSmartPointer<vtkUnstructuredGrid>:: New();
+	// UGrid_All_Mesh = new vtkSmartPointer<vtkUnstructuredGrid>[2];
 	this->set_VTK_To_ESSI_Elements_Connectivity();
 	Current_Time =0;
 }
@@ -59,11 +59,11 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
  
 	// get the info object
 	vtkInformation *outInfo1 = outputVector->GetInformationObject(0);
-	vtkInformation *outInfo2 = outputVector->GetInformationObject(1);
+	// vtkInformation *outInfo2 = outputVector->GetInformationObject(1);
 	// outInfo->Print(std::cout);
 
-	if (!whetehr_general_mesh_build){ this->GetGaussMesh(); this->GetGeneralMesh();} 
-	
+	if (!whetehr_general_mesh_build){ /*this->GetGaussMesh();*/ this->GetGeneralMesh();} 
+
 	// if(Energy_Database_Status==-1)
 	// 	this->Make_Energy_Database();
 
@@ -97,7 +97,7 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 
 	// get the ouptut pointer to paraview 
 	vtkUnstructuredGrid *GeneralMesh = vtkUnstructuredGrid::SafeDownCast(outInfo1->Get(vtkDataObject::DATA_OBJECT()));
-	vtkUnstructuredGrid *GaussMesh = vtkUnstructuredGrid::SafeDownCast(outInfo2->Get(vtkDataObject::DATA_OBJECT()));
+	// vtkUnstructuredGrid *GaussMesh = vtkUnstructuredGrid::SafeDownCast(outInfo2->Get(vtkDataObject::DATA_OBJECT()));
 
 	// /////////////////////////////////////////////////////////////////////// Gauss Point Visualization ///////////////////////////////////////////////////////////////
 
@@ -127,23 +127,23 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-
-	Build_Gauss_Attributes();
+	cout << "Reached Here" << endl;
+	// Build_Gauss_Attributes();
 	Build_Node_Attributes();
 
 
 	GeneralMesh->ShallowCopy(UGrid_Mesh);
-	GaussMesh->ShallowCopy(UGrid_Gauss_Mesh);
+	// GaussMesh->ShallowCopy(UGrid_Gauss_Mesh);
+	// output->ShallowCopy(GeneralMesh);
 
-	// output->ShallowCopy(UGrid_All_Mesh);
-
+	cout << "Reached Here" << endl;
 	return 1;
 }
 
 int pvESSI::RequestInformation( vtkInformation *request, vtkInformationVector **vtkNotUsed(inVec), vtkInformationVector* outVec){
 
 	vtkInformation* outInfo1 = outVec->GetInformationObject(0);
-	vtkInformation* outInfo2 = outVec->GetInformationObject(1);
+	// vtkInformation* outInfo2 = outVec->GetInformationObject(1);
 
 	//////////////////////////////////////////////////////// Reading Hdf5 File ///////////////////////////////////////////////////////////////////////////////////////
 
@@ -197,8 +197,8 @@ int pvESSI::RequestInformation( vtkInformation *request, vtkInformationVector **
 	outInfo1->Set(vtkStreamingDemandDrivenPipeline::TIME_STEPS(),Time_Steps, No_of_TimeSteps[0]);
 	outInfo1->Set(vtkStreamingDemandDrivenPipeline::TIME_RANGE(),Time_range,2);
 
-	outInfo2->Set(vtkStreamingDemandDrivenPipeline::TIME_STEPS(),Time_Steps, No_of_TimeSteps[0]);
-	outInfo2->Set(vtkStreamingDemandDrivenPipeline::TIME_RANGE(),Time_range,2);
+	// outInfo2->Set(vtkStreamingDemandDrivenPipeline::TIME_STEPS(),Time_Steps, No_of_TimeSteps[0]);
+	// outInfo2->Set(vtkStreamingDemandDrivenPipeline::TIME_RANGE(),Time_range,2);
 	// outInfo->Set(vtkAlgorithm::CAN_PRODUCE_SUB_EXTENT(),1);
 
 
