@@ -15,14 +15,21 @@
         </Documentation>
       </StringVectorProperty>
 
-      <IntVectorProperty command="PlotGaussMesh" default_values="0" number_of_elements="1" name="ShowGaussPoints">
+      <IntVectorProperty command="Plot_Node_Mesh" default_values="1" number_of_elements="1" name="ShowNodeMesh">
         <BooleanDomain name="bool"/>
         <Documentation>
           This property specifies specifies whether to plot the gaussian coordinates or general coordinates.
         </Documentation>        
       </IntVectorProperty>
 
-      <IntVectorProperty command="PlotGeneralMesh" default_values="1" number_of_elements="1" name="ShowGeneralMesh">
+      <IntVectorProperty command="Plot_Gauss_Mesh" default_values="0" number_of_elements="1" name="ShowGaussMesh">
+        <BooleanDomain name="bool"/>
+        <Documentation>
+          This property specifies specifies whether to show the general coordinates.
+        </Documentation>        
+      </IntVectorProperty>
+
+      <IntVectorProperty command="Plot_All_Mesh" default_values="0" number_of_elements="1" name="ShowGeneralMesh--currently not available">
         <BooleanDomain name="bool"/>
         <Documentation>
           This property specifies specifies whether to show the general coordinates.
@@ -40,8 +47,8 @@
                   <Property name="CellArrayInfo" function="ArrayList"/>
               </RequiredProperties>
           </ArraySelectionDomain>
-      </StringVectorProperty> -->
-
+      </StringVectorProperty>
+ -->
       <!-- Display the number of Particles -->
       <IntVectorProperty command="PrintX" default_values="1" number_of_elements="1" name="NumParticles"> 
       </IntVectorProperty>

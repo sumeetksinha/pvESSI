@@ -48,34 +48,33 @@ pvESSI::pvESSI(){
 	this->SetNumberOfInputPorts(0);
 	this->SetNumberOfOutputPorts(1);
 	// Energy_Database_Status=-1;
-	// GeneralMesh = vtkSmartPointer<vtkUnstructuredGrid>::New();
-	UGrid_Mesh = vtkSmartPointer<vtkUnstructuredGrid>:: New();
-	// UGrid_All_Mesh = new vtkSmartPointer<vtkUnstructuredGrid>[2];
+	UGrid_Gauss_Mesh = vtkSmartPointer<vtkUnstructuredGrid>::New();
+	UGrid_Node_Mesh  = vtkSmartPointer<vtkUnstructuredGrid>::New();
+	UGrid_All_Mesh   = vtkSmartPointer<vtkUnstructuredGrid>::New();
 	this->set_VTK_To_ESSI_Elements_Connectivity();
-	Current_Time =0;
 }
 
 int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector **vtkNotUsed(inputVector),	vtkInformationVector *outputVector){
  
 	// get the info object
-	vtkInformation *outInfo1 = outputVector->GetInformationObject(0);
-	// vtkInformation *outInfo2 = outputVector->GetInformationObject(1);
+	vtkInformation *Node_Mesh = outputVector->GetInformationObject(0);
+	// vtkInformation *Gauss_Mesh = outputVector->GetInformationObject(1);
 	// outInfo->Print(std::cout);
 
-	if (!whetehr_general_mesh_build){ /*this->GetGaussMesh();*/ this->GetGeneralMesh();} 
-
-	// if(Energy_Database_Status==-1)
-	// 	this->Make_Energy_Database();
+	if (!Whether_Node_Mesh_Build){this->Get_Node_Mesh();this->Get_Gauss_Mesh();} 
+	
+	// if (!Whether_Gauss_Mesh_Build && Display_Gauss_Mesh){ this->Get_Gauss_Mesh();}
 
 	// int extent[6] = {0,-1,0,-1,0,-1};
 	// outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_EXTENT(), extent);
 
-  	Current_Time = outInfo1->Get(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP());
-  	// int Ctime2 = outInfo2->Get(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP());
+  	Node_Mesh_Current_Time = Node_Mesh->Get(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP());
+  	// Gauss_Mesh_Current_Time = Gauss_Mesh->Get(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP());
   	// int Clength = outInfo->Length(vtkStreamingDemandDrivenPipeline::TIME_STEPS());
   	// double* Csteps = outInfo->Get(vtkStreamingDemandDrivenPipeline::TIME_STEPS());
 
- 	cout<< "Current_Time " << Current_Time<< endl;
+ 	cout<< "Node_Mesh_Current_Time " << Node_Mesh_Current_Time<< endl;
+ 	cout<< "Gauss_Mesh_Current_Time " << Gauss_Mesh_Current_Time<< endl;
 	// cout<< "Clength " << "  " << Clength << endl;
 	// for (int i =0 ; i< Clength ; i++){
 	// 	cout << Csteps[i] << "  " << endl;
@@ -96,7 +95,20 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 	///////////////////////////////////////////////////////////////////////////////
 
 	// get the ouptut pointer to paraview 
-	vtkUnstructuredGrid *GeneralMesh = vtkUnstructuredGrid::SafeDownCast(outInfo1->Get(vtkDataObject::DATA_OBJECT()));
+	// if(Node_Mesh_Current_Time!=Node_Mesh_Previous_Time){
+		Build_Node_Attributes();
+	// 	Node_Mesh_Previous_Time = Node_Mesh_Current_Time;
+	// }
+	// else if(Gauss_Mesh_Current_Time!=Gauss_Mesh_Previous_Time){
+		// Build_Gauss_Attributes();
+	// 	Gauss_Mesh_Previous_Time = Gauss_Mesh_Current_Time;
+	// }
+
+	vtkUnstructuredGrid *UGrid_Current_Node_Mesh = vtkUnstructuredGrid::SafeDownCast(Node_Mesh->Get(vtkDataObject::DATA_OBJECT()));
+	// vtkUnstructuredGrid *UGrid_Current_Gauss_Mesh = vtkUnstructuredGrid::SafeDownCast(Gauss_Mesh->Get(vtkDataObject::DATA_OBJECT()));
+	UGrid_Current_Node_Mesh->ShallowCopy(UGrid_Node_Mesh);
+	// UGrid_Current_Gauss_Mesh->ShallowCopy(UGrid_Gauss_Mesh);
+
 	// vtkUnstructuredGrid *GaussMesh = vtkUnstructuredGrid::SafeDownCast(outInfo2->Get(vtkDataObject::DATA_OBJECT()));
 
 	// /////////////////////////////////////////////////////////////////////// Gauss Point Visualization ///////////////////////////////////////////////////////////////
@@ -127,23 +139,23 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	cout << "Reached Here" << endl;
+	// cout << "Reached Here" << endl;
 	// Build_Gauss_Attributes();
-	Build_Node_Attributes();
+	// Build_Node_Attributes();
 
 
-	GeneralMesh->ShallowCopy(UGrid_Mesh);
+	// UGrid_Current_Mesh->ShallowCopy(UGrid_Node_Mesh);
 	// GaussMesh->ShallowCopy(UGrid_Gauss_Mesh);
 	// output->ShallowCopy(GeneralMesh);
 
-	cout << "Reached Here" << endl;
+	// cout << "Reached Here" << endl;
 	return 1;
 }
 
 int pvESSI::RequestInformation( vtkInformation *request, vtkInformationVector **vtkNotUsed(inVec), vtkInformationVector* outVec){
 
-	vtkInformation* outInfo1 = outVec->GetInformationObject(0);
-	// vtkInformation* outInfo2 = outVec->GetInformationObject(1);
+	vtkInformation* Node_Mesh = outVec->GetInformationObject(0);
+	vtkInformation* Gauss_Mesh = outVec->GetInformationObject(1);
 
 	//////////////////////////////////////////////////////// Reading Hdf5 File ///////////////////////////////////////////////////////////////////////////////////////
 
@@ -194,11 +206,11 @@ int pvESSI::RequestInformation( vtkInformation *request, vtkInformationVector **
 
 
 	// outInfo->Set(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT(),extent,6);
-	outInfo1->Set(vtkStreamingDemandDrivenPipeline::TIME_STEPS(),Time_Steps, No_of_TimeSteps[0]);
-	outInfo1->Set(vtkStreamingDemandDrivenPipeline::TIME_RANGE(),Time_range,2);
+	Node_Mesh->Set(vtkStreamingDemandDrivenPipeline::TIME_STEPS(),Time_Steps, No_of_TimeSteps[0]);
+	Node_Mesh->Set(vtkStreamingDemandDrivenPipeline::TIME_RANGE(),Time_range,2);
 
-	// outInfo2->Set(vtkStreamingDemandDrivenPipeline::TIME_STEPS(),Time_Steps, No_of_TimeSteps[0]);
-	// outInfo2->Set(vtkStreamingDemandDrivenPipeline::TIME_RANGE(),Time_range,2);
+	// Gauss_Mesh->Set(vtkStreamingDemandDrivenPipeline::TIME_STEPS(),Time_Steps, No_of_TimeSteps[0]);
+	// Gauss_Mesh->Set(vtkStreamingDemandDrivenPipeline::TIME_RANGE(),Time_range,2);
 	// outInfo->Set(vtkAlgorithm::CAN_PRODUCE_SUB_EXTENT(),1);
 
 
@@ -249,7 +261,7 @@ void pvESSI::Build_Node_Attributes(){
     DataSet Node_Generalized_Displacements_DataSet = file.openDataSet("Model/Nodes/Generalized_Displacements"); hsize_t dims_out[2]; int ndims;
 	DataSpace Node_Generalized_Displacements_DataSpace = Node_Generalized_Displacements_DataSet.getSpace(); ndims = Node_Generalized_Displacements_DataSpace.getSimpleExtentDims( dims_out, NULL);
 	hsize_t col_dims[1];  col_dims[0] = dims_out[0]; DataSpace mspace2( 1, col_dims ); 
-	hsize_t offset[2] = { 0, Current_Time }; hsize_t  count[2] = { dims_out[0], 1 }; /* Define the column (hyperslab) to read. */
+	hsize_t offset[2] = { 0, Node_Mesh_Current_Time }; hsize_t  count[2] = { dims_out[0], 1 }; /* Define the column (hyperslab) to read. */
     float *Node_Generalized_Displacements; Node_Generalized_Displacements = (float*) malloc(dims_out[0] * sizeof(float)); // buffer for column to be read and defining hyperslab and read.
     Node_Generalized_Displacements_DataSpace.selectHyperslab( H5S_SELECT_SET, count, offset ); Node_Generalized_Displacements_DataSet.read( Node_Generalized_Displacements, PredType::NATIVE_FLOAT, mspace2, Node_Generalized_Displacements_DataSpace );
  	
@@ -291,7 +303,7 @@ void pvESSI::Build_Node_Attributes(){
 
 	/////////////////////////////////////////////////////////////////////// Enable the Data Array  to show in Paraview  ///////////////////////////////////////////////////////////////
 
-	UGrid_Mesh->GetPointData()->AddArray(vtk_Generalized_Displacements);
+	UGrid_Node_Mesh->GetPointData()->AddArray(vtk_Generalized_Displacements);
   	// UGrid_Mesh->GetPointData()->AddArray(vtk_Generalized_Velocity);
   	// UGrid_Mesh->GetPointData()->AddArray(vtk_Generalized_Acceleration);
 }
@@ -311,7 +323,7 @@ void pvESSI::Build_Gauss_Attributes(){
 	DataSet Element_Outputs_DataSet = file.openDataSet("Model/Elements/Outputs"); hsize_t dims_out[2]; int ndims;
 	DataSpace Element_Outputs_DataSpace = Element_Outputs_DataSet.getSpace(); ndims = Element_Outputs_DataSpace.getSimpleExtentDims( dims_out, NULL);
 	hsize_t col_dims[1];  col_dims[0] = dims_out[0]; DataSpace mspace1( 1, col_dims );
-    hsize_t offset[2] = { 0, Current_Time }; hsize_t  count[2] = { dims_out[0], 1 }; /* Define the column (hyperslab) to read. */
+    hsize_t offset[2] = { 0, Gauss_Mesh_Current_Time}; hsize_t  count[2] = { dims_out[0], 1 }; /* Define the column (hyperslab) to read. */
     float *Element_Outputs; Element_Outputs = (float*) malloc(dims_out[0] * sizeof(float)); // buffer for column to be read and defining hyperslab and read.
     Element_Outputs_DataSpace.selectHyperslab( H5S_SELECT_SET, count, offset ); Element_Outputs_DataSet.read( Element_Outputs, PredType::NATIVE_FLOAT, mspace1, Element_Outputs_DataSpace );
 
@@ -341,7 +353,7 @@ void pvESSI::Build_Gauss_Attributes(){
 
 			for(int j=0; j< No_of_Element_Gauss_Nodes ; j++){
 
-				float Gauss_Incremental_Energy[1] = {0}, Gauss_Total_Energy[1]= {0} ;
+				// float Gauss_Incremental_Energy[1] = {0}, Gauss_Total_Energy[1]= {0} ;
 				float El_Strain_Tuple[9] ={Element_Outputs[Output_Index],Element_Outputs[Output_Index+1],Element_Outputs[Output_Index+3],Element_Outputs[Output_Index+1],Element_Outputs[Output_Index+2],Element_Outputs[Output_Index+4],Element_Outputs[Output_Index+3],Element_Outputs[Output_Index+4],Element_Outputs[Output_Index+5]};
 				Output_Index = Output_Index+6;
 				float Pl_Strain_Tuple[9] ={Element_Outputs[Output_Index],Element_Outputs[Output_Index+1],Element_Outputs[Output_Index+3],Element_Outputs[Output_Index+1],Element_Outputs[Output_Index+2],Element_Outputs[Output_Index+4],Element_Outputs[Output_Index+3],Element_Outputs[Output_Index+4],Element_Outputs[Output_Index+5]};
@@ -352,53 +364,53 @@ void pvESSI::Build_Gauss_Attributes(){
 				Plastic_Strain_Tensor->InsertTupleValue(Index_of_Gauss_Nodes,Pl_Strain_Tuple);
 				Stress_Tensor->InsertTupleValue(Index_of_Gauss_Nodes,Stress_Tuple);
 
-				if(Current_Time>0){
+				// if(Gauss_Mesh_Current_Time>0){
 
-					DataSet Element_Outputs_DataSet = file.openDataSet("Model/Elements/Outputs"); hsize_t dims_out[2]; int ndims;
-					DataSpace Element_Outputs_DataSpace = Element_Outputs_DataSet.getSpace(); ndims = Element_Outputs_DataSpace.getSimpleExtentDims( dims_out, NULL);
-					hsize_t col_dims[1];  col_dims[0] = dims_out[0]; DataSpace mspace1( 1, col_dims );
-				    hsize_t offset[2] = { 0, Current_Time-1 }; hsize_t  count[2] = { dims_out[0], 1 }; /* Define the column (hyperslab) to read. */
-				    float *Element_Outputs; Element_Outputs = (float*) malloc(dims_out[0] * sizeof(float)); // buffer for column to be read and defining hyperslab and read.
-				    Element_Outputs_DataSpace.selectHyperslab( H5S_SELECT_SET, count, offset ); Element_Outputs_DataSet.read( Element_Outputs, PredType::NATIVE_FLOAT, mspace1, Element_Outputs_DataSpace );
+				// 	DataSet Element_Outputs_DataSet = file.openDataSet("Model/Elements/Outputs"); hsize_t dims_out[2]; int ndims;
+				// 	DataSpace Element_Outputs_DataSpace = Element_Outputs_DataSet.getSpace(); ndims = Element_Outputs_DataSpace.getSimpleExtentDims( dims_out, NULL);
+				// 	hsize_t col_dims[1];  col_dims[0] = dims_out[0]; DataSpace mspace1( 1, col_dims );
+				//     hsize_t offset[2] = { 0, Gauss_Mesh_Current_Time-1 }; hsize_t  count[2] = { dims_out[0], 1 }; /* Define the column (hyperslab) to read. */
+				//     float *Element_Outputs; Element_Outputs = (float*) malloc(dims_out[0] * sizeof(float)); // buffer for column to be read and defining hyperslab and read.
+				//     Element_Outputs_DataSpace.selectHyperslab( H5S_SELECT_SET, count, offset ); Element_Outputs_DataSet.read( Element_Outputs, PredType::NATIVE_FLOAT, mspace1, Element_Outputs_DataSpace );
 
-					float Prev_El_Strain_Tuple[9] ={Element_Outputs[Output_Index],Element_Outputs[Output_Index+1],Element_Outputs[Output_Index+3],Element_Outputs[Output_Index+1],Element_Outputs[Output_Index+2],Element_Outputs[Output_Index+4],Element_Outputs[Output_Index+3],Element_Outputs[Output_Index+4],Element_Outputs[Output_Index+5]};
-					Output_Index = Output_Index+6;
-					float Prev_Pl_Strain_Tuple[9] ={Element_Outputs[Output_Index],Element_Outputs[Output_Index+1],Element_Outputs[Output_Index+3],Element_Outputs[Output_Index+1],Element_Outputs[Output_Index+2],Element_Outputs[Output_Index+4],Element_Outputs[Output_Index+3],Element_Outputs[Output_Index+4],Element_Outputs[Output_Index+5]};
-					Output_Index = Output_Index+6;
-					float Prev_Stress_Tuple[9] ={Element_Outputs[Output_Index],Element_Outputs[Output_Index+1],Element_Outputs[Output_Index+3],Element_Outputs[Output_Index+1],Element_Outputs[Output_Index+2],Element_Outputs[Output_Index+4],Element_Outputs[Output_Index+3],Element_Outputs[Output_Index+4],Element_Outputs[Output_Index+5]};
-					Output_Index = Output_Index+6;
+				// 	float Prev_El_Strain_Tuple[9] ={Element_Outputs[Output_Index],Element_Outputs[Output_Index+1],Element_Outputs[Output_Index+3],Element_Outputs[Output_Index+1],Element_Outputs[Output_Index+2],Element_Outputs[Output_Index+4],Element_Outputs[Output_Index+3],Element_Outputs[Output_Index+4],Element_Outputs[Output_Index+5]};
+				// 	Output_Index = Output_Index+6;
+				// 	float Prev_Pl_Strain_Tuple[9] ={Element_Outputs[Output_Index],Element_Outputs[Output_Index+1],Element_Outputs[Output_Index+3],Element_Outputs[Output_Index+1],Element_Outputs[Output_Index+2],Element_Outputs[Output_Index+4],Element_Outputs[Output_Index+3],Element_Outputs[Output_Index+4],Element_Outputs[Output_Index+5]};
+				// 	Output_Index = Output_Index+6;
+				// 	float Prev_Stress_Tuple[9] ={Element_Outputs[Output_Index],Element_Outputs[Output_Index+1],Element_Outputs[Output_Index+3],Element_Outputs[Output_Index+1],Element_Outputs[Output_Index+2],Element_Outputs[Output_Index+4],Element_Outputs[Output_Index+3],Element_Outputs[Output_Index+4],Element_Outputs[Output_Index+5]};
+				// 	Output_Index = Output_Index+6;
 
-					Gauss_Incremental_Energy[0]+=(Stress_Tuple[0]-Prev_Stress_Tuple[0])*(El_Strain_Tuple[0]+Pl_Strain_Tuple[0]-Prev_El_Strain_Tuple[0]-Prev_Pl_Strain_Tuple[0])+
-											  (Stress_Tuple[1]-Prev_Stress_Tuple[1])*(El_Strain_Tuple[1]+Pl_Strain_Tuple[1]-Prev_El_Strain_Tuple[1]-Prev_Pl_Strain_Tuple[1])+
-											  (Stress_Tuple[2]-Prev_Stress_Tuple[2])*(El_Strain_Tuple[2]+Pl_Strain_Tuple[2]-Prev_El_Strain_Tuple[2]-Prev_Pl_Strain_Tuple[2])+
-											  (Stress_Tuple[3]-Prev_Stress_Tuple[3])*(El_Strain_Tuple[3]+Pl_Strain_Tuple[3]-Prev_El_Strain_Tuple[3]-Prev_Pl_Strain_Tuple[3])+
-											  (Stress_Tuple[4]-Prev_Stress_Tuple[4])*(El_Strain_Tuple[4]+Pl_Strain_Tuple[4]-Prev_El_Strain_Tuple[4]-Prev_Pl_Strain_Tuple[4])+
-											  (Stress_Tuple[5]-Prev_Stress_Tuple[5])*(El_Strain_Tuple[5]+Pl_Strain_Tuple[5]-Prev_El_Strain_Tuple[5]-Prev_Pl_Strain_Tuple[5])+
-											  (Stress_Tuple[6]-Prev_Stress_Tuple[6])*(El_Strain_Tuple[6]+Pl_Strain_Tuple[6]-Prev_El_Strain_Tuple[6]-Prev_Pl_Strain_Tuple[6])+
-											  (Stress_Tuple[7]-Prev_Stress_Tuple[7])*(El_Strain_Tuple[7]+Pl_Strain_Tuple[7]-Prev_El_Strain_Tuple[7]-Prev_Pl_Strain_Tuple[7])+
-											  (Stress_Tuple[8]-Prev_Stress_Tuple[8])*(El_Strain_Tuple[8]+Pl_Strain_Tuple[8]-Prev_El_Strain_Tuple[8]-Prev_Pl_Strain_Tuple[8]);
+				// 	Gauss_Incremental_Energy[0]+=(Stress_Tuple[0]-Prev_Stress_Tuple[0])*(El_Strain_Tuple[0]+Pl_Strain_Tuple[0]-Prev_El_Strain_Tuple[0]-Prev_Pl_Strain_Tuple[0])+
+				// 							  (Stress_Tuple[1]-Prev_Stress_Tuple[1])*(El_Strain_Tuple[1]+Pl_Strain_Tuple[1]-Prev_El_Strain_Tuple[1]-Prev_Pl_Strain_Tuple[1])+
+				// 							  (Stress_Tuple[2]-Prev_Stress_Tuple[2])*(El_Strain_Tuple[2]+Pl_Strain_Tuple[2]-Prev_El_Strain_Tuple[2]-Prev_Pl_Strain_Tuple[2])+
+				// 							  (Stress_Tuple[3]-Prev_Stress_Tuple[3])*(El_Strain_Tuple[3]+Pl_Strain_Tuple[3]-Prev_El_Strain_Tuple[3]-Prev_Pl_Strain_Tuple[3])+
+				// 							  (Stress_Tuple[4]-Prev_Stress_Tuple[4])*(El_Strain_Tuple[4]+Pl_Strain_Tuple[4]-Prev_El_Strain_Tuple[4]-Prev_Pl_Strain_Tuple[4])+
+				// 							  (Stress_Tuple[5]-Prev_Stress_Tuple[5])*(El_Strain_Tuple[5]+Pl_Strain_Tuple[5]-Prev_El_Strain_Tuple[5]-Prev_Pl_Strain_Tuple[5])+
+				// 							  (Stress_Tuple[6]-Prev_Stress_Tuple[6])*(El_Strain_Tuple[6]+Pl_Strain_Tuple[6]-Prev_El_Strain_Tuple[6]-Prev_Pl_Strain_Tuple[6])+
+				// 							  (Stress_Tuple[7]-Prev_Stress_Tuple[7])*(El_Strain_Tuple[7]+Pl_Strain_Tuple[7]-Prev_El_Strain_Tuple[7]-Prev_Pl_Strain_Tuple[7])+
+				// 							  (Stress_Tuple[8]-Prev_Stress_Tuple[8])*(El_Strain_Tuple[8]+Pl_Strain_Tuple[8]-Prev_El_Strain_Tuple[8]-Prev_Pl_Strain_Tuple[8]);
 					
-					Gauss_Total_Energy[0] = Prev_Total_Energy_Database[Index_of_Gauss_Nodes] + Gauss_Incremental_Energy[0];
+				// 	Gauss_Total_Energy[0] = Prev_Total_Energy_Database[Index_of_Gauss_Nodes] + Gauss_Incremental_Energy[0];
 			
-				}
-				else{
+				// }
+				// else{
 
-					Gauss_Incremental_Energy[0]=(Stress_Tuple[0])*(El_Strain_Tuple[0]+Pl_Strain_Tuple[0])+
-			  			 					  	(Stress_Tuple[1])*(El_Strain_Tuple[1]+Pl_Strain_Tuple[1])+
-			  			 					  	(Stress_Tuple[2])*(El_Strain_Tuple[2]+Pl_Strain_Tuple[2])+
-			  			 					  	(Stress_Tuple[3])*(El_Strain_Tuple[3]+Pl_Strain_Tuple[3])+
-			  			 					  	(Stress_Tuple[4])*(El_Strain_Tuple[4]+Pl_Strain_Tuple[4])+
-			  			 					  	(Stress_Tuple[5])*(El_Strain_Tuple[5]+Pl_Strain_Tuple[5])+
-			  			 					  	(Stress_Tuple[6])*(El_Strain_Tuple[6]+Pl_Strain_Tuple[6])+
-			  			 					  	(Stress_Tuple[7])*(El_Strain_Tuple[7]+Pl_Strain_Tuple[7])+
-			  			 					  	(Stress_Tuple[8])*(El_Strain_Tuple[8]+Pl_Strain_Tuple[8]);
+				// 	Gauss_Incremental_Energy[0]=(Stress_Tuple[0])*(El_Strain_Tuple[0]+Pl_Strain_Tuple[0])+
+			 //  			 					  	(Stress_Tuple[1])*(El_Strain_Tuple[1]+Pl_Strain_Tuple[1])+
+			 //  			 					  	(Stress_Tuple[2])*(El_Strain_Tuple[2]+Pl_Strain_Tuple[2])+
+			 //  			 					  	(Stress_Tuple[3])*(El_Strain_Tuple[3]+Pl_Strain_Tuple[3])+
+			 //  			 					  	(Stress_Tuple[4])*(El_Strain_Tuple[4]+Pl_Strain_Tuple[4])+
+			 //  			 					  	(Stress_Tuple[5])*(El_Strain_Tuple[5]+Pl_Strain_Tuple[5])+
+			 //  			 					  	(Stress_Tuple[6])*(El_Strain_Tuple[6]+Pl_Strain_Tuple[6])+
+			 //  			 					  	(Stress_Tuple[7])*(El_Strain_Tuple[7]+Pl_Strain_Tuple[7])+
+			 //  			 					  	(Stress_Tuple[8])*(El_Strain_Tuple[8]+Pl_Strain_Tuple[8]);
 
-					Gauss_Total_Energy[0] = Gauss_Incremental_Energy[0];
-					Prev_Total_Energy_Database[Index_of_Gauss_Nodes] = Gauss_Total_Energy[0];
-				}
+				// 	Gauss_Total_Energy[0] = Gauss_Incremental_Energy[0];
+				// 	Prev_Total_Energy_Database[Index_of_Gauss_Nodes] = Gauss_Total_Energy[0];
+				// }
 
-				Incremental_Energy->InsertTupleValue(Index_of_Gauss_Nodes,Gauss_Incremental_Energy);
-				Total_Energy->InsertTupleValue(Index_of_Gauss_Nodes,Gauss_Total_Energy);
+				// Incremental_Energy->InsertTupleValue(Index_of_Gauss_Nodes,Gauss_Incremental_Energy);
+				// Total_Energy->InsertTupleValue(Index_of_Gauss_Nodes,Gauss_Total_Energy);
 
 			}
 
@@ -411,8 +423,8 @@ void pvESSI::Build_Gauss_Attributes(){
 	UGrid_Gauss_Mesh->GetCellData()->AddArray(Stress_Tensor);
   	UGrid_Gauss_Mesh->GetCellData()->AddArray(Plastic_Strain_Tensor);
   	UGrid_Gauss_Mesh->GetCellData()->AddArray(Elastic_Strain_Tensor);
-  	UGrid_Gauss_Mesh->GetCellData()->AddArray(Total_Energy);
-	UGrid_Gauss_Mesh->GetCellData()->AddArray(Incremental_Energy);
+ //  	UGrid_Gauss_Mesh->GetCellData()->AddArray(Total_Energy);
+	// UGrid_Gauss_Mesh->GetCellData()->AddArray(Incremental_Energy);
 
 	// freeing heap allocation for variables 
 
@@ -434,7 +446,7 @@ void pvESSI::Build_Gauss_Attributes(){
 }
 
 
-void pvESSI::GetGeneralMesh(){
+void pvESSI::Get_Node_Mesh(){
 
 	/////////////////////////////////////////// Reading a HDF5 file /////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -475,7 +487,7 @@ void pvESSI::GetGeneralMesh(){
 	vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
 
 	points->SetNumberOfPoints(Number_of_Nodes);
-	UGrid_Mesh->Allocate(Number_of_Elements);
+	UGrid_Node_Mesh->Allocate(Number_of_Elements);
 
 	for (int i = 0; i <= Number_of_Nodes; i++){
 		if (Node_Index_to_Coordinates[i]!=-1){
@@ -483,7 +495,7 @@ void pvESSI::GetGeneralMesh(){
 		}
 	}
 
-	UGrid_Mesh->SetPoints(points);
+	UGrid_Node_Mesh->SetPoints(points);
 
 	/////////////////////////////////////////////////////////////////////////////// Building up the elements //////////////////////////////////////////////////////
 
@@ -503,16 +515,16 @@ void pvESSI::GetGeneralMesh(){
 				Vertices[j] = Element_Connectivity[connectivity_index+Nodes_Connectivity_Order[j]];
 			}
 
-			UGrid_Mesh->InsertNextCell(Cell_Type, No_of_Element_Nodes, Vertices);
+			UGrid_Node_Mesh->InsertNextCell(Cell_Type, No_of_Element_Nodes, Vertices);
 
 		}
 	}
 
-	whetehr_general_mesh_build=1;
+	Whether_Node_Mesh_Build=1;
 	
 }
 
-void pvESSI::GetGaussMesh(){
+void pvESSI::Get_Gauss_Mesh(){
 
 	/////////////////////////////////////////// Reading a HDF5 file /////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -566,7 +578,7 @@ void pvESSI::GetGaussMesh(){
 		}
 	}
 
-	whetehr_gauss_mesh_build=1;
+	Whether_Gauss_Mesh_Build=1;
 	
 }
 

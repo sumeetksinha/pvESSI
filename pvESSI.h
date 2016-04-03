@@ -44,8 +44,9 @@ class pvESSI : public vtkUnstructuredGridAlgorithm
 public:
   vtkTypeMacro(pvESSI,vtkUnstructuredGridAlgorithm);
   void PrintSelf(ostream& os, vtkIndent indent);
-  void PlotGaussMesh(int x){ if(x) Display_Gauss_Mesh=1;	else Display_Gauss_Mesh =0; }
-  void PlotGeneralMesh(int x){ if(x)	Display_General_Mesh =1; else	Display_General_Mesh =0; }
+  void Plot_Node_Mesh(int x){ if(x) Display_Node_Mesh=1;	else Display_Node_Mesh =0; }
+  void Plot_Gauss_Mesh(int x){ if(x){this->Get_Gauss_Mesh(); Display_Gauss_Mesh=1;}  else Display_Gauss_Mesh =0; }
+  void Plot_All_Mesh(int x){ if(x) Display_All_Mesh=1;  else Display_All_Mesh =0; }
   void PrintX(int x){}
 
   // static vtkInformationQuadratureSchemeDefinitionVectorKey* DICTIONARY();
@@ -76,7 +77,8 @@ protected:
   //////////////////////// Important Variables /////////////////////////////////////////
 
   int TimeStep;
-  int Current_Time; 
+  int Node_Mesh_Current_Time=0, Gauss_Mesh_Current_Time=0;
+  int Node_Mesh_Previous_Time=-1, Gauss_Mesh_Previous_Time=-1; 
   int Number_Of_Time_Steps;
   // vtkTimeStamp ReadMTime;
   // int ReadError;
@@ -101,22 +103,25 @@ private:
   void set_VTK_To_ESSI_Elements_Connectivity();
   void Build_Gauss_Attributes();
   void Build_Node_Attributes();
+  void Build_All_Attributes(); // need to implement
   int Energy_Database_Status;
   float *Prev_Total_Energy_Database;
  
   char* FileName;
 
   /******************************************* Mesh ******************************************/
-  vtkSmartPointer<vtkUnstructuredGrid> UGrid_Mesh;
-  vtkSmartPointer<vtkUnstructuredGrid> UGrid_Gauss_Mesh;
-  vtkSmartPointer<vtkUnstructuredGrid> *UGrid_All_Mesh;
+  vtkSmartPointer<vtkUnstructuredGrid> UGrid_Node_Mesh;     // Mesh with nodes
+  vtkSmartPointer<vtkUnstructuredGrid> UGrid_Gauss_Mesh;    // Mesh with only gauss points
+  vtkSmartPointer<vtkUnstructuredGrid> UGrid_All_Mesh;      // Mesh with both gauss points and nodes
+  vtkSmartPointer<vtkUnstructuredGrid> UGrid_Current_Mesh;  // Current mesh pipeline active in paraview
   int Number_of_Elements, Number_of_Nodes, Number_of_Gauss_Nodes;
-  int Display_Gauss_Mesh=0, Display_General_Mesh =1, whetehr_general_mesh_build=0, whetehr_gauss_mesh_build=0;
+  int Display_Node_Mesh=1, Display_Gauss_Mesh=0, Display_All_Mesh=0, Whether_Node_Mesh_Build=0, Whether_Gauss_Mesh_Build=0, Whether_All_Mesh_Build=0;
 
-  void GetGeneralMesh(); 	// Building the general mesh skeleton
-  void GetGaussMesh(); 		// Building the gauss mesh skeleton
+
+  void Get_Node_Mesh(); 	  // Building the node mesh skeleton
+  void Get_Gauss_Mesh(); 		// Building the gauss mesh skeleton
+  void Get_All_Mesh();      // Building the node as well as gauss mesh skeleton // still to implement
   void SetMetaArrays( vtkSmartPointer<vtkFloatArray> &vtk_Generalized_Displacements, vtkSmartPointer<vtkFloatArray> &vtk_Generalized_Velocity, vtkSmartPointer<vtkFloatArray> &vtk_Generalized_Acceleration, vtkSmartPointer<vtkFloatArray> &Elastic_Strain_Tensor, vtkSmartPointer<vtkFloatArray> &Plastic_Strain_Tensor, vtkSmartPointer<vtkFloatArray> &Stress_Tensor, vtkSmartPointer<vtkFloatArray> &Material_Properties, vtkSmartPointer<vtkFloatArray> &Total_Energy, vtkSmartPointer<vtkFloatArray> &Incremental_Energy);
-
 
   /*******************************************************************************************/
 
