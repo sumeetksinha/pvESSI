@@ -115,6 +115,7 @@ private:
   vtkSmartPointer<vtkUnstructuredGrid> UGrid_All_Mesh;      // Mesh with both gauss points and nodes
   vtkSmartPointer<vtkUnstructuredGrid> UGrid_Current_Mesh;  // Current mesh pipeline active in paraview
   int Number_of_Elements, Number_of_Nodes, Number_of_Gauss_Nodes;
+  int Pseudo_Number_of_Elements, Pseudo_Number_of_Nodes;
   int Display_Node_Mesh=1, Display_Gauss_Mesh=0, Display_All_Mesh=0, Whether_Node_Mesh_Build=0, Whether_Gauss_Mesh_Build=0, Whether_All_Mesh_Build=0;
 
 
