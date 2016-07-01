@@ -1,6 +1,7 @@
 #include "pvESSI.h"
 #include <stdlib.h>
 
+#include "vtkMath.h"
 #include "vtkObjectFactory.h"
 #include "vtkStreamingDemandDrivenPipeline.h"
 #include "vtkQuadratureSchemeDefinition.h"
@@ -291,6 +292,9 @@ void pvESSI::Build_Node_Attributes(){
 	vtkSmartPointer<vtkFloatArray> Material_Properties = vtkSmartPointer<vtkFloatArray> ::New();
 	vtkSmartPointer<vtkFloatArray> Total_Energy = vtkSmartPointer<vtkFloatArray> ::New();
 	vtkSmartPointer<vtkFloatArray> Incremental_Energy = vtkSmartPointer<vtkFloatArray> ::New();
+	// vtkSmartPointer<vtkIntArray> vtk_Node_No = vtkSmartPointer<vtkIntArray> ::New();
+	// vtk_Node_No->SetName("Node_No");
+	// vtk_Node_No->SetNumberOfComponents(1);
 
  	SetMetaArrays( vtk_Generalized_Displacements, vtk_Generalized_Velocity, vtk_Generalized_Acceleration, Elastic_Strain_Tensor, Plastic_Strain_Tensor, Stress_Tensor, Material_Properties, Total_Energy, Incremental_Energy);
 
@@ -307,8 +311,16 @@ void pvESSI::Build_Node_Attributes(){
 			// Acceleration(t) = 1/2/del.t*{ D_(t+del.t) - D_(t-del.t)};
 
 			/***************************************************************** Add Acceleration and Velocity Arrays Here ****************************************/
-
 				vtk_Generalized_Displacements->InsertTupleValue(i,tuple);
+				// if((i%100)==0){
+				// 	vtk_Node_No->InsertValue(i,i);
+				// 	vtk_Generalized_Displacements->InsertTupleValue(i,tuple);
+				// }
+				// else{
+				// 	vtk_Node_No->InsertValue(i,i);
+				// 	vtk_Generalized_Displacements->InsertTupleValue(i,tuple);
+				// }
+
 				// vtk_Generalized_Velocity->InsertTupleValue(i,tuple);
 				// vtk_Generalized_Acceleration->InsertTupleValue(i,tuple);
 
@@ -319,6 +331,7 @@ void pvESSI::Build_Node_Attributes(){
 	/////////////////////////////////////////////////////////////////////// Enable the Data Array  to show in Paraview  ///////////////////////////////////////////////////////////////
 
 	UGrid_Node_Mesh->GetPointData()->AddArray(vtk_Generalized_Displacements);
+	// UGrid_Node_Mesh->GetPointData()->AddArray(vtk_Node_No);
   	// UGrid_Mesh->GetPointData()->AddArray(vtk_Generalized_Velocity);
   	// UGrid_Mesh->GetPointData()->AddArray(vtk_Generalized_Acceleration);
 
@@ -480,6 +493,9 @@ void pvESSI::Get_Node_Mesh(){
 	DataSet Element_Index_to_Connectivity_DataSet = file.openDataSet("Model/Elements/Index_to_Connectivity");
 	int *Element_Index_to_Connectivity; Element_Index_to_Connectivity = (int*) malloc((Pseudo_Number_of_Elements) * sizeof(int)); Element_Index_to_Connectivity_DataSet.read( Element_Index_to_Connectivity, PredType::NATIVE_INT);
 
+	DataSet Element_Class_Tags_DataSet = file.openDataSet("Model/Elements/Class_Tags");
+	int *Element_Class_Tags; Element_Class_Tags = (int*) malloc((Pseudo_Number_of_Elements) * sizeof(int)); Element_Class_Tags_DataSet.read( Element_Class_Tags, PredType::NATIVE_INT);
+
 	DataSet Element_Index_to_Gauss_Point_Coordinates_DataSet = file.openDataSet("Model/Elements/Index_to_Gauss_Point_Coordinates");
 	int *Element_Index_to_Gauss_Point_Coordinates; Element_Index_to_Gauss_Point_Coordinates = (int*) malloc((Pseudo_Number_of_Elements) * sizeof(int)); Element_Index_to_Gauss_Point_Coordinates_DataSet.read( Element_Index_to_Gauss_Point_Coordinates, PredType::NATIVE_INT);
 
@@ -521,26 +537,39 @@ void pvESSI::Get_Node_Mesh(){
 	UGrid_Node_Mesh->SetPoints(points);
 
 	/////////////////////////////////////////////////////////////////////////////// Building up the elements //////////////////////////////////////////////////////
+	int connectivity_index,No_of_Element_Nodes,Cell_Type; bool status=true;
 
 	for (int i = 0; i < Pseudo_Number_of_Elements; i++){
 
-		int connectivity_index = Element_Index_to_Connectivity[i];
+		connectivity_index = Element_Index_to_Connectivity[i];
 
 		if(connectivity_index!=-1){
 	
-			int No_of_Element_Nodes = Element_Number_of_Nodes[i];
-			vtkIdType Vertices[No_of_Element_Nodes];
+			No_of_Element_Nodes = Element_Number_of_Nodes[i];
 
-			int Cell_Type = ESSI_to_VTK_Element.find(No_of_Element_Nodes)->second;
-			std::vector<int> Nodes_Connectivity_Order = ESSI_to_VTK_Connectivity.find(No_of_Element_Nodes)->second;
+			if (Element_Class_Tags[i]!=5015){
+				vtkIdType Vertices[No_of_Element_Nodes];
 
-			for(int j=0; j<No_of_Element_Nodes ; j++){
-				Vertices[j] = Element_Connectivity[connectivity_index+Nodes_Connectivity_Order[j]];
+				Cell_Type = ESSI_to_VTK_Element.find(No_of_Element_Nodes)->second;
+				std::vector<int> Nodes_Connectivity_Order = ESSI_to_VTK_Connectivity.find(No_of_Element_Nodes)->second;
+
+				for(int j=0; j<No_of_Element_Nodes ; j++){
+					Vertices[j] = Element_Connectivity[connectivity_index+Nodes_Connectivity_Order[j]];
+				}
+
+				UGrid_Node_Mesh->InsertNextCell(Cell_Type, No_of_Element_Nodes, Vertices);
+				status=false;
 			}
 
-			UGrid_Node_Mesh->InsertNextCell(Cell_Type, No_of_Element_Nodes, Vertices);
-
 		}
+
+		if(status){
+			vtkIdType Vertices[1]={0};
+			No_of_Element_Nodes=0;
+			Cell_Type=0;
+			UGrid_Node_Mesh->InsertNextCell(Cell_Type, No_of_Element_Nodes, Vertices);
+		}
+		status=true;
 	}
 
 	Whether_Node_Mesh_Build=1;
@@ -623,62 +652,62 @@ void pvESSI::SetMetaArrays( vtkSmartPointer<vtkFloatArray> &vtk_Generalized_Disp
 	vtk_Generalized_Displacements->SetComponentName(1,"Y-axis");
 	vtk_Generalized_Displacements->SetComponentName(2,"Z-axis");
 
-	// vtk_Generalized_Velocity->SetName("Velocity");
-	// vtk_Generalized_Velocity->SetNumberOfComponents(3);
-	// vtk_Generalized_Velocity->SetComponentName(0,"X-axis");
-	// vtk_Generalized_Velocity->SetComponentName(1,"Y-axis");
-	// vtk_Generalized_Velocity->SetComponentName(2,"Z-axis");
+	vtk_Generalized_Velocity->SetName("Velocity");
+	vtk_Generalized_Velocity->SetNumberOfComponents(3);
+	vtk_Generalized_Velocity->SetComponentName(0,"X-axis");
+	vtk_Generalized_Velocity->SetComponentName(1,"Y-axis");
+	vtk_Generalized_Velocity->SetComponentName(2,"Z-axis");
 
-	// vtk_Generalized_Acceleration->SetName("Acceleration");
-	// vtk_Generalized_Acceleration->SetNumberOfComponents(3);
-	// vtk_Generalized_Acceleration->SetComponentName(0,"X-axis");
-	// vtk_Generalized_Acceleration->SetComponentName(1,"Y-axis");
-	// vtk_Generalized_Acceleration->SetComponentName(2,"Z-axis");
+	vtk_Generalized_Acceleration->SetName("Acceleration");
+	vtk_Generalized_Acceleration->SetNumberOfComponents(3);
+	vtk_Generalized_Acceleration->SetComponentName(0,"X-axis");
+	vtk_Generalized_Acceleration->SetComponentName(1,"Y-axis");
+	vtk_Generalized_Acceleration->SetComponentName(2,"Z-axis");
 
-	// Elastic_Strain_Tensor->SetName("Elastic_Strain");
-	// Elastic_Strain_Tensor->SetNumberOfComponents(9);
-	// Elastic_Strain_Tensor->SetComponentName(0,"El-Strain-xx");
-	// Elastic_Strain_Tensor->SetComponentName(1,"El-Strain-xy");
-	// Elastic_Strain_Tensor->SetComponentName(2,"El-Strain-xz");
-	// Elastic_Strain_Tensor->SetComponentName(3,"El-Strain-yx");
-	// Elastic_Strain_Tensor->SetComponentName(4,"El-Strain-yy");
-	// Elastic_Strain_Tensor->SetComponentName(5,"El-Strain-yz");
-	// Elastic_Strain_Tensor->SetComponentName(6,"El-Strain-zx");
-	// Elastic_Strain_Tensor->SetComponentName(7,"El-Strain-zy");
-	// Elastic_Strain_Tensor->SetComponentName(8,"El-Strain-zz");
+	Elastic_Strain_Tensor->SetName("Elastic_Strain");
+	Elastic_Strain_Tensor->SetNumberOfComponents(9);
+	Elastic_Strain_Tensor->SetComponentName(0,"El-Strain-xx");
+	Elastic_Strain_Tensor->SetComponentName(1,"El-Strain-xy");
+	Elastic_Strain_Tensor->SetComponentName(2,"El-Strain-xz");
+	Elastic_Strain_Tensor->SetComponentName(3,"El-Strain-yx");
+	Elastic_Strain_Tensor->SetComponentName(4,"El-Strain-yy");
+	Elastic_Strain_Tensor->SetComponentName(5,"El-Strain-yz");
+	Elastic_Strain_Tensor->SetComponentName(6,"El-Strain-zx");
+	Elastic_Strain_Tensor->SetComponentName(7,"El-Strain-zy");
+	Elastic_Strain_Tensor->SetComponentName(8,"El-Strain-zz");
 
-	// Plastic_Strain_Tensor->SetName("Plastic_Strain");
-	// Plastic_Strain_Tensor->SetNumberOfComponents(9);
-	// Plastic_Strain_Tensor->SetComponentName(0,"Pl-Strain-xx");
-	// Plastic_Strain_Tensor->SetComponentName(1,"Pl-Strain-xy");
-	// Plastic_Strain_Tensor->SetComponentName(2,"Pl-Strain-xz");
-	// Plastic_Strain_Tensor->SetComponentName(3,"Pl-Strain-yx");
-	// Plastic_Strain_Tensor->SetComponentName(4,"Pl-Strain-yy");
-	// Plastic_Strain_Tensor->SetComponentName(5,"Pl-Strain-yz");
-	// Plastic_Strain_Tensor->SetComponentName(6,"Pl-Strain-zx");
-	// Plastic_Strain_Tensor->SetComponentName(7,"Pl-Strain-zy");
-	// Plastic_Strain_Tensor->SetComponentName(8,"Pl-Strain-zz");	
+	Plastic_Strain_Tensor->SetName("Plastic_Strain");
+	Plastic_Strain_Tensor->SetNumberOfComponents(9);
+	Plastic_Strain_Tensor->SetComponentName(0,"Pl-Strain-xx");
+	Plastic_Strain_Tensor->SetComponentName(1,"Pl-Strain-xy");
+	Plastic_Strain_Tensor->SetComponentName(2,"Pl-Strain-xz");
+	Plastic_Strain_Tensor->SetComponentName(3,"Pl-Strain-yx");
+	Plastic_Strain_Tensor->SetComponentName(4,"Pl-Strain-yy");
+	Plastic_Strain_Tensor->SetComponentName(5,"Pl-Strain-yz");
+	Plastic_Strain_Tensor->SetComponentName(6,"Pl-Strain-zx");
+	Plastic_Strain_Tensor->SetComponentName(7,"Pl-Strain-zy");
+	Plastic_Strain_Tensor->SetComponentName(8,"Pl-Strain-zz");	
 
-	// Stress_Tensor->SetName("Stress");
-	// Stress_Tensor->SetNumberOfComponents(9);
-	// Stress_Tensor->SetComponentName(0,"Stress-xx");
-	// Stress_Tensor->SetComponentName(1,"Stress-xy");
-	// Stress_Tensor->SetComponentName(2,"Stress-xz");
-	// Stress_Tensor->SetComponentName(3,"Stress-yx");
-	// Stress_Tensor->SetComponentName(4,"Stress-yy");
-	// Stress_Tensor->SetComponentName(5,"Stress-yz");
-	// Stress_Tensor->SetComponentName(6,"Stress-zx");
-	// Stress_Tensor->SetComponentName(7,"Stress-zy");
-	// Stress_Tensor->SetComponentName(8,"Stress-zz");	
+	Stress_Tensor->SetName("Stress");
+	Stress_Tensor->SetNumberOfComponents(9);
+	Stress_Tensor->SetComponentName(0,"Stress-xx");
+	Stress_Tensor->SetComponentName(1,"Stress-xy");
+	Stress_Tensor->SetComponentName(2,"Stress-xz");
+	Stress_Tensor->SetComponentName(3,"Stress-yx");
+	Stress_Tensor->SetComponentName(4,"Stress-yy");
+	Stress_Tensor->SetComponentName(5,"Stress-yz");
+	Stress_Tensor->SetComponentName(6,"Stress-zx");
+	Stress_Tensor->SetComponentName(7,"Stress-zy");
+	Stress_Tensor->SetComponentName(8,"Stress-zz");	
 
-	// Material_Properties->SetName("Material_Properties");
-	// Material_Properties->SetNumberOfComponents(1);
+	Material_Properties->SetName("Material_Properties");
+	Material_Properties->SetNumberOfComponents(1);
 
-	// Total_Energy->SetName("Total-Energy");
-	// Total_Energy->SetNumberOfComponents(1);
+	Total_Energy->SetName("Total-Energy");
+	Total_Energy->SetNumberOfComponents(1);
 
-	// Incremental_Energy->SetName("Incremental_Energy");
-	// Incremental_Energy->SetNumberOfComponents(1);
+	Incremental_Energy->SetName("Incremental_Energy");
+	Incremental_Energy->SetNumberOfComponents(1);
 
 	return;
 
