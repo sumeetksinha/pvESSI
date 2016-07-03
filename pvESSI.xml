@@ -7,7 +7,10 @@
          long_help="Read a .feioutput file produced by UCD ESSI (Earthquake Soil-Structure Interaction Simulator Program) "
          short_help="Read a .feioutput file produced by UCD ESSI (Earthquake Soil-Structure Interaction Simulator Program) ">
       </Documentation>
-      
+
+       <OutputPort name="Node Mesh" index="0" />
+	   <OutputPort name="Gaush Mesh" index="1" />
+   
       <StringVectorProperty name="FileName" animateable="0" command="SetFileName" number_of_elements="1">
         <FileListDomain name="files"/>
         <Documentation>
@@ -80,14 +83,19 @@
         <ReaderFactory extensions="feioutput" file_description="Example File Format" />
       </Hints>
 
+<!--   <Hints> 
+    <ShowInMenu category="pvESSI_Filter"/>
+    <ShowInMenu icon="../pvESSI_Filters/Icons/Icons/Solid.png"/>
+  </Hints> -->
+
     </SourceProxy>
     <!-- End Reader -->
   </ProxyGroup>
   <!-- End Filters Group -->
 
-<!--     <ProxyGroup name="filters">
+    <ProxyGroup name="filters">
    <SourceProxy name="Gauuss"  label="Gau5ss">
-     <Documentation
+     <!-- <Documentation
         long_help="Create point attribute array by projecting points onto an elevation vector."
         short_help="Create a point array representing elevation.">
           The Elevation filter generates point scalar values for an input data
@@ -133,13 +141,17 @@
            Define other end of the line (large scalar values). Default is (0,0,1).
          </Documentation>
       </DoubleVectorProperty>
-
+ -->
       <Hints>
         <ShowInMenu category="pvESSI" />
         <ShowInMenu icon=":pvESSI_Icons/Icons/Solid.png" />
       </Hints>
 
    </SourceProxy>
- </ProxyGroup> -->
+ </ProxyGroup>
+
+
+
+
 
 </ServerManagerConfiguration>

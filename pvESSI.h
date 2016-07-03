@@ -38,6 +38,18 @@
 #include <vector>
 #include "vtkExecutive.h"
 #include <sstream>
+#include <vtkPointSet.h>
+#include "hdf5.h"
+
+
+#include <QApplication>
+#include <QStyle>
+
+#include "pqApplicationCore.h"
+#include "pqObjectBuilder.h"
+#include "pqServer.h"
+#include "pqServerManagerModel.h"
+#include "pqUndoStack.h"
 
 class pvESSI : public vtkUnstructuredGridAlgorithm
 {
@@ -76,10 +88,10 @@ protected:
   
   //////////////////////// Important Variables /////////////////////////////////////////
 
-  int TimeStep;
-  int Node_Mesh_Current_Time=0, Gauss_Mesh_Current_Time=0;
-  int Node_Mesh_Previous_Time=-1, Gauss_Mesh_Previous_Time=-1; 
-  int Number_Of_Time_Steps;
+  int TimeStep, Number_Of_Time_Steps;;
+  int Node_Mesh_Current_Time, Gauss_Mesh_Current_Time;
+  int Node_Mesh_Previous_Time, Gauss_Mesh_Previous_Time; 
+
   // vtkTimeStamp ReadMTime;
   // int ReadError;
   int Time_Step_Range[2];
@@ -97,15 +109,18 @@ protected:
 private:
 
   std::map<int,int> ESSI_to_VTK_Element;
-  std::map< int,std::vector<int> > ESSI_to_VTK_Connectivity;
+  std::map<int,std::vector<int> > ESSI_to_VTK_Connectivity;
+  std::map<double,int > Time_Map;
   pvESSI(const pvESSI&);  // Not implemented.
   void operator=(const pvESSI&);  // Not implemented.
   void set_VTK_To_ESSI_Elements_Connectivity();
+  void initialize();
+  void Build_Maps();
+  void Build_Time_Map();
   void Build_Gauss_Attributes();
   void Build_Node_Attributes();
   void Build_All_Attributes(); // need to implement
-  int Energy_Database_Status;
-  float *Prev_Total_Energy_Database;
+  double *Time; 
  
   char* FileName;
 
@@ -116,13 +131,16 @@ private:
   vtkSmartPointer<vtkUnstructuredGrid> UGrid_Current_Mesh;  // Current mesh pipeline active in paraview
   int Number_of_Elements, Number_of_Nodes, Number_of_Gauss_Nodes;
   int Pseudo_Number_of_Elements, Pseudo_Number_of_Nodes;
-  int Display_Node_Mesh=1, Display_Gauss_Mesh=0, Display_All_Mesh=0, Whether_Node_Mesh_Build=0, Whether_Gauss_Mesh_Build=0, Whether_All_Mesh_Build=0;
+  int Display_Node_Mesh,Display_Gauss_Mesh,Display_All_Mesh,Whether_Node_Mesh_Build, Whether_Gauss_Mesh_Build, Whether_All_Mesh_Build;
 
 
   void Get_Node_Mesh(); 	  // Building the node mesh skeleton
   void Get_Gauss_Mesh(); 		// Building the gauss mesh skeleton
   void Get_All_Mesh();      // Building the node as well as gauss mesh skeleton // still to implement
-  void SetMetaArrays( vtkSmartPointer<vtkFloatArray> &vtk_Generalized_Displacements, vtkSmartPointer<vtkFloatArray> &vtk_Generalized_Velocity, vtkSmartPointer<vtkFloatArray> &vtk_Generalized_Acceleration, vtkSmartPointer<vtkFloatArray> &Elastic_Strain_Tensor, vtkSmartPointer<vtkFloatArray> &Plastic_Strain_Tensor, vtkSmartPointer<vtkFloatArray> &Stress_Tensor, vtkSmartPointer<vtkFloatArray> &Material_Properties, vtkSmartPointer<vtkFloatArray> &Total_Energy, vtkSmartPointer<vtkFloatArray> &Incremental_Energy);
+  void SetMetaArrays( vtkSmartPointer<vtkFloatArray> &vtk_Generalized_Displacements, vtkSmartPointer<vtkFloatArray> &vtk_Generalized_Velocity, 
+    vtkSmartPointer<vtkFloatArray> &vtk_Generalized_Acceleration, vtkSmartPointer<vtkFloatArray> &Elastic_Strain_Tensor, vtkSmartPointer<vtkFloatArray> &Plastic_Strain_Tensor, 
+    vtkSmartPointer<vtkFloatArray> &Stress_Tensor, vtkSmartPointer<vtkFloatArray> &Material_Properties, vtkSmartPointer<vtkFloatArray> &Total_Energy, 
+    vtkSmartPointer<vtkFloatArray> &Incremental_Energy, vtkSmartPointer<vtkIntArray> &Node_Label, vtkSmartPointer<vtkIntArray> &Element_Label );
 
   /*******************************************************************************************/
 

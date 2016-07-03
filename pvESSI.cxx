@@ -36,7 +36,7 @@ using std::ostringstream;
 
 /************************************************************************************************************************************************/
 // cmake .. -DParaView_DIR=~/Softwares/Paraview/Paraview-Build/ -DGHOST_BUILD_CDAWEB=OFF
-// cmake .. -DParaView_DIR=/home/sumeet/Softwares/Paraview-v4.4.0 -DGHOST_BUILD_CDAWEB=OFF
+// cmake .. -DParaView_DIR="/home/sumeet/Softwares/ParaView-v4.4.0" -DGHOST_BUILD_CDAWEB=OFF
 /************************************************************************************************************************************************/
 
 using namespace::H5;
@@ -48,11 +48,11 @@ pvESSI::pvESSI(){
 	this->FileName = NULL;
 	this->SetNumberOfInputPorts(0);
 	this->SetNumberOfOutputPorts(1);
-	// Energy_Database_Status=-1;
 	UGrid_Gauss_Mesh = vtkSmartPointer<vtkUnstructuredGrid>::New();
 	UGrid_Node_Mesh  = vtkSmartPointer<vtkUnstructuredGrid>::New();
 	UGrid_All_Mesh   = vtkSmartPointer<vtkUnstructuredGrid>::New();
 	this->set_VTK_To_ESSI_Elements_Connectivity();
+	this->initialize();
 }
 
 int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector **vtkNotUsed(inputVector),	vtkInformationVector *outputVector){
@@ -62,29 +62,34 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 	// vtkInformation *Gauss_Mesh = outputVector->GetInformationObject(1);
 	// outInfo->Print(std::cout);
 
-	if (!Whether_Node_Mesh_Build){this->Get_Node_Mesh();/*this->Get_Gauss_Mesh();*/} 
+	if (!Whether_Node_Mesh_Build){this->Get_Node_Mesh();} 
 	
-	// if (!Whether_Gauss_Mesh_Build && Display_Gauss_Mesh){ this->Get_Gauss_Mesh();}
+	// if (!Whether_Gauss_Mesh_Build ){ this->Get_Gauss_Mesh();} 
 
 	// int extent[6] = {0,-1,0,-1,0,-1};
 	// outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_EXTENT(), extent);
 
-  	Node_Mesh_Current_Time = Node_Mesh->Get(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP());
-  	// Gauss_Mesh_Current_Time = Gauss_Mesh->Get(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP());
+  	Node_Mesh_Current_Time = Time_Map.find( Node_Mesh->Get(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP()))->second;
+  	// Gauss_Mesh_Current_Time = Time_Map.find( Node_Mesh->Get(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP()))->second;
+
   	// int Clength = outInfo->Length(vtkStreamingDemandDrivenPipeline::TIME_STEPS());
   	// double* Csteps = outInfo->Get(vtkStreamingDemandDrivenPipeline::TIME_STEPS());
 
- 	cout<< "Node_Mesh_Current_Time " << Node_Mesh_Current_Time<< endl;
- 	cout<< "Gauss_Mesh_Current_Time " << Gauss_Mesh_Current_Time<< endl;
-	// cout<< "Clength " << "  " << Clength << endl;
+ 	// cout<< "Node_Mesh_Current_Time " << Node_Mesh->Get(vtkStreamingDemandDrivenPipeline::DATA_TIME_STEP())<< endl;
+
+
+ 	// cout<< "Gauss_Mesh_Current_Time " << Gauss_Mesh_Current_Time<< endl;
+	// cout<< "Clength " << "  " << vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP() << endl;
 	// for (int i =0 ; i< Clength ; i++){
 	// 	cout << Csteps[i] << "  " << endl;
 	// }
 
+    // cout << Node_Mesh_Current_Time/Time[0] << endl;
+
 	// if (outInfo->Has(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP()))
 	//          std::cout << "Update Time" << endl;
 	//     if (!outInfo->Has(vtkDataObject::DATA_TIME_STEP()))
-	//     		std::cout << "DATA_TIME_STEP" << endl;
+	    		// std::cout << "DATA_TIME_STEP" << endl;
 
 	// return outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP())
 	// int piece, numPieces;
@@ -160,38 +165,54 @@ int pvESSI::RequestInformation( vtkInformation *request, vtkInformationVector **
 
 	//////////////////////////////////////////////////////// Reading Hdf5 File ///////////////////////////////////////////////////////////////////////////////////////
 
-	H5File file = H5File(this->FileName, H5F_ACC_RDONLY );
+	H5File file = H5File(this->FileName, H5F_ACC_RDWR );
+	int Build_Map_Status =1;
 
 	////////////////////////////////////////////////////// Reading General Outside Data /////////////////////////////////////////////////////////////////////////////
 
-	DataSet No_of_Elements_DataSet = file.openDataSet("Number_of_Elements");
-	int Number_of_Elements[1]; No_of_Elements_DataSet.read( Number_of_Elements, PredType::NATIVE_INT);
+	DataSet No_of_TimeSteps_DataSet = file.openDataSet("Number_of_Time_Steps");
+	int No_of_TimeSteps[1]; No_of_TimeSteps_DataSet.read( No_of_TimeSteps, PredType::NATIVE_INT);
+	this->Number_Of_Time_Steps = No_of_TimeSteps[0];
+
+	DataSet Number_of_Elements_DataSet = file.openDataSet("Number_of_Elements");
+	int Number_of_Elements[1]; Number_of_Elements_DataSet.read( Number_of_Elements, PredType::NATIVE_INT);
+	this->Number_of_Elements = Number_of_Elements[0];
 
 	DataSet Number_of_Nodes_DataSet = file.openDataSet("Number_of_Nodes");
 	int Number_of_Nodes[1]; Number_of_Nodes_DataSet.read( Number_of_Nodes, PredType::NATIVE_INT);
-
-	DataSet No_of_TimeSteps_DataSet = file.openDataSet("Number_of_Time_Steps");
-	int No_of_TimeSteps[1]; No_of_TimeSteps_DataSet.read( No_of_TimeSteps, PredType::NATIVE_INT);
-
-	DataSet Element_Connectivity_DataSet = file.openDataSet("Model/Elements/Index_to_Connectivity");
-	DataSpace Element_Connectivity_DataSpace = Element_Connectivity_DataSet.getSpace(); hsize_t dims_out[1]; int ndims = Element_Connectivity_DataSpace.getSimpleExtentDims( dims_out, NULL);
-	this->Pseudo_Number_of_Elements = dims_out[0];
-
-	DataSet Nodes_Number_of_Dofs = file.openDataSet("Model/Nodes/Number_of_DOFs");
-	DataSpace Nodes_Number_of_Dofs_DataSpace = Nodes_Number_of_Dofs.getSpace(); ndims = Nodes_Number_of_Dofs_DataSpace.getSimpleExtentDims( dims_out, NULL);
-	this->Pseudo_Number_of_Nodes = dims_out[0];
-
-	DataSet Element_Number_of_Gauss_Points_DataSet = file.openDataSet("Model/Elements/Number_of_Gauss_Points");
-	int Element_Number_of_Gauss_Points[Pseudo_Number_of_Elements]; Element_Number_of_Gauss_Points_DataSet.read( Element_Number_of_Gauss_Points, PredType::NATIVE_INT);
-	
-	this->Number_of_Elements = Number_of_Elements[0];
 	this->Number_of_Nodes = Number_of_Nodes[0];
-	this->Number_of_Gauss_Nodes = 0;
 
-	cout << " Pseudo_Number_of_Nodes = " << Pseudo_Number_of_Nodes << endl;
-	cout << " Pseudo_Number_of_Elements = " << Pseudo_Number_of_Elements << endl;
+	DataSet Whether_Maps_Build_DataSet;
+	try { Whether_Maps_Build_DataSet = file.openDataSet("Whether_Maps_Build");}
+	catch( FileIException error ){cout << " Dataset is not found." << endl;Build_Map_Status =0; }
+	// catch failure caused by the DataSet operations
+	catch( DataSetIException error ){cout << "DataSetIException" << endl;}
+	// catch failure caused by the DataSpace operations
+	catch( DataSpaceIException error ){ cout << "DataSpaceIException" << endl;}
+	// catch failure caused by the DataSpace operations
+	catch( DataTypeIException error ){ cout << " DataTypeIException" << endl;}
+
+   	file.close(); file = H5File(this->FileName, H5F_ACC_RDONLY ); /// opening in Readonly mode
+
+   	if(!Build_Map_Status){
+   		Build_Maps();
+   	}
+   	else{
+
+	   	DataSet Node_Index_to_Coordinates_DataSet = file.openDataSet("Model/Nodes/Index_to_Coordinates");
+		DataSpace Node_Index_to_Coordinates_DataSpace =Node_Index_to_Coordinates_DataSet.getSpace(); hsize_t dims_out[1]; int ndims = Node_Index_to_Coordinates_DataSpace.getSimpleExtentDims( dims_out, NULL);
+		this->Pseudo_Number_of_Nodes = dims_out[0];
+
+		DataSet Element_Index_to_Connectivity_DataSet = file.openDataSet("Model/Elements/Index_to_Connectivity");
+		DataSpace Element_Index_to_Connectivity_DataSpace =Element_Index_to_Connectivity_DataSet.getSpace(); ndims = Element_Index_to_Connectivity_DataSpace.getSimpleExtentDims( dims_out, NULL);
+		this->Pseudo_Number_of_Elements = dims_out[0];
+   }
 
 	///////////////////////////////////////////////////////////////// Evaluating Number of Gauss Points ////////////////////////////////////////////////////////////////////////////////////////////
+
+   	DataSet Element_Number_of_Gauss_Points_DataSet = file.openDataSet("Model/Elements/Number_of_Gauss_Points");
+	int Element_Number_of_Gauss_Points[Pseudo_Number_of_Elements]; Element_Number_of_Gauss_Points_DataSet.read( Element_Number_of_Gauss_Points, PredType::NATIVE_INT);
+	this->Number_of_Gauss_Nodes = 0;
 
     for (int i=0; i < this->Pseudo_Number_of_Elements; i++){
         if (Element_Number_of_Gauss_Points[i] > 0){
@@ -199,30 +220,21 @@ int pvESSI::RequestInformation( vtkInformation *request, vtkInformationVector **
         }
     }
 
-    // float *Prev_Total_Energy_Database; Prev_Total_Energy_Database = (float*) malloc((Number_of_Gauss_Nodes)* sizeof(float)); 
-    // for (int i=0; i < this->Number_of_Gauss_Nodes; i++){
-    // 	Prev_Total_Energy_Database[i]=0;
-    // }
-
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	this->Number_Of_Time_Steps = No_of_TimeSteps[0];
-	double Time_Steps[No_of_TimeSteps[0]]; Time_Steps[0]=0;
+	DataSet Time_DataSet = file.openDataSet("time");
+	this->Time = new double[Number_Of_Time_Steps]; Time_DataSet.read( Time, PredType::NATIVE_DOUBLE);
 
-	for (int i =0;i<No_of_TimeSteps[0] ;i++)
-		Time_Steps[i] = i;
+	Build_Time_Map(); double Time_range[2]={Time[0],Time[Number_Of_Time_Steps-1]};
 
-	double Time_range[2]={0,No_of_TimeSteps[0]};
-
-	// int extent[6]={0,100,0,100,0,100}; 
-
-
-	// outInfo->Set(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT(),extent,6);
-	Node_Mesh->Set(vtkStreamingDemandDrivenPipeline::TIME_STEPS(),Time_Steps, No_of_TimeSteps[0]);
+	
+	Node_Mesh->Set(vtkStreamingDemandDrivenPipeline::TIME_STEPS(),Time, No_of_TimeSteps[0]);
 	Node_Mesh->Set(vtkStreamingDemandDrivenPipeline::TIME_RANGE(),Time_range,2);
 
-	// Gauss_Mesh->Set(vtkStreamingDemandDrivenPipeline::TIME_STEPS(),Time_Steps, No_of_TimeSteps[0]);
+	// Gauss_Mesh->Set(vtkStreamingDemandDrivenPipeline::TIME_STEPS(),Time, No_of_TimeSteps[0]);
 	// Gauss_Mesh->Set(vtkStreamingDemandDrivenPipeline::TIME_RANGE(),Time_range,2);
+
+	// outInfo->Set(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT(),extent,6);
 	// outInfo->Set(vtkAlgorithm::CAN_PRODUCE_SUB_EXTENT(),1);
 
 
@@ -233,6 +245,9 @@ int pvESSI::RequestInformation( vtkInformation *request, vtkInformationVector **
 	// Quadrature_Definition->Initialize(VTK_HEXAHEDRON,8,8,W_QQ_64_A);
 
 	file.close();
+
+cout << "After Here " << endl;
+
 
 	return 1;
 }
@@ -266,6 +281,12 @@ void pvESSI::Build_Node_Attributes(){
 
 	H5File file = H5File(this->FileName, H5F_ACC_RDONLY );
 
+	DataSet Node_Map_DataSet = file.openDataSet("Maps/NodeMap");
+	int *Node_Map; Node_Map = (int*) malloc((Number_of_Nodes) * sizeof(int)); Node_Map_DataSet.read( Node_Map, PredType::NATIVE_INT);
+
+	DataSet Element_Map_DataSet = file.openDataSet("Maps/ElementMap");
+	int *Element_Map; Element_Map = (int*) malloc((Number_of_Elements) * sizeof(int)); Element_Map_DataSet.read( Element_Map, PredType::NATIVE_INT);
+
 	DataSet Node_Index_to_Coordinates_DataSet = file.openDataSet("Model/Nodes/Index_to_Coordinates");
 	int *Node_Index_to_Coordinates; Node_Index_to_Coordinates = (int*) malloc((Pseudo_Number_of_Nodes) * sizeof(int)); Node_Index_to_Coordinates_DataSet.read( Node_Index_to_Coordinates, PredType::NATIVE_INT);
 
@@ -292,17 +313,21 @@ void pvESSI::Build_Node_Attributes(){
 	vtkSmartPointer<vtkFloatArray> Material_Properties = vtkSmartPointer<vtkFloatArray> ::New();
 	vtkSmartPointer<vtkFloatArray> Total_Energy = vtkSmartPointer<vtkFloatArray> ::New();
 	vtkSmartPointer<vtkFloatArray> Incremental_Energy = vtkSmartPointer<vtkFloatArray> ::New();
-	// vtkSmartPointer<vtkIntArray> vtk_Node_No = vtkSmartPointer<vtkIntArray> ::New();
-	// vtk_Node_No->SetName("Node_No");
-	// vtk_Node_No->SetNumberOfComponents(1);
+	vtkSmartPointer<vtkIntArray> Node_Label = vtkSmartPointer<vtkIntArray> ::New();
+	vtkSmartPointer<vtkIntArray> Element_Label = vtkSmartPointer<vtkIntArray> ::New();
 
- 	SetMetaArrays( vtk_Generalized_Displacements, vtk_Generalized_Velocity, vtk_Generalized_Acceleration, Elastic_Strain_Tensor, Plastic_Strain_Tensor, Stress_Tensor, Material_Properties, Total_Energy, Incremental_Energy);
+ 	SetMetaArrays( vtk_Generalized_Displacements, vtk_Generalized_Velocity, vtk_Generalized_Acceleration, Elastic_Strain_Tensor, Plastic_Strain_Tensor, Stress_Tensor, Material_Properties, Total_Energy, Incremental_Energy, Node_Label, Element_Label);
+ 	
+ 	/////////////////////////////////////////////////////////////// DataSets Visulization at Nodes //////////////////////////////////////////////////////////////////////////////////////
+ 	int Node_No; 
+	for (int i = 0; i < Number_of_Nodes; i++){
 
-	for (int i = 0; i < Pseudo_Number_of_Nodes; i++){
+			Node_No = Node_Map[i]; Node_Label -> InsertValue(i,Node_No);
 
-		if (Node_Index_to_Coordinates[i]!=-1){
+			float tuple[3]={Node_Generalized_Displacements[Node_Index_to_Generalized_Displacements[Node_No]],Node_Generalized_Displacements[Node_Index_to_Generalized_Displacements[Node_No]+1],Node_Generalized_Displacements[Node_Index_to_Generalized_Displacements[Node_No]+2]};	
 
-			float tuple[3]={Node_Generalized_Displacements[Node_Index_to_Generalized_Displacements[i]],Node_Generalized_Displacements[Node_Index_to_Generalized_Displacements[i]+1],Node_Generalized_Displacements[Node_Index_to_Generalized_Displacements[i]+2]};	
+			vtk_Generalized_Displacements->InsertTypedTuple(i,tuple);
+
 
 			/*************************************************************** Displacement, Acceleration and Velocity -> Calculation Formulae **********************************************************/
 
@@ -311,29 +336,25 @@ void pvESSI::Build_Node_Attributes(){
 			// Acceleration(t) = 1/2/del.t*{ D_(t+del.t) - D_(t-del.t)};
 
 			/***************************************************************** Add Acceleration and Velocity Arrays Here ****************************************/
-				vtk_Generalized_Displacements->InsertTupleValue(i,tuple);
-				// if((i%100)==0){
-				// 	vtk_Node_No->InsertValue(i,i);
-				// 	vtk_Generalized_Displacements->InsertTupleValue(i,tuple);
-				// }
-				// else{
-				// 	vtk_Node_No->InsertValue(i,i);
-				// 	vtk_Generalized_Displacements->InsertTupleValue(i,tuple);
-				// }
-
-				// vtk_Generalized_Velocity->InsertTupleValue(i,tuple);
-				// vtk_Generalized_Acceleration->InsertTupleValue(i,tuple);
-
+				
 			/****************************************************************************************************************************************************/
-		}
+
 	}
 
-	/////////////////////////////////////////////////////////////////////// Enable the Data Array  to show in Paraview  ///////////////////////////////////////////////////////////////
-
 	UGrid_Node_Mesh->GetPointData()->AddArray(vtk_Generalized_Displacements);
-	// UGrid_Node_Mesh->GetPointData()->AddArray(vtk_Node_No);
-  	// UGrid_Mesh->GetPointData()->AddArray(vtk_Generalized_Velocity);
-  	// UGrid_Mesh->GetPointData()->AddArray(vtk_Generalized_Acceleration);
+	UGrid_Node_Mesh->GetPointData()->AddArray(Node_Label);
+
+	// /////////////////////////////////////////////////////////////////////// DataSet Visualization in Cell   ///////////////////////////////////////////////////////////////
+ // 	int Element_No; 
+	// for (int i = 0; i < Number_of_Elements; i++){
+
+	// 		Element_No = Element_Map[i]; Element_Label -> InsertValue(i,Element_No);
+	// }
+
+	// UGrid_Node_Mesh->GetCellData()->AddArray(Element_Label);
+
+	// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 
 	file.close();
 
@@ -345,6 +366,9 @@ void pvESSI::Build_Gauss_Attributes(){
 	H5File file = H5File(this->FileName, H5F_ACC_RDONLY );
 
 	//////////////////////////////////////////////////////////////////// Reading Element Data ///////////////////////////////////////////////////////////////////////////////////////////
+
+	DataSet Element_Map_DataSet = file.openDataSet("Maps/ElementMap");
+	int *Element_Map; Element_Map = (int*) malloc((Number_of_Elements) * sizeof(int)); Element_Map_DataSet.read( Element_Map, PredType::NATIVE_INT);
 
 	DataSet Element_Index_to_Outputs_DataSet = file.openDataSet("Model/Elements/Index_to_Outputs");
 	int Element_Index_to_Outputs[Number_of_Elements+1]; Element_Index_to_Outputs_DataSet.read( Element_Index_to_Outputs, PredType::NATIVE_INT);
@@ -370,93 +394,40 @@ void pvESSI::Build_Gauss_Attributes(){
 	vtkSmartPointer<vtkFloatArray> Material_Properties = vtkSmartPointer<vtkFloatArray> ::New();
 	vtkSmartPointer<vtkFloatArray> Total_Energy = vtkSmartPointer<vtkFloatArray> ::New();
 	vtkSmartPointer<vtkFloatArray> Incremental_Energy = vtkSmartPointer<vtkFloatArray> ::New();
+	vtkSmartPointer<vtkIntArray> Node_Label = vtkSmartPointer<vtkIntArray> ::New();
+	vtkSmartPointer<vtkIntArray> Element_Label = vtkSmartPointer<vtkIntArray> ::New();
 
- 	SetMetaArrays( vtk_Generalized_Displacements, vtk_Generalized_Velocity, vtk_Generalized_Acceleration, Elastic_Strain_Tensor, Plastic_Strain_Tensor, Stress_Tensor, Material_Properties, Total_Energy, Incremental_Energy);
- 	int Index_of_Gauss_Nodes =0;
+ 	SetMetaArrays( vtk_Generalized_Displacements, vtk_Generalized_Velocity, vtk_Generalized_Acceleration, Elastic_Strain_Tensor, Plastic_Strain_Tensor, Stress_Tensor, Material_Properties, Total_Energy, Incremental_Energy, Node_Label, Element_Label);
+ 	int Index_of_Gauss_Nodes =0, element_no, No_of_Element_Gauss_Nodes,Output_Index;
 
-	for (int i = 0; i < Pseudo_Number_of_Elements; i++){
+	for (int i = 0; i < Number_of_Elements; i++){
 
-		if (Element_Number_of_Gauss_Points[i] > 0){
+		element_no = Element_Map[i];
 
-			/************************************************** Gauss Calculations **********************************************/
+		No_of_Element_Gauss_Nodes = Element_Number_of_Gauss_Points[element_no];
+		Output_Index = Element_Index_to_Outputs[element_no];
 
-			int No_of_Element_Gauss_Nodes = Element_Number_of_Gauss_Points[i];
-			int Output_Index = Element_Index_to_Outputs[i];
+		for(int j=0; j< No_of_Element_Gauss_Nodes ; j++){
 
-			for(int j=0; j< No_of_Element_Gauss_Nodes ; j++){
+			float El_Strain_Tuple[9] ={Element_Outputs[Output_Index],Element_Outputs[Output_Index+1],Element_Outputs[Output_Index+3],Element_Outputs[Output_Index+1],Element_Outputs[Output_Index+2],Element_Outputs[Output_Index+4],Element_Outputs[Output_Index+3],Element_Outputs[Output_Index+4],Element_Outputs[Output_Index+5]};
+			Output_Index = Output_Index+6;
+			float Pl_Strain_Tuple[9] ={Element_Outputs[Output_Index],Element_Outputs[Output_Index+1],Element_Outputs[Output_Index+3],Element_Outputs[Output_Index+1],Element_Outputs[Output_Index+2],Element_Outputs[Output_Index+4],Element_Outputs[Output_Index+3],Element_Outputs[Output_Index+4],Element_Outputs[Output_Index+5]};
+			Output_Index = Output_Index+6;
+			float Stress_Tuple[9] ={Element_Outputs[Output_Index],Element_Outputs[Output_Index+1],Element_Outputs[Output_Index+3],Element_Outputs[Output_Index+1],Element_Outputs[Output_Index+2],Element_Outputs[Output_Index+4],Element_Outputs[Output_Index+3],Element_Outputs[Output_Index+4],Element_Outputs[Output_Index+5]};
+			Output_Index = Output_Index+6;
+			Elastic_Strain_Tensor->InsertTypedTuple (Index_of_Gauss_Nodes,El_Strain_Tuple);
+			Plastic_Strain_Tensor->InsertTypedTuple (Index_of_Gauss_Nodes,Pl_Strain_Tuple);
+			Stress_Tensor->InsertTypedTuple (Index_of_Gauss_Nodes,Stress_Tuple);
 
-				// float Gauss_Incremental_Energy[1] = {0}, Gauss_Total_Energy[1]= {0} ;
-				float El_Strain_Tuple[9] ={Element_Outputs[Output_Index],Element_Outputs[Output_Index+1],Element_Outputs[Output_Index+3],Element_Outputs[Output_Index+1],Element_Outputs[Output_Index+2],Element_Outputs[Output_Index+4],Element_Outputs[Output_Index+3],Element_Outputs[Output_Index+4],Element_Outputs[Output_Index+5]};
-				Output_Index = Output_Index+6;
-				float Pl_Strain_Tuple[9] ={Element_Outputs[Output_Index],Element_Outputs[Output_Index+1],Element_Outputs[Output_Index+3],Element_Outputs[Output_Index+1],Element_Outputs[Output_Index+2],Element_Outputs[Output_Index+4],Element_Outputs[Output_Index+3],Element_Outputs[Output_Index+4],Element_Outputs[Output_Index+5]};
-				Output_Index = Output_Index+6;
-				float Stress_Tuple[9] ={Element_Outputs[Output_Index],Element_Outputs[Output_Index+1],Element_Outputs[Output_Index+3],Element_Outputs[Output_Index+1],Element_Outputs[Output_Index+2],Element_Outputs[Output_Index+4],Element_Outputs[Output_Index+3],Element_Outputs[Output_Index+4],Element_Outputs[Output_Index+5]};
-				Output_Index = Output_Index+6;
-				Elastic_Strain_Tensor->InsertTupleValue(Index_of_Gauss_Nodes,El_Strain_Tuple);
-				Plastic_Strain_Tensor->InsertTupleValue(Index_of_Gauss_Nodes,Pl_Strain_Tuple);
-				Stress_Tensor->InsertTupleValue(Index_of_Gauss_Nodes,Stress_Tuple);
-
-				// if(Gauss_Mesh_Current_Time>0){
-
-				// 	DataSet Element_Outputs_DataSet = file.openDataSet("Model/Elements/Outputs"); hsize_t dims_out[2]; int ndims;
-				// 	DataSpace Element_Outputs_DataSpace = Element_Outputs_DataSet.getSpace(); ndims = Element_Outputs_DataSpace.getSimpleExtentDims( dims_out, NULL);
-				// 	hsize_t col_dims[1];  col_dims[0] = dims_out[0]; DataSpace mspace1( 1, col_dims );
-				//     hsize_t offset[2] = { 0, Gauss_Mesh_Current_Time-1 }; hsize_t  count[2] = { dims_out[0], 1 }; /* Define the column (hyperslab) to read. */
-				//     float *Element_Outputs; Element_Outputs = (float*) malloc(dims_out[0] * sizeof(float)); // buffer for column to be read and defining hyperslab and read.
-				//     Element_Outputs_DataSpace.selectHyperslab( H5S_SELECT_SET, count, offset ); Element_Outputs_DataSet.read( Element_Outputs, PredType::NATIVE_FLOAT, mspace1, Element_Outputs_DataSpace );
-
-				// 	float Prev_El_Strain_Tuple[9] ={Element_Outputs[Output_Index],Element_Outputs[Output_Index+1],Element_Outputs[Output_Index+3],Element_Outputs[Output_Index+1],Element_Outputs[Output_Index+2],Element_Outputs[Output_Index+4],Element_Outputs[Output_Index+3],Element_Outputs[Output_Index+4],Element_Outputs[Output_Index+5]};
-				// 	Output_Index = Output_Index+6;
-				// 	float Prev_Pl_Strain_Tuple[9] ={Element_Outputs[Output_Index],Element_Outputs[Output_Index+1],Element_Outputs[Output_Index+3],Element_Outputs[Output_Index+1],Element_Outputs[Output_Index+2],Element_Outputs[Output_Index+4],Element_Outputs[Output_Index+3],Element_Outputs[Output_Index+4],Element_Outputs[Output_Index+5]};
-				// 	Output_Index = Output_Index+6;
-				// 	float Prev_Stress_Tuple[9] ={Element_Outputs[Output_Index],Element_Outputs[Output_Index+1],Element_Outputs[Output_Index+3],Element_Outputs[Output_Index+1],Element_Outputs[Output_Index+2],Element_Outputs[Output_Index+4],Element_Outputs[Output_Index+3],Element_Outputs[Output_Index+4],Element_Outputs[Output_Index+5]};
-				// 	Output_Index = Output_Index+6;
-
-				// 	Gauss_Incremental_Energy[0]+=(Stress_Tuple[0]-Prev_Stress_Tuple[0])*(El_Strain_Tuple[0]+Pl_Strain_Tuple[0]-Prev_El_Strain_Tuple[0]-Prev_Pl_Strain_Tuple[0])+
-				// 							  (Stress_Tuple[1]-Prev_Stress_Tuple[1])*(El_Strain_Tuple[1]+Pl_Strain_Tuple[1]-Prev_El_Strain_Tuple[1]-Prev_Pl_Strain_Tuple[1])+
-				// 							  (Stress_Tuple[2]-Prev_Stress_Tuple[2])*(El_Strain_Tuple[2]+Pl_Strain_Tuple[2]-Prev_El_Strain_Tuple[2]-Prev_Pl_Strain_Tuple[2])+
-				// 							  (Stress_Tuple[3]-Prev_Stress_Tuple[3])*(El_Strain_Tuple[3]+Pl_Strain_Tuple[3]-Prev_El_Strain_Tuple[3]-Prev_Pl_Strain_Tuple[3])+
-				// 							  (Stress_Tuple[4]-Prev_Stress_Tuple[4])*(El_Strain_Tuple[4]+Pl_Strain_Tuple[4]-Prev_El_Strain_Tuple[4]-Prev_Pl_Strain_Tuple[4])+
-				// 							  (Stress_Tuple[5]-Prev_Stress_Tuple[5])*(El_Strain_Tuple[5]+Pl_Strain_Tuple[5]-Prev_El_Strain_Tuple[5]-Prev_Pl_Strain_Tuple[5])+
-				// 							  (Stress_Tuple[6]-Prev_Stress_Tuple[6])*(El_Strain_Tuple[6]+Pl_Strain_Tuple[6]-Prev_El_Strain_Tuple[6]-Prev_Pl_Strain_Tuple[6])+
-				// 							  (Stress_Tuple[7]-Prev_Stress_Tuple[7])*(El_Strain_Tuple[7]+Pl_Strain_Tuple[7]-Prev_El_Strain_Tuple[7]-Prev_Pl_Strain_Tuple[7])+
-				// 							  (Stress_Tuple[8]-Prev_Stress_Tuple[8])*(El_Strain_Tuple[8]+Pl_Strain_Tuple[8]-Prev_El_Strain_Tuple[8]-Prev_Pl_Strain_Tuple[8]);
-					
-				// 	Gauss_Total_Energy[0] = Prev_Total_Energy_Database[Index_of_Gauss_Nodes] + Gauss_Incremental_Energy[0];
-			
-				// }
-				// else{
-
-				// 	Gauss_Incremental_Energy[0]=(Stress_Tuple[0])*(El_Strain_Tuple[0]+Pl_Strain_Tuple[0])+
-			 //  			 					  	(Stress_Tuple[1])*(El_Strain_Tuple[1]+Pl_Strain_Tuple[1])+
-			 //  			 					  	(Stress_Tuple[2])*(El_Strain_Tuple[2]+Pl_Strain_Tuple[2])+
-			 //  			 					  	(Stress_Tuple[3])*(El_Strain_Tuple[3]+Pl_Strain_Tuple[3])+
-			 //  			 					  	(Stress_Tuple[4])*(El_Strain_Tuple[4]+Pl_Strain_Tuple[4])+
-			 //  			 					  	(Stress_Tuple[5])*(El_Strain_Tuple[5]+Pl_Strain_Tuple[5])+
-			 //  			 					  	(Stress_Tuple[6])*(El_Strain_Tuple[6]+Pl_Strain_Tuple[6])+
-			 //  			 					  	(Stress_Tuple[7])*(El_Strain_Tuple[7]+Pl_Strain_Tuple[7])+
-			 //  			 					  	(Stress_Tuple[8])*(El_Strain_Tuple[8]+Pl_Strain_Tuple[8]);
-
-				// 	Gauss_Total_Energy[0] = Gauss_Incremental_Energy[0];
-				// 	Prev_Total_Energy_Database[Index_of_Gauss_Nodes] = Gauss_Total_Energy[0];
-				// }
-
-				// Incremental_Energy->InsertTupleValue(Index_of_Gauss_Nodes,Gauss_Incremental_Energy);
-				// Total_Energy->InsertTupleValue(Index_of_Gauss_Nodes,Gauss_Total_Energy);
-
-			}
-
-			Index_of_Gauss_Nodes+=1;
-
-			/********************************************************************************************************************/
 		}
+
+		Index_of_Gauss_Nodes+=1;
+
 	}
 
 	UGrid_Gauss_Mesh->GetCellData()->AddArray(Stress_Tensor);
   	UGrid_Gauss_Mesh->GetCellData()->AddArray(Plastic_Strain_Tensor);
   	UGrid_Gauss_Mesh->GetCellData()->AddArray(Elastic_Strain_Tensor);
- //  	UGrid_Gauss_Mesh->GetCellData()->AddArray(Total_Energy);
-	// UGrid_Gauss_Mesh->GetCellData()->AddArray(Incremental_Energy);
 
 	// freeing heap allocation for variables 
 
@@ -487,6 +458,17 @@ void pvESSI::Get_Node_Mesh(){
 	/////////////////////////////////////////// Reading a HDF5 file /////////////////////////////////////////////////////////////////////////////////////////////////
 
 	H5File file = H5File(this->FileName, H5F_ACC_RDONLY );
+
+	//////////////////////////////////////////////////// Reading Map Data ///////////////////////////////////////////////////////////////////////////////////////////
+
+	DataSet Node_Map_DataSet = file.openDataSet("Maps/NodeMap");
+	int *Node_Map; Node_Map = (int*) malloc((Number_of_Nodes) * sizeof(int)); Node_Map_DataSet.read( Node_Map, PredType::NATIVE_INT);
+
+	DataSet Inverse_Node_Map_DataSet = file.openDataSet("Maps/InverseNodeMap");
+	int *Inverse_Node_Map; Inverse_Node_Map = (int*) malloc((Pseudo_Number_of_Nodes) * sizeof(int)); Inverse_Node_Map_DataSet.read( Inverse_Node_Map, PredType::NATIVE_INT);
+
+	DataSet Element_Map_DataSet = file.openDataSet("Maps/ElementMap");
+	int *Element_Map; Element_Map = (int*) malloc((Number_of_Elements) * sizeof(int)); Element_Map_DataSet.read( Element_Map, PredType::NATIVE_INT);
 
 	//////////////////////////////////////////////////// Reading Element Data ///////////////////////////////////////////////////////////////////////////////////////////
 
@@ -521,55 +503,41 @@ void pvESSI::Get_Node_Mesh(){
 	DataSet Node_Index_to_Coordinates_DataSet = file.openDataSet("Model/Nodes/Index_to_Coordinates");
 	int *Node_Index_to_Coordinates; Node_Index_to_Coordinates = (int*) malloc((Pseudo_Number_of_Nodes) * sizeof(int)); Node_Index_to_Coordinates_DataSet.read( Node_Index_to_Coordinates, PredType::NATIVE_INT);
 
-	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////// Building Nodes ///////////////////////////////////////////////////////////////////////////////////////////
 
 	vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
 
 	points->SetNumberOfPoints(Number_of_Nodes);
 	UGrid_Node_Mesh->Allocate(Number_of_Elements);
-
-	for (int i = 0; i < Pseudo_Number_of_Nodes; i++){
-		if (Node_Index_to_Coordinates[i]!=-1){
-			points->InsertPoint(i, Node_Coordinates[Node_Index_to_Coordinates[i]],Node_Coordinates[Node_Index_to_Coordinates[i]+1],Node_Coordinates[Node_Index_to_Coordinates[i]+2]);
-		}
+	int node_no ;
+	for (int i = 0; i < Number_of_Nodes; i++){
+		node_no = Node_Map[i];
+		points->InsertPoint(i, Node_Coordinates[Node_Index_to_Coordinates[node_no]],Node_Coordinates[Node_Index_to_Coordinates[node_no]+1],Node_Coordinates[Node_Index_to_Coordinates[node_no]+2]);
 	}
 
 	UGrid_Node_Mesh->SetPoints(points);
 
-	/////////////////////////////////////////////////////////////////////////////// Building up the elements //////////////////////////////////////////////////////
-	int connectivity_index,No_of_Element_Nodes,Cell_Type; bool status=true;
+	///////////////////////////////////////////////////////////////////////////// Building up the elements //////////////////////////////////////////////////////
 
-	for (int i = 0; i < Pseudo_Number_of_Elements; i++){
+	int connectivity_index,No_of_Element_Nodes,Cell_Type,element_no; bool status=true;
 
-		connectivity_index = Element_Index_to_Connectivity[i];
+	for (int i = 0; i < Number_of_Elements; i++){
 
-		if(connectivity_index!=-1){
-	
-			No_of_Element_Nodes = Element_Number_of_Nodes[i];
+		element_no = Element_Map[i];
 
-			if (Element_Class_Tags[i]!=5015){
-				vtkIdType Vertices[No_of_Element_Nodes];
+		connectivity_index = Element_Index_to_Connectivity[element_no];
+		No_of_Element_Nodes = Element_Number_of_Nodes[element_no];
 
-				Cell_Type = ESSI_to_VTK_Element.find(No_of_Element_Nodes)->second;
-				std::vector<int> Nodes_Connectivity_Order = ESSI_to_VTK_Connectivity.find(No_of_Element_Nodes)->second;
+		vtkIdType Vertices[No_of_Element_Nodes];
+		Cell_Type = ESSI_to_VTK_Element.find(No_of_Element_Nodes)->second;
+		std::vector<int> Nodes_Connectivity_Order = ESSI_to_VTK_Connectivity.find(No_of_Element_Nodes)->second;
 
-				for(int j=0; j<No_of_Element_Nodes ; j++){
-					Vertices[j] = Element_Connectivity[connectivity_index+Nodes_Connectivity_Order[j]];
-				}
-
-				UGrid_Node_Mesh->InsertNextCell(Cell_Type, No_of_Element_Nodes, Vertices);
-				status=false;
-			}
-
+		for(int j=0; j<No_of_Element_Nodes ; j++){
+			Vertices[j] = Inverse_Node_Map[Element_Connectivity[connectivity_index+Nodes_Connectivity_Order[j]]];
 		}
 
-		if(status){
-			vtkIdType Vertices[1]={0};
-			No_of_Element_Nodes=0;
-			Cell_Type=0;
-			UGrid_Node_Mesh->InsertNextCell(Cell_Type, No_of_Element_Nodes, Vertices);
-		}
-		status=true;
+		UGrid_Node_Mesh->InsertNextCell(Cell_Type, No_of_Element_Nodes, Vertices);
+
 	}
 
 	Whether_Node_Mesh_Build=1;
@@ -588,8 +556,8 @@ void pvESSI::Get_Gauss_Mesh(){
 
 	/////////////////////////////////////////////////////////////////////// Reading Element Data ///////////////////////////////////////////////////////////////////////////////////////////
 
-	DataSet Element_Index_to_Connectivity_DataSet = file.openDataSet("Model/Elements/Index_to_Connectivity");
-	int *Element_Index_to_Connectivity; Element_Index_to_Connectivity = (int*) malloc((Number_of_Elements+1) * sizeof(int)); Element_Index_to_Connectivity_DataSet.read( Element_Index_to_Connectivity, PredType::NATIVE_INT);
+	DataSet Element_Map_DataSet = file.openDataSet("Maps/ElementMap");
+	int *Element_Map; Element_Map = (int*) malloc((Number_of_Elements) * sizeof(int)); Element_Map_DataSet.read( Element_Map, PredType::NATIVE_INT);
 
 	DataSet Element_Index_to_Gauss_Point_Coordinates_DataSet = file.openDataSet("Model/Elements/Index_to_Gauss_Point_Coordinates");
 	int *Element_Index_to_Gauss_Point_Coordinates; Element_Index_to_Gauss_Point_Coordinates = (int*) malloc((Number_of_Elements+1) * sizeof(int)); Element_Index_to_Gauss_Point_Coordinates_DataSet.read( Element_Index_to_Gauss_Point_Coordinates, PredType::NATIVE_INT);
@@ -597,43 +565,27 @@ void pvESSI::Get_Gauss_Mesh(){
 	DataSet Element_Number_of_Gauss_Points_DataSet = file.openDataSet("Model/Elements/Number_of_Gauss_Points");
 	int *Element_Number_of_Gauss_Points; Element_Number_of_Gauss_Points = (int*) malloc((Number_of_Elements+1) * sizeof(int)); Element_Number_of_Gauss_Points_DataSet.read( Element_Number_of_Gauss_Points, PredType::NATIVE_INT);
 
-	DataSet Element_Connectivity_DataSet = file.openDataSet("Model/Elements/Connectivity");
-	DataSpace Element_Connectivity_DataSpace = Element_Connectivity_DataSet.getSpace(); hsize_t dims_out[1]; int ndims = Element_Connectivity_DataSpace.getSimpleExtentDims( dims_out, NULL);
-	int *Element_Connectivity; Element_Connectivity = (int*) malloc(dims_out[0] * sizeof(int));	Element_Connectivity_DataSet.read( Element_Connectivity, PredType::NATIVE_INT);
-
-	DataSet Element_Gauss_Point_Coordinates_DataSet = file.openDataSet("Model/Elements/Gauss_Point_Coordinates");
-	DataSpace Element_Gauss_Point_Coordinates_DataSpace = Element_Gauss_Point_Coordinates_DataSet.getSpace(); ndims = Element_Gauss_Point_Coordinates_DataSpace.getSimpleExtentDims( dims_out, NULL);
+ 	DataSet Element_Gauss_Point_Coordinates_DataSet = file.openDataSet("Model/Elements/Gauss_Point_Coordinates");
+	DataSpace Element_Gauss_Point_Coordinates_DataSpace = Element_Gauss_Point_Coordinates_DataSet.getSpace(); hsize_t dims_out[1]; int ndims = Element_Gauss_Point_Coordinates_DataSpace.getSimpleExtentDims( dims_out, NULL);
 	float *Element_Gauss_Point_Coordinates; Element_Gauss_Point_Coordinates = (float*) malloc(dims_out[0] * sizeof(float));	Element_Gauss_Point_Coordinates_DataSet.read( Element_Gauss_Point_Coordinates, PredType::NATIVE_FLOAT);
 
 	////////////////////////////////////////////////////////////////////// Building up the elements //////////////////////////////////////////////////////
 
 	vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
-	points->SetNumberOfPoints(Number_of_Gauss_Nodes); int Index_of_Gauss_Nodes=0;
+	points->SetNumberOfPoints(Number_of_Gauss_Nodes); int Index_of_Gauss_Nodes=0, element_no;
+	int No_of_Element_Gauss_Nodes;
 
-	for (int i=0; i < Pseudo_Number_of_Elements; i++){
-		if (Element_Number_of_Gauss_Points[i] > 0){
-			int No_of_Element_Gauss_Nodes = Element_Number_of_Gauss_Points[i];
-			for(int j=0; j<No_of_Element_Gauss_Nodes ; j++){
-				points->InsertPoint(Index_of_Gauss_Nodes, Element_Gauss_Point_Coordinates[Element_Index_to_Gauss_Point_Coordinates[i]+3*j],Element_Gauss_Point_Coordinates[Element_Index_to_Gauss_Point_Coordinates[i]+3*j+1],Element_Gauss_Point_Coordinates[Element_Index_to_Gauss_Point_Coordinates[i]+3*j+2]);
-				Index_of_Gauss_Nodes = Index_of_Gauss_Nodes+1;
-			}
+	for (int i=0; i < Number_of_Elements; i++){
+		element_no = Element_Map[i];
+		No_of_Element_Gauss_Nodes = Element_Number_of_Gauss_Points[element_no];
+		for(int j=0; j<No_of_Element_Gauss_Nodes ; j++){
+			points->InsertPoint(Index_of_Gauss_Nodes, Element_Gauss_Point_Coordinates[Element_Index_to_Gauss_Point_Coordinates[element_no]+3*j],Element_Gauss_Point_Coordinates[Element_Index_to_Gauss_Point_Coordinates[element_no]+3*j+1],Element_Gauss_Point_Coordinates[Element_Index_to_Gauss_Point_Coordinates[element_no]+3*j+2]);
+			Index_of_Gauss_Nodes = Index_of_Gauss_Nodes+1;
 		}
+
 	}
 
 	UGrid_Gauss_Mesh->SetPoints(points);
-	UGrid_Gauss_Mesh->Allocate(Number_of_Gauss_Nodes); vtkIdType OneVertex; Index_of_Gauss_Nodes=0;
-
-	for (int i=0; i < Pseudo_Number_of_Elements; i++){
-		if (Element_Number_of_Gauss_Points[i] > 0){
-			int No_of_Element_Gauss_Nodes = Element_Number_of_Gauss_Points[i];
-			for(int j=0; j<No_of_Element_Gauss_Nodes ; j++){
-				OneVertex =Index_of_Gauss_Nodes;
-				UGrid_Gauss_Mesh->InsertNextCell(VTK_VERTEX, 1, &OneVertex);
-				Index_of_Gauss_Nodes = Index_of_Gauss_Nodes+1;
-			}
-		}
-	}
-
 	Whether_Gauss_Mesh_Build=1;
 
 	file.close();
@@ -642,7 +594,7 @@ void pvESSI::Get_Gauss_Mesh(){
 	
 }
 
-void pvESSI::SetMetaArrays( vtkSmartPointer<vtkFloatArray> &vtk_Generalized_Displacements, vtkSmartPointer<vtkFloatArray> &vtk_Generalized_Velocity, vtkSmartPointer<vtkFloatArray> &vtk_Generalized_Acceleration, vtkSmartPointer<vtkFloatArray> &Elastic_Strain_Tensor, vtkSmartPointer<vtkFloatArray> &Plastic_Strain_Tensor, vtkSmartPointer<vtkFloatArray> &Stress_Tensor, vtkSmartPointer<vtkFloatArray> &Material_Properties, vtkSmartPointer<vtkFloatArray> &Total_Energy, vtkSmartPointer<vtkFloatArray> &Incremental_Energy){
+void pvESSI::SetMetaArrays( vtkSmartPointer<vtkFloatArray> &vtk_Generalized_Displacements, vtkSmartPointer<vtkFloatArray> &vtk_Generalized_Velocity, vtkSmartPointer<vtkFloatArray> &vtk_Generalized_Acceleration, vtkSmartPointer<vtkFloatArray> &Elastic_Strain_Tensor, vtkSmartPointer<vtkFloatArray> &Plastic_Strain_Tensor, vtkSmartPointer<vtkFloatArray> &Stress_Tensor, vtkSmartPointer<vtkFloatArray> &Material_Properties, vtkSmartPointer<vtkFloatArray> &Total_Energy, vtkSmartPointer<vtkFloatArray> &Incremental_Energy, vtkSmartPointer<vtkIntArray> &Node_Label, vtkSmartPointer<vtkIntArray> &Element_Label ){
 
 	/*************************************** Mesh Meta Data ************************************************************/
 
@@ -709,7 +661,138 @@ void pvESSI::SetMetaArrays( vtkSmartPointer<vtkFloatArray> &vtk_Generalized_Disp
 	Incremental_Energy->SetName("Incremental_Energy");
 	Incremental_Energy->SetNumberOfComponents(1);
 
+	Node_Label->SetName("Node_No");
+	Node_Label->SetNumberOfComponents(1);
+
+	Element_Label->SetName("Element_No");
+	Element_Label->SetNumberOfComponents(1);
+
 	return;
 
 	/*************************************************************************************************************************************************/
 }
+
+void pvESSI::initialize(){
+
+	Node_Mesh_Current_Time=0;
+	Gauss_Mesh_Current_Time=0;
+  	Node_Mesh_Previous_Time=-1;
+  	Gauss_Mesh_Previous_Time=-1; 
+	Display_Node_Mesh=1;
+	Display_Gauss_Mesh=0;
+	Display_All_Mesh=0;
+	Whether_Node_Mesh_Build=0;
+	Whether_Gauss_Mesh_Build=0;
+	Whether_All_Mesh_Build=0;
+	// this->DebugOn();
+	// cout << "xascaS" << endl;
+}
+
+void pvESSI::Build_Maps(){
+
+	H5File file = H5File(this->FileName, H5F_ACC_RDWR );
+
+	DataSet Node_Index_to_Coordinates_DataSet = file.openDataSet("Model/Nodes/Index_to_Coordinates");
+	DataSpace Node_Index_to_Coordinates_DataSpace =Node_Index_to_Coordinates_DataSet.getSpace(); hsize_t dims_out[1]; int ndims = Node_Index_to_Coordinates_DataSpace.getSimpleExtentDims( dims_out, NULL);
+	this->Pseudo_Number_of_Nodes = dims_out[0];
+	int *Node_Index_to_Coordinates; Node_Index_to_Coordinates = (int*) malloc((Pseudo_Number_of_Nodes) * sizeof(int)); Node_Index_to_Coordinates_DataSet.read( Node_Index_to_Coordinates, PredType::NATIVE_INT);
+
+	DataSet Element_Index_to_Connectivity_DataSet = file.openDataSet("Model/Elements/Index_to_Connectivity");
+	DataSpace Element_Index_to_Connectivity_DataSpace =Element_Index_to_Connectivity_DataSet.getSpace(); ndims = Element_Index_to_Connectivity_DataSpace.getSimpleExtentDims( dims_out, NULL);
+	this->Pseudo_Number_of_Elements = dims_out[0];
+	int *Element_Index_to_Connectivity; Element_Index_to_Connectivity = (int*) malloc((Pseudo_Number_of_Elements) * sizeof(int)); Element_Index_to_Connectivity_DataSet.read( Element_Index_to_Connectivity, PredType::NATIVE_INT);
+
+	int *Node_Map; Node_Map = (int*) malloc((Number_of_Nodes) * sizeof(int));
+	int *Element_Map; Element_Map = (int*) malloc((Number_of_Elements) * sizeof(int));
+	int *Inverse_Node_Map; Inverse_Node_Map = (int*) malloc((Pseudo_Number_of_Nodes) * sizeof(int));
+	int *Inverse_Element_Map; Inverse_Element_Map = (int*) malloc((Pseudo_Number_of_Elements) * sizeof(int));
+
+	int index =0;
+	for (int i = 0; i < Pseudo_Number_of_Nodes; i++)
+	{
+		if(Node_Index_to_Coordinates[i] !=-1){
+			Node_Map[index] = i;
+			Inverse_Node_Map[i] = index;
+			index = index+1;
+		}
+		else{
+			Inverse_Node_Map[i] = -1;
+		}
+	
+	}
+
+	cout << "Number of Nodes " << index << " " << Number_of_Nodes << endl;
+
+	index =0;
+	for (int i = 0; i < Pseudo_Number_of_Elements; ++i)
+	{
+		if(Element_Index_to_Connectivity[i] !=-1){
+			Element_Map[index] = i;
+			Inverse_Element_Map[i] = index;
+			index = index+1;
+		}
+		else{
+			Inverse_Element_Map[i] = -1;
+		}
+	}
+
+	cout << "Number of Elements " << index << " " << Number_of_Elements << endl;;
+
+try{
+	Group group(file.createGroup("Maps"));
+	dims_out[0]= Number_of_Nodes; DataSpace Node_Map_DataSpace (1,dims_out);
+	DataSet Node_Map_DataSet = file.createDataSet("Maps/NodeMap",PredType::NATIVE_INT,Node_Map_DataSpace);
+	Node_Map_DataSet.write(Node_Map, PredType::NATIVE_INT );
+
+	dims_out[0] = Number_of_Elements; DataSpace Element_Map_DataSpace (1,dims_out);
+	DataSet Element_Map_DataSet = file.createDataSet("Maps/ElementMap",PredType::NATIVE_INT,Element_Map_DataSpace);
+	Element_Map_DataSet.write(Element_Map, PredType::NATIVE_INT );
+
+	dims_out[0] = Pseudo_Number_of_Nodes; DataSpace Inverse_Node_Map_DataSpace (1,dims_out);
+	DataSet Inverse_Node_Map_DataSet = file.createDataSet("Maps/InverseNodeMap",PredType::NATIVE_INT,Inverse_Node_Map_DataSpace);
+	Inverse_Node_Map_DataSet.write(Inverse_Node_Map,PredType::NATIVE_INT);
+
+	dims_out[0] = Pseudo_Number_of_Elements; DataSpace Inverse_Element_Map_DataSpace (1,dims_out);
+	DataSet Inverse_Element_Map_DataSet = file.createDataSet("Maps/InverseElementMap",PredType::NATIVE_INT,Inverse_Element_Map_DataSpace);
+	Inverse_Element_Map_DataSet.write(Inverse_Node_Map,PredType::NATIVE_INT);
+
+	dims_out[0] = 1; DataSpace Whether_Maps_Build_DataSpace (1,dims_out);int Whether_Maps_Build[1]; Whether_Maps_Build [0]= 1;
+	DataSet Whether_Maps_Build_DataSet = file.createDataSet("Whether_Maps_Build",PredType::NATIVE_INT,Whether_Maps_Build_DataSpace);
+	Whether_Maps_Build_DataSet.write(Whether_Maps_Build,PredType::NATIVE_INT);
+
+
+}
+
+   catch( FileIException error )
+   {
+      cout << " Dataset is not found." << endl;
+   }
+   // catch failure caused by the DataSet operations
+   catch( DataSetIException error )
+   {
+      cout << "DataSetIException" << endl;
+   }
+   // catch failure caused by the DataSpace operations
+   catch( DataSpaceIException error )
+   {
+      cout << "DataSpaceIException" << endl;
+   }
+   // catch failure caused by the DataSpace operations
+   catch( DataTypeIException error )
+   {
+     cout << " DataTypeIException" << endl;
+   }
+
+	file.close();
+}
+
+void pvESSI::Build_Time_Map(){
+
+	for (int i = 0;i<Number_Of_Time_Steps ; i++)
+		Time_Map[Time[i]] = i;
+
+	return;
+}
+
+
+
