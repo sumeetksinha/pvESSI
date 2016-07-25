@@ -31,7 +31,6 @@
 #include "vtkVertexGlyphFilter.h"
 #include "vtkUnstructuredGrid.h"
 #include "vtkLookupTable.h"
-#include "H5Cpp.h"
 #include <string>
 #include <iostream>
 #include <map>

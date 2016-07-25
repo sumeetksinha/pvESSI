@@ -1,6 +1,5 @@
 #include "pvESSI.h"
 #include <stdlib.h>
-
 #include "vtkMath.h"
 #include "vtkObjectFactory.h"
 #include "vtkStreamingDemandDrivenPipeline.h"
@@ -21,15 +20,14 @@
 #include "vtkVertexGlyphFilter.h"
 #include "vtkUnstructuredGrid.h"
 #include "vtkLookupTable.h"
-#include "H5Cpp.h"
 #include <string>
 #include <iostream>
 #include <map>
 #include <vector>
 #include "vtkExecutive.h"
 #include <sstream>
-
-using std::ostringstream;
+#include "hdf5.h"
+// using std::ostringstream;
 
 
 // LINK_LIBRARIES(hdf5_cpp hdf5 )
@@ -39,7 +37,6 @@ using std::ostringstream;
 // cmake .. -DParaView_DIR="/home/sumeet/Softwares/ParaView-v4.4.0" -DGHOST_BUILD_CDAWEB=OFF
 /************************************************************************************************************************************************/
 
-using namespace::H5;
 
 vtkStandardNewMacro(pvESSI);
  
@@ -62,7 +59,9 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 	// vtkInformation *Gauss_Mesh = outputVector->GetInformationObject(1);
 	// outInfo->Print(std::cout);
 
-	if (!Whether_Node_Mesh_Build){this->Get_Node_Mesh();} 
+	// if (!Whether_Node_Mesh_Build){this->Get_Node_Mesh();} 
+
+	this->Get_Node_Mesh();
 	
 	// if (!Whether_Gauss_Mesh_Build ){ this->Get_Gauss_Mesh();} 
 
@@ -75,7 +74,7 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
   	// int Clength = outInfo->Length(vtkStreamingDemandDrivenPipeline::TIME_STEPS());
   	// double* Csteps = outInfo->Get(vtkStreamingDemandDrivenPipeline::TIME_STEPS());
 
- 	// cout<< "Node_Mesh_Current_Time " << Node_Mesh->Get(vtkStreamingDemandDrivenPipeline::DATA_TIME_STEP())<< endl;
+ 	std::cout<< "Node_Mesh_Current_Time " << Node_Mesh_Current_Time<< std::endl;
 
 
  	// cout<< "Gauss_Mesh_Current_Time " << Gauss_Mesh_Current_Time<< endl;
@@ -138,7 +137,7 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 	// vtkSmartPointer<vtkQuadraturePointsGenerator> pointGen = vtkSmartPointer<vtkQuadraturePointsGenerator>::New();
 	// pointGen->SetInputArrayToProcess(0, 0, 0, vtkDataObject::FIELD_ASSOCIATION_CELLS, "QuadratureOffset");
 	// // pointGen->SetInputConnection(thresholder->GetOutputPort());
-	// vtkPolyData *Coutput=vtkPolyData::SafeDownCast(pointGen->GetOutput());
+	// vtkPolyData *Coutput=ildvtkPolyData::SafeDownCast(pointGen->GetOutput());
 	// pointGen->Update();
 	// const char* activeScalars = "pressure";
 	// UGrid->GetPointData()->SetActiveScalars(activeScalars);
@@ -161,57 +160,64 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 int pvESSI::RequestInformation( vtkInformation *request, vtkInformationVector **vtkNotUsed(inVec), vtkInformationVector* outVec){
 
 	vtkInformation* Node_Mesh = outVec->GetInformationObject(0);
-	vtkInformation* Gauss_Mesh = outVec->GetInformationObject(1);
+	// vtkInformation* Gauss_Mesh = outVec->GetInformationObject(1);
+
+	herr_t status;
+	hid_t File, DataSet, DataSpace; 
+	hsize_t  dims_out[1];
 
 	//////////////////////////////////////////////////////// Reading Hdf5 File ///////////////////////////////////////////////////////////////////////////////////////
 
-	H5File file = H5File(this->FileName, H5F_ACC_RDWR );
-	int Build_Map_Status =1;
+	File = H5Fopen(this->FileName, H5F_ACC_RDWR, H5P_DEFAULT);
+	int Build_Map_Status[1]={1};
 
 	////////////////////////////////////////////////////// Reading General Outside Data /////////////////////////////////////////////////////////////////////////////
 
-	DataSet No_of_TimeSteps_DataSet = file.openDataSet("Number_of_Time_Steps");
-	int No_of_TimeSteps[1]; No_of_TimeSteps_DataSet.read( No_of_TimeSteps, PredType::NATIVE_INT);
-	this->Number_Of_Time_Steps = No_of_TimeSteps[0];
+	DataSet = H5Dopen(File, "Number_of_Time_Steps", H5P_DEFAULT);
+	int No_of_TimeSteps[1]; status = H5Dread(DataSet, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,No_of_TimeSteps);
+	this->Number_Of_Time_Steps = No_of_TimeSteps[0]; status = H5Dclose(DataSet);
 
-	DataSet Number_of_Elements_DataSet = file.openDataSet("Number_of_Elements");
-	int Number_of_Elements[1]; Number_of_Elements_DataSet.read( Number_of_Elements, PredType::NATIVE_INT);
-	this->Number_of_Elements = Number_of_Elements[0];
+	DataSet = H5Dopen(File, "Number_of_Elements", H5P_DEFAULT);
+	int Number_of_Elements[1]; status = H5Dread(DataSet, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Number_of_Elements);
+	this->Number_of_Elements = Number_of_Elements[0]; status = H5Dclose(DataSet);
 
-	DataSet Number_of_Nodes_DataSet = file.openDataSet("Number_of_Nodes");
-	int Number_of_Nodes[1]; Number_of_Nodes_DataSet.read( Number_of_Nodes, PredType::NATIVE_INT);
-	this->Number_of_Nodes = Number_of_Nodes[0];
+	DataSet = H5Dopen(File, "Number_of_Nodes", H5P_DEFAULT);
+	int Number_of_Nodes[1]; status = H5Dread(DataSet, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Number_of_Nodes);
+	this->Number_of_Nodes = Number_of_Nodes[0]; status = H5Dclose(DataSet);
 
-	DataSet Whether_Maps_Build_DataSet;
-	try { Whether_Maps_Build_DataSet = file.openDataSet("Whether_Maps_Build");}
-	catch( FileIException error ){cout << " Dataset is not found." << endl;Build_Map_Status =0; }
-	// catch failure caused by the DataSet operations
-	catch( DataSetIException error ){cout << "DataSetIException" << endl;}
-	// catch failure caused by the DataSpace operations
-	catch( DataSpaceIException error ){ cout << "DataSpaceIException" << endl;}
-	// catch failure caused by the DataSpace operations
-	catch( DataTypeIException error ){ cout << " DataTypeIException" << endl;}
+	DataSet = H5Dopen(File, "Whether_Maps_Build", H5P_DEFAULT);
 
-   	file.close(); file = H5File(this->FileName, H5F_ACC_RDONLY ); /// opening in Readonly mode
+	if(DataSet < 0){
+		/*** Dataset not present so lets create it **/
+		dims_out[0]=1; DataSpace = H5Screate_simple(1, dims_out, NULL);
+		DataSet = H5Dcreate(File,"Whether_Maps_Build",H5T_STD_I32BE,DataSpace,H5P_DEFAULT,H5P_DEFAULT, H5P_DEFAULT);
+		Build_Map_Status[0] = -1; status = H5Sclose(DataSpace); status = H5Dclose(DataSet); 
+	}
+	else{
+		status = H5Dread(DataSet, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Build_Map_Status);
+	    status = H5Dclose(DataSet);
+	}
 
-   	if(!Build_Map_Status){
-   		Build_Maps();
+   	if(Build_Map_Status[0] <= 0){
+   		
+   		Build_Maps();	/*** Maps Not Built So Lets Go and Create the Map Dataset **/
+
    	}
    	else{
 
-	   	DataSet Node_Index_to_Coordinates_DataSet = file.openDataSet("Model/Nodes/Index_to_Coordinates");
-		DataSpace Node_Index_to_Coordinates_DataSpace =Node_Index_to_Coordinates_DataSet.getSpace(); hsize_t dims_out[1]; int ndims = Node_Index_to_Coordinates_DataSpace.getSimpleExtentDims( dims_out, NULL);
-		this->Pseudo_Number_of_Nodes = dims_out[0];
+   		DataSet = H5Dopen(File, "Model/Nodes/Index_to_Coordinates", H5P_DEFAULT); DataSpace = H5Dget_space(DataSet);
+		status  = H5Sget_simple_extent_dims(DataSpace, dims_out, NULL);this->Pseudo_Number_of_Nodes = dims_out[0];
+		status = H5Sclose(DataSpace); status = H5Dclose(DataSet);
 
-		DataSet Element_Index_to_Connectivity_DataSet = file.openDataSet("Model/Elements/Index_to_Connectivity");
-		DataSpace Element_Index_to_Connectivity_DataSpace =Element_Index_to_Connectivity_DataSet.getSpace(); ndims = Element_Index_to_Connectivity_DataSpace.getSimpleExtentDims( dims_out, NULL);
-		this->Pseudo_Number_of_Elements = dims_out[0];
+   		DataSet = H5Dopen(File, "Model/Elements/Index_to_Connectivity", H5P_DEFAULT); DataSpace = H5Dget_space(DataSet);
+		status  = H5Sget_simple_extent_dims(DataSpace, dims_out, NULL);this->Pseudo_Number_of_Elements = dims_out[0];
+		status = H5Sclose(DataSpace); status = H5Dclose(DataSet);
    }
 
 	///////////////////////////////////////////////////////////////// Evaluating Number of Gauss Points ////////////////////////////////////////////////////////////////////////////////////////////
 
-   	DataSet Element_Number_of_Gauss_Points_DataSet = file.openDataSet("Model/Elements/Number_of_Gauss_Points");
-	int Element_Number_of_Gauss_Points[Pseudo_Number_of_Elements]; Element_Number_of_Gauss_Points_DataSet.read( Element_Number_of_Gauss_Points, PredType::NATIVE_INT);
+   	DataSet = H5Dopen(File, "Model/Elements/Number_of_Gauss_Points", H5P_DEFAULT); int Element_Number_of_Gauss_Points[Pseudo_Number_of_Elements]; 
+	status = H5Dread(DataSet, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Element_Number_of_Gauss_Points); status = H5Dclose(DataSet);
 	this->Number_of_Gauss_Nodes = 0;
 
     for (int i=0; i < this->Pseudo_Number_of_Elements; i++){
@@ -222,10 +228,12 @@ int pvESSI::RequestInformation( vtkInformation *request, vtkInformationVector **
 
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	DataSet Time_DataSet = file.openDataSet("time");
-	this->Time = new double[Number_Of_Time_Steps]; Time_DataSet.read( Time, PredType::NATIVE_DOUBLE);
+	DataSet = H5Dopen(File, "time", H5P_DEFAULT); this->Time = new double[Number_Of_Time_Steps]; 
+	status = H5Dread(DataSet, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT,Time);  status = H5Dclose(DataSet);
 
-	Build_Time_Map(); double Time_range[2]={Time[0],Time[Number_Of_Time_Steps-1]};
+	Build_Time_Map(); 
+
+	double Time_range[2]={Time[0],Time[Number_Of_Time_Steps-1]};
 
 	
 	Node_Mesh->Set(vtkStreamingDemandDrivenPipeline::TIME_STEPS(),Time, No_of_TimeSteps[0]);
@@ -238,17 +246,13 @@ int pvESSI::RequestInformation( vtkInformation *request, vtkInformationVector **
 	// outInfo->Set(vtkAlgorithm::CAN_PRODUCE_SUB_EXTENT(),1);
 
 
-	///////////////////////////////////////////////// Assign Key /////////////////////////////////////////////////////
+	/////////////////////////////////////////////// Assign Key /////////////////////////////////////////////////////
 	// vtkSmartPointer<vtkInformationQuadratureSchemeDefinitionVectorKey> Quadrature_Definition_Vector = vtkSmartPointer<vtkInformationQuadratureSchemeDefinitionVectorKey> ::New();
 
 	// vtkSmartPointer<vtkQuadratureSchemeDefinition> Quadrature_Definition = vtkSmartPointer<vtkQuadratureSchemeDefinition>::New();
 	// Quadrature_Definition->Initialize(VTK_HEXAHEDRON,8,8,W_QQ_64_A);
 
-	file.close();
-
-cout << "After Here " << endl;
-
-
+	status = H5Fclose(File);
 	return 1;
 }
  
@@ -277,31 +281,37 @@ void pvESSI::set_VTK_To_ESSI_Elements_Connectivity(){
 
 void pvESSI::Build_Node_Attributes(){
 
-	/////////////////////////////////////////////////////////////////// Reading a HDF5 file /////////////////////////////////////////////////////////////////////////////////////////////////
+	herr_t status;
+	hid_t File, DataSet, DataSpace, MemSpace; 
+	hsize_t  dims_out[2], offset[2], count[2], col_dims[1];
 
-	H5File file = H5File(this->FileName, H5F_ACC_RDONLY );
+	//////////////////////////////////////////////////////// Reading Hdf5 File ///////////////////////////////////////////////////////////////////////////////////////
 
-	DataSet Node_Map_DataSet = file.openDataSet("Maps/NodeMap");
-	int *Node_Map; Node_Map = (int*) malloc((Number_of_Nodes) * sizeof(int)); Node_Map_DataSet.read( Node_Map, PredType::NATIVE_INT);
+	File = H5Fopen(this->FileName, H5F_ACC_RDONLY, H5P_DEFAULT);
 
-	DataSet Element_Map_DataSet = file.openDataSet("Maps/ElementMap");
-	int *Element_Map; Element_Map = (int*) malloc((Number_of_Elements) * sizeof(int)); Element_Map_DataSet.read( Element_Map, PredType::NATIVE_INT);
+	//////////////////////////////////////////////////// Reading Map Data ///////////////////////////////////////////////////////////////////////////////////////////
 
-	DataSet Node_Index_to_Coordinates_DataSet = file.openDataSet("Model/Nodes/Index_to_Coordinates");
-	int *Node_Index_to_Coordinates; Node_Index_to_Coordinates = (int*) malloc((Pseudo_Number_of_Nodes) * sizeof(int)); Node_Index_to_Coordinates_DataSet.read( Node_Index_to_Coordinates, PredType::NATIVE_INT);
+	DataSet = H5Dopen(File, "Maps/NodeMap", H5P_DEFAULT); int *Node_Map; Node_Map = (int*) malloc((Number_of_Nodes) * sizeof(int));
+	status = H5Dread(DataSet, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Node_Map); status=H5Dclose(DataSet);
 
-	DataSet Node_Index_to_Generalized_Displacements_DataSet = file.openDataSet("Model/Nodes/Index_to_Generalized_Displacements");
-	int *Node_Index_to_Generalized_Displacements; Node_Index_to_Generalized_Displacements = (int*) malloc((Pseudo_Number_of_Nodes) * sizeof(int)); Node_Index_to_Generalized_Displacements_DataSet.read( Node_Index_to_Generalized_Displacements, PredType::NATIVE_INT);
+	DataSet = H5Dopen(File, "Maps/ElementMap", H5P_DEFAULT); int *Element_Map; Element_Map = (int*) malloc((Number_of_Elements) * sizeof(int));
+	status = H5Dread(DataSet, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Element_Map); status=H5Dclose(DataSet);
+
+	////////////////////////////////////////////////////// Reading Node Attributes /////////////////////////////////////////////////////////////////////////////
+
+	DataSet = H5Dopen(File, "Model/Nodes/Index_to_Generalized_Displacements", H5P_DEFAULT); int *Node_Index_to_Generalized_Displacements; Node_Index_to_Generalized_Displacements = (int*) malloc((Pseudo_Number_of_Nodes) * sizeof(int));
+	status = H5Dread(DataSet, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Node_Index_to_Generalized_Displacements); status=H5Dclose(DataSet);
 
 	///////////////////////////////////////////  Output Dataset for a particular time /////////////////////////////////////////////////////////////////////////////	
-	
-    DataSet Node_Generalized_Displacements_DataSet = file.openDataSet("Model/Nodes/Generalized_Displacements"); hsize_t dims_out[2]; int ndims;
-	DataSpace Node_Generalized_Displacements_DataSpace = Node_Generalized_Displacements_DataSet.getSpace(); ndims = Node_Generalized_Displacements_DataSpace.getSimpleExtentDims( dims_out, NULL);
-	hsize_t col_dims[1];  col_dims[0] = dims_out[0]; DataSpace mspace2( 1, col_dims ); 
-	hsize_t offset[2] = { 0, Node_Mesh_Current_Time }; hsize_t  count[2] = { dims_out[0], 1 }; /* Define the column (hyperslab) to read. */
-    float *Node_Generalized_Displacements; Node_Generalized_Displacements = (float*) malloc(dims_out[0] * sizeof(float)); // buffer for column to be read and defining hyperslab and read.
-    Node_Generalized_Displacements_DataSpace.selectHyperslab( H5S_SELECT_SET, count, offset ); Node_Generalized_Displacements_DataSet.read( Node_Generalized_Displacements, PredType::NATIVE_FLOAT, mspace2, Node_Generalized_Displacements_DataSpace );
- 	
+
+	DataSet = H5Dopen(File, "Model/Nodes/Generalized_Displacements", H5P_DEFAULT); DataSpace = H5Dget_space(DataSet);
+	status  = H5Sget_simple_extent_dims(DataSpace, dims_out, NULL);	float *Node_Generalized_Displacements; Node_Generalized_Displacements = (float*) malloc((dims_out[0] ) * sizeof(float));
+	offset[0]=0; 					  count[0] = dims_out[0];		col_dims[0]=dims_out[0];
+	offset[1]=Node_Mesh_Current_Time; count[1] = 1;					MemSpace = H5Screate_simple(1,col_dims,NULL);
+	status = H5Sselect_hyperslab(DataSpace,H5S_SELECT_SET,offset,NULL,count,NULL);
+	status = H5Dread(DataSet, H5T_NATIVE_FLOAT, MemSpace, DataSpace, H5P_DEFAULT, Node_Generalized_Displacements); 
+	status = H5Sclose(MemSpace); status=H5Sclose(DataSpace); status=H5Dclose(DataSet);
+
  	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	vtkSmartPointer<vtkFloatArray> vtk_Generalized_Displacements = vtkSmartPointer<vtkFloatArray>::New(); 
@@ -329,7 +339,7 @@ void pvESSI::Build_Node_Attributes(){
 			vtk_Generalized_Displacements->InsertTypedTuple(i,tuple);
 
 
-			/*************************************************************** Displacement, Acceleration and Velocity -> Calculation Formulae **********************************************************/
+			// ************************************************************** Displacement, Acceleration and Velocity -> Calculation Formulae *********************************************************
 
 			// Displacement(t) = D_t;
 			// Acceleration(t) = (1/del.t)^2*{ D_(t+del.t) - 2*D_t + D_(t-del.t)};
@@ -345,43 +355,58 @@ void pvESSI::Build_Node_Attributes(){
 	UGrid_Node_Mesh->GetPointData()->AddArray(Node_Label);
 
 	// /////////////////////////////////////////////////////////////////////// DataSet Visualization in Cell   ///////////////////////////////////////////////////////////////
- // 	int Element_No; 
-	// for (int i = 0; i < Number_of_Elements; i++){
+ 	int Element_No; 
+	for (int i = 0; i < Number_of_Elements; i++){
 
-	// 		Element_No = Element_Map[i]; Element_Label -> InsertValue(i,Element_No);
-	// }
+		Element_No = Element_Map[i]; Element_Label -> InsertValue(i,Element_No);
+	}
 
-	// UGrid_Node_Mesh->GetCellData()->AddArray(Element_Label);
+	UGrid_Node_Mesh->GetCellData()->AddArray(Element_Label);
 
-	// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-	file.close();
+	H5Fclose(File);
 
   	return;
 }
 
 void pvESSI::Build_Gauss_Attributes(){
 
-	H5File file = H5File(this->FileName, H5F_ACC_RDONLY );
+	herr_t status;
+	hid_t File, DataSet, DataSpace, MemSpace; 
+	hsize_t  dims_out[2], offset[2], count[2], col_dims[1];
 
-	//////////////////////////////////////////////////////////////////// Reading Element Data ///////////////////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////// Reading Hdf5 File ///////////////////////////////////////////////////////////////////////////////////////
 
-	DataSet Element_Map_DataSet = file.openDataSet("Maps/ElementMap");
-	int *Element_Map; Element_Map = (int*) malloc((Number_of_Elements) * sizeof(int)); Element_Map_DataSet.read( Element_Map, PredType::NATIVE_INT);
+	File = H5Fopen(this->FileName, H5F_ACC_RDONLY, H5P_DEFAULT);
 
-	DataSet Element_Index_to_Outputs_DataSet = file.openDataSet("Model/Elements/Index_to_Outputs");
-	int Element_Index_to_Outputs[Number_of_Elements+1]; Element_Index_to_Outputs_DataSet.read( Element_Index_to_Outputs, PredType::NATIVE_INT);
+	//////////////////////////////////////////////////// Reading Map Data ///////////////////////////////////////////////////////////////////////////////////////////
 
-	DataSet Element_Number_of_Gauss_Points_DataSet = file.openDataSet("Model/Elements/Number_of_Gauss_Points");
-	int Element_Number_of_Gauss_Points[Number_of_Elements+1]; Element_Number_of_Gauss_Points_DataSet.read( Element_Number_of_Gauss_Points, PredType::NATIVE_INT);
+	DataSet = H5Dopen(File, "Maps/ElementMap", H5P_DEFAULT); int *Element_Map; Element_Map = (int*) malloc((Number_of_Elements) * sizeof(int));
+	status = H5Dread(DataSet, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Element_Map); status=H5Dclose(DataSet);
 
-	DataSet Element_Outputs_DataSet = file.openDataSet("Model/Elements/Outputs"); hsize_t dims_out[2]; int ndims;
-	DataSpace Element_Outputs_DataSpace = Element_Outputs_DataSet.getSpace(); ndims = Element_Outputs_DataSpace.getSimpleExtentDims( dims_out, NULL);
-	hsize_t col_dims[1];  col_dims[0] = dims_out[0]; DataSpace mspace1( 1, col_dims );
-    hsize_t offset[2] = { 0, Gauss_Mesh_Current_Time}; hsize_t  count[2] = { dims_out[0], 1 }; /* Define the column (hyperslab) to read. */
-    float *Element_Outputs; Element_Outputs = (float*) malloc(dims_out[0] * sizeof(float)); // buffer for column to be read and defining hyperslab and read.
-    Element_Outputs_DataSpace.selectHyperslab( H5S_SELECT_SET, count, offset ); Element_Outputs_DataSet.read( Element_Outputs, PredType::NATIVE_FLOAT, mspace1, Element_Outputs_DataSpace );
+	////////////////////////////////////////////////////// Reading Element  Attributes /////////////////////////////////////////////////////////////////////////////
+
+	DataSet = H5Dopen(File, "Model/Elements/Index_to_Outputs", H5P_DEFAULT); int *Element_Index_to_Outputs; Element_Index_to_Outputs = (int*) malloc((Pseudo_Number_of_Elements) * sizeof(int));
+	status = H5Dread(DataSet, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Element_Index_to_Outputs); status=H5Dclose(DataSet);
+
+	DataSet = H5Dopen(File, "Model/Elements/Number_of_Gauss_Points", H5P_DEFAULT); int *Element_Number_of_Gauss_Points; Element_Number_of_Gauss_Points = (int*) malloc((Pseudo_Number_of_Elements) * sizeof(int));
+	status = H5Dread(DataSet, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Element_Number_of_Gauss_Points); status=H5Dclose(DataSet);
+
+	// DataSet = H5Dopen(File, "Model/Elements/Index_to_Outputs", H5P_DEFAULT); int *Element_Index_to_Outputs; Element_Index_to_Outputs = (int*) malloc((Pseudo_Number_of_Elements) * sizeof(int));
+	// status = H5Dread(DataSet, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Element_Index_to_Outputs); status=H5Dclose(DataSet);
+
+
+	///////////////////////////////////////////  Output Dataset for a particular time /////////////////////////////////////////////////////////////////////////////	
+
+	DataSet = H5Dopen(File, "Model/Elements/Outputs", H5P_DEFAULT); DataSpace = H5Dget_space(DataSet);
+	status  = H5Sget_simple_extent_dims(DataSpace, dims_out, NULL);	float *Element_Outputs; Element_Outputs = (float*) malloc((dims_out[0] ) * sizeof(float));
+	offset[0]=0; 					  count[0] = dims_out[0];		col_dims[0]=dims_out[0];
+	offset[1]=Node_Mesh_Current_Time; count[1] = 1;					MemSpace = H5Screate_simple(1,col_dims,NULL);
+	status = H5Sselect_hyperslab(DataSpace,H5S_SELECT_SET,offset,NULL,count,NULL);
+	status = H5Dread(DataSet, H5T_NATIVE_FLOAT, MemSpace, DataSpace, H5P_DEFAULT, Element_Outputs); 
+	status = H5Sclose(MemSpace); status=H5Sclose(DataSpace); status=H5Dclose(DataSet);
 
 	///////////////////////////////////////////////////////////////////////////////// Building up the elements //////////////////////////////////////////////////////
 
@@ -431,12 +456,12 @@ void pvESSI::Build_Gauss_Attributes(){
 
 	// freeing heap allocation for variables 
 
-	// free(Element_Outputs);
+	free(Element_Outputs);
 	// free(Element_Index_to_Connectivity);
 	// free(Element_Index_to_Gauss_Point_Coordinates);
-	// free(Element_Index_to_Outputs);
+	free(Element_Index_to_Outputs);
 	// free(Element_No_of_Output_Fields);
-	// free(Element_Number_of_Gauss_Points);
+	free(Element_Number_of_Gauss_Points);
 	// free(Element_Number_of_Nodes);
 	// free(Element_Connectivity);
 	// free(Element_Gauss_Point_Coordinates);
@@ -447,7 +472,7 @@ void pvESSI::Build_Gauss_Attributes(){
 	// // free(Element_Outputs);
 	// // free(Node_Generalized_Displacements);
 
-	file.close();
+	H5Fclose(File);
 
 	return;
 }
@@ -455,53 +480,47 @@ void pvESSI::Build_Gauss_Attributes(){
 
 void pvESSI::Get_Node_Mesh(){
 
-	/////////////////////////////////////////// Reading a HDF5 file /////////////////////////////////////////////////////////////////////////////////////////////////
+	herr_t status;
+	hid_t File, DataSet, DataSpace; 
+	hsize_t  dims_out[1];
 
-	H5File file = H5File(this->FileName, H5F_ACC_RDONLY );
+	//////////////////////////////////////////////////////// Reading Hdf5 File ///////////////////////////////////////////////////////////////////////////////////////
+
+	File = H5Fopen(this->FileName, H5F_ACC_RDWR, H5P_DEFAULT);
 
 	//////////////////////////////////////////////////// Reading Map Data ///////////////////////////////////////////////////////////////////////////////////////////
 
-	DataSet Node_Map_DataSet = file.openDataSet("Maps/NodeMap");
-	int *Node_Map; Node_Map = (int*) malloc((Number_of_Nodes) * sizeof(int)); Node_Map_DataSet.read( Node_Map, PredType::NATIVE_INT);
+	DataSet = H5Dopen(File, "Maps/NodeMap", H5P_DEFAULT); int *Node_Map; Node_Map = (int*) malloc((Number_of_Nodes) * sizeof(int));
+	status = H5Dread(DataSet, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Node_Map); status=H5Dclose(DataSet);
 
-	DataSet Inverse_Node_Map_DataSet = file.openDataSet("Maps/InverseNodeMap");
-	int *Inverse_Node_Map; Inverse_Node_Map = (int*) malloc((Pseudo_Number_of_Nodes) * sizeof(int)); Inverse_Node_Map_DataSet.read( Inverse_Node_Map, PredType::NATIVE_INT);
+	DataSet = H5Dopen(File, "Maps/InverseNodeMap", H5P_DEFAULT); int *Inverse_Node_Map; Inverse_Node_Map = (int*) malloc((Pseudo_Number_of_Nodes) * sizeof(int));
+	status = H5Dread(DataSet, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Inverse_Node_Map); status=H5Dclose(DataSet);
 
-	DataSet Element_Map_DataSet = file.openDataSet("Maps/ElementMap");
-	int *Element_Map; Element_Map = (int*) malloc((Number_of_Elements) * sizeof(int)); Element_Map_DataSet.read( Element_Map, PredType::NATIVE_INT);
+	DataSet = H5Dopen(File, "Maps/ElementMap", H5P_DEFAULT); int *Element_Map; Element_Map = (int*) malloc((Number_of_Elements) * sizeof(int));
+	status = H5Dread(DataSet, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Element_Map); status=H5Dclose(DataSet);
 
 	//////////////////////////////////////////////////// Reading Element Data ///////////////////////////////////////////////////////////////////////////////////////////
 
-	DataSet Element_Index_to_Connectivity_DataSet = file.openDataSet("Model/Elements/Index_to_Connectivity");
-	int *Element_Index_to_Connectivity; Element_Index_to_Connectivity = (int*) malloc((Pseudo_Number_of_Elements) * sizeof(int)); Element_Index_to_Connectivity_DataSet.read( Element_Index_to_Connectivity, PredType::NATIVE_INT);
+	DataSet = H5Dopen(File, "Model/Elements/Index_to_Connectivity", H5P_DEFAULT); int *Element_Index_to_Connectivity; Element_Index_to_Connectivity = (int*) malloc((Pseudo_Number_of_Elements) * sizeof(int));
+	status = H5Dread(DataSet, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Element_Index_to_Connectivity); status=H5Dclose(DataSet);
 
-	DataSet Element_Class_Tags_DataSet = file.openDataSet("Model/Elements/Class_Tags");
-	int *Element_Class_Tags; Element_Class_Tags = (int*) malloc((Pseudo_Number_of_Elements) * sizeof(int)); Element_Class_Tags_DataSet.read( Element_Class_Tags, PredType::NATIVE_INT);
+	DataSet = H5Dopen(File, "Model/Elements/Class_Tags", H5P_DEFAULT); int *Element_Class_Tags; Element_Class_Tags = (int*) malloc((Pseudo_Number_of_Elements) * sizeof(int));
+	status = H5Dread(DataSet, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Element_Class_Tags); status=H5Dclose(DataSet);
 
-	DataSet Element_Index_to_Gauss_Point_Coordinates_DataSet = file.openDataSet("Model/Elements/Index_to_Gauss_Point_Coordinates");
-	int *Element_Index_to_Gauss_Point_Coordinates; Element_Index_to_Gauss_Point_Coordinates = (int*) malloc((Pseudo_Number_of_Elements) * sizeof(int)); Element_Index_to_Gauss_Point_Coordinates_DataSet.read( Element_Index_to_Gauss_Point_Coordinates, PredType::NATIVE_INT);
+	DataSet = H5Dopen(File, "Model/Elements/Number_of_Nodes", H5P_DEFAULT); int *Element_Number_of_Nodes; Element_Number_of_Nodes = (int*) malloc((Pseudo_Number_of_Elements) * sizeof(int));
+	status = H5Dread(DataSet, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Element_Number_of_Nodes); status=H5Dclose(DataSet);
 
-	DataSet Element_Number_of_Gauss_Points_DataSet = file.openDataSet("Model/Elements/Number_of_Gauss_Points");
-	int *Element_Number_of_Gauss_Points; Element_Number_of_Gauss_Points = (int*) malloc((Pseudo_Number_of_Elements) * sizeof(int)); Element_Number_of_Gauss_Points_DataSet.read( Element_Number_of_Gauss_Points, PredType::NATIVE_INT);
+	DataSet = H5Dopen(File, "Model/Elements/Connectivity", H5P_DEFAULT); DataSpace = H5Dget_space(DataSet);
+	status  = H5Sget_simple_extent_dims(DataSpace, dims_out, NULL);	int *Element_Connectivity; Element_Connectivity = (int*) malloc((dims_out[0]) * sizeof(int));
+	status = H5Dread(DataSet, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Element_Connectivity); status=H5Sclose(DataSpace); status=H5Dclose(DataSet);
 
-	DataSet Element_Number_of_Nodes_DataSet = file.openDataSet("Model/Elements/Number_of_Nodes");
-	int *Element_Number_of_Nodes; Element_Number_of_Nodes = (int*) malloc((Pseudo_Number_of_Elements) * sizeof(int)); Element_Number_of_Nodes_DataSet.read( Element_Number_of_Nodes, PredType::NATIVE_INT);
+	// ///////////////////////////////////////////////// Reading Nodes dataset //////////////////////////////////////////////////////////////////////////////////////////////
 
-	DataSet Element_Connectivity_DataSet = file.openDataSet("Model/Elements/Connectivity");
-	DataSpace Element_Connectivity_DataSpace = Element_Connectivity_DataSet.getSpace(); hsize_t dims_out[1]; int ndims = Element_Connectivity_DataSpace.getSimpleExtentDims( dims_out, NULL);
-	int *Element_Connectivity; Element_Connectivity = (int*) malloc(dims_out[0] * sizeof(int));	Element_Connectivity_DataSet.read( Element_Connectivity, PredType::NATIVE_INT);
+	DataSet = H5Dopen(File, "Model/Nodes/Coordinates", H5P_DEFAULT); double *Node_Coordinates; Node_Coordinates = (double*) malloc((Number_of_Nodes*3) * sizeof(double));
+	status = H5Dread(DataSet, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT,Node_Coordinates); status=H5Dclose(DataSet);
 
-	DataSet Element_Gauss_Point_Coordinates_DataSet = file.openDataSet("Model/Elements/Gauss_Point_Coordinates");
-	DataSpace Element_Gauss_Point_Coordinates_DataSpace = Element_Gauss_Point_Coordinates_DataSet.getSpace(); ndims = Element_Gauss_Point_Coordinates_DataSpace.getSimpleExtentDims( dims_out, NULL);
-	float *Element_Gauss_Point_Coordinates; Element_Gauss_Point_Coordinates = (float*) malloc(dims_out[0] * sizeof(float));	Element_Gauss_Point_Coordinates_DataSet.read( Element_Gauss_Point_Coordinates, PredType::NATIVE_FLOAT);
-
-	///////////////////////////////////////////////// Reading Nodes dataset //////////////////////////////////////////////////////////////////////////////////////////////
-
-	DataSet Node_Coordinates_DataSet = file.openDataSet("Model/Nodes/Coordinates");
-	float *Node_Coordinates; Node_Coordinates = (float*) malloc((Number_of_Nodes*3) * sizeof(float)); Node_Coordinates_DataSet.read( Node_Coordinates, PredType::NATIVE_FLOAT);
-
-	DataSet Node_Index_to_Coordinates_DataSet = file.openDataSet("Model/Nodes/Index_to_Coordinates");
-	int *Node_Index_to_Coordinates; Node_Index_to_Coordinates = (int*) malloc((Pseudo_Number_of_Nodes) * sizeof(int)); Node_Index_to_Coordinates_DataSet.read( Node_Index_to_Coordinates, PredType::NATIVE_INT);
+	DataSet = H5Dopen(File, "Model/Nodes/Index_to_Coordinates", H5P_DEFAULT); int *Node_Index_to_Coordinates; Node_Index_to_Coordinates = (int*) malloc((Pseudo_Number_of_Nodes) * sizeof(int));
+	status = H5Dread(DataSet, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Node_Index_to_Coordinates); status=H5Dclose(DataSet);
 
 	/////////////////////////////////////////////////// Building Nodes ///////////////////////////////////////////////////////////////////////////////////////////
 
@@ -519,7 +538,7 @@ void pvESSI::Get_Node_Mesh(){
 
 	///////////////////////////////////////////////////////////////////////////// Building up the elements //////////////////////////////////////////////////////
 
-	int connectivity_index,No_of_Element_Nodes,Cell_Type,element_no; bool status=true;
+	int connectivity_index,No_of_Element_Nodes,Cell_Type,element_no;
 
 	for (int i = 0; i < Number_of_Elements; i++){
 
@@ -542,7 +561,7 @@ void pvESSI::Get_Node_Mesh(){
 
 	Whether_Node_Mesh_Build=1;
 
-	file.close();
+	status = H5Fclose(File);
 
 	return;
 	
@@ -550,24 +569,30 @@ void pvESSI::Get_Node_Mesh(){
 
 void pvESSI::Get_Gauss_Mesh(){
 
-	/////////////////////////////////////////// Reading a HDF5 file /////////////////////////////////////////////////////////////////////////////////////////////////
+	herr_t status;
+	hid_t File, DataSet, DataSpace; 
+	hsize_t  dims_out[1];
 
-	H5File file = H5File(this->FileName, H5F_ACC_RDONLY );
+	//////////////////////////////////////////////////////// Reading Hdf5 File ///////////////////////////////////////////////////////////////////////////////////////
+
+	File = H5Fopen(this->FileName, H5F_ACC_RDWR, H5P_DEFAULT);
+
+	//////////////////////////////////////////////////// Reading Map Data ///////////////////////////////////////////////////////////////////////////////////////////
+
+	DataSet = H5Dopen(File, "Maps/ElementMap", H5P_DEFAULT); int *Element_Map; Element_Map = (int*) malloc((Number_of_Elements) * sizeof(int));
+	status = H5Dread(DataSet, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Element_Map); status=H5Dclose(DataSet);
 
 	/////////////////////////////////////////////////////////////////////// Reading Element Data ///////////////////////////////////////////////////////////////////////////////////////////
 
-	DataSet Element_Map_DataSet = file.openDataSet("Maps/ElementMap");
-	int *Element_Map; Element_Map = (int*) malloc((Number_of_Elements) * sizeof(int)); Element_Map_DataSet.read( Element_Map, PredType::NATIVE_INT);
+	DataSet = H5Dopen(File, "Model/Elements/Index_to_Gauss_Point_Coordinates", H5P_DEFAULT); int *Element_Index_to_Gauss_Point_Coordinates; Element_Index_to_Gauss_Point_Coordinates = (int*) malloc((Pseudo_Number_of_Elements) * sizeof(int));
+	status = H5Dread(DataSet, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Element_Index_to_Gauss_Point_Coordinates); status=H5Dclose(DataSet);
 
-	DataSet Element_Index_to_Gauss_Point_Coordinates_DataSet = file.openDataSet("Model/Elements/Index_to_Gauss_Point_Coordinates");
-	int *Element_Index_to_Gauss_Point_Coordinates; Element_Index_to_Gauss_Point_Coordinates = (int*) malloc((Number_of_Elements+1) * sizeof(int)); Element_Index_to_Gauss_Point_Coordinates_DataSet.read( Element_Index_to_Gauss_Point_Coordinates, PredType::NATIVE_INT);
+	DataSet = H5Dopen(File, "Model/Elements/Number_of_Gauss_Points", H5P_DEFAULT); int *Element_Number_of_Gauss_Points; Element_Number_of_Gauss_Points = (int*) malloc((Pseudo_Number_of_Elements) * sizeof(int));
+	status = H5Dread(DataSet, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Element_Number_of_Gauss_Points); status=H5Dclose(DataSet);
 
-	DataSet Element_Number_of_Gauss_Points_DataSet = file.openDataSet("Model/Elements/Number_of_Gauss_Points");
-	int *Element_Number_of_Gauss_Points; Element_Number_of_Gauss_Points = (int*) malloc((Number_of_Elements+1) * sizeof(int)); Element_Number_of_Gauss_Points_DataSet.read( Element_Number_of_Gauss_Points, PredType::NATIVE_INT);
-
- 	DataSet Element_Gauss_Point_Coordinates_DataSet = file.openDataSet("Model/Elements/Gauss_Point_Coordinates");
-	DataSpace Element_Gauss_Point_Coordinates_DataSpace = Element_Gauss_Point_Coordinates_DataSet.getSpace(); hsize_t dims_out[1]; int ndims = Element_Gauss_Point_Coordinates_DataSpace.getSimpleExtentDims( dims_out, NULL);
-	float *Element_Gauss_Point_Coordinates; Element_Gauss_Point_Coordinates = (float*) malloc(dims_out[0] * sizeof(float));	Element_Gauss_Point_Coordinates_DataSet.read( Element_Gauss_Point_Coordinates, PredType::NATIVE_FLOAT);
+	DataSet = H5Dopen(File, "Model/Elements/Gauss_Point_Coordinates", H5P_DEFAULT); DataSpace = H5Dget_space(DataSet);
+	status  = H5Sget_simple_extent_dims(DataSpace, dims_out, NULL);	float *Element_Gauss_Point_Coordinates; Element_Gauss_Point_Coordinates = (float*) malloc((dims_out[0]) * sizeof(float));
+	status = H5Dread(DataSet, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Element_Gauss_Point_Coordinates); status=H5Sclose(DataSpace); status=H5Dclose(DataSet);
 
 	////////////////////////////////////////////////////////////////////// Building up the elements //////////////////////////////////////////////////////
 
@@ -588,7 +613,7 @@ void pvESSI::Get_Gauss_Mesh(){
 	UGrid_Gauss_Mesh->SetPoints(points);
 	Whether_Gauss_Mesh_Build=1;
 
-	file.close();
+	status = H5Fclose(File);
 
 	return;
 	
@@ -690,22 +715,33 @@ void pvESSI::initialize(){
 
 void pvESSI::Build_Maps(){
 
-	H5File file = H5File(this->FileName, H5F_ACC_RDWR );
+	herr_t status;
+	hid_t File, DataSpace, DataSet, Group; 
+	hsize_t  dims_out[1];
 
-	DataSet Node_Index_to_Coordinates_DataSet = file.openDataSet("Model/Nodes/Index_to_Coordinates");
-	DataSpace Node_Index_to_Coordinates_DataSpace =Node_Index_to_Coordinates_DataSet.getSpace(); hsize_t dims_out[1]; int ndims = Node_Index_to_Coordinates_DataSpace.getSimpleExtentDims( dims_out, NULL);
-	this->Pseudo_Number_of_Nodes = dims_out[0];
-	int *Node_Index_to_Coordinates; Node_Index_to_Coordinates = (int*) malloc((Pseudo_Number_of_Nodes) * sizeof(int)); Node_Index_to_Coordinates_DataSet.read( Node_Index_to_Coordinates, PredType::NATIVE_INT);
+	//////////////////////////////////////////////////////// Reading Hdf5 File ///////////////////////////////////////////////////////////////////////////////////////
 
-	DataSet Element_Index_to_Connectivity_DataSet = file.openDataSet("Model/Elements/Index_to_Connectivity");
-	DataSpace Element_Index_to_Connectivity_DataSpace =Element_Index_to_Connectivity_DataSet.getSpace(); ndims = Element_Index_to_Connectivity_DataSpace.getSimpleExtentDims( dims_out, NULL);
-	this->Pseudo_Number_of_Elements = dims_out[0];
-	int *Element_Index_to_Connectivity; Element_Index_to_Connectivity = (int*) malloc((Pseudo_Number_of_Elements) * sizeof(int)); Element_Index_to_Connectivity_DataSet.read( Element_Index_to_Connectivity, PredType::NATIVE_INT);
+	File = H5Fopen(this->FileName, H5F_ACC_RDWR, H5P_DEFAULT);
+
+	////////////////////////////////////////////////////// Reading General Outside Data /////////////////////////////////////////////////////////////////////////////
+
+	DataSet = H5Dopen(File, "Model/Nodes/Index_to_Coordinates", H5P_DEFAULT); DataSpace = H5Dget_space(DataSet);
+	status  = H5Sget_simple_extent_dims(DataSpace, dims_out, NULL);this->Pseudo_Number_of_Nodes = dims_out[0];
+	int *Node_Index_to_Coordinates; Node_Index_to_Coordinates = (int*) malloc((Pseudo_Number_of_Nodes) * sizeof(int)); 
+    status = H5Dread(DataSet, H5T_NATIVE_INT, H5S_ALL, H5S_ALL,H5P_DEFAULT, Node_Index_to_Coordinates);
+    H5Sclose(DataSpace); H5Dclose(DataSet);
+
+	DataSet = H5Dopen(File, "Model/Elements/Index_to_Connectivity", H5P_DEFAULT); DataSpace = H5Dget_space(DataSet);
+	status  = H5Sget_simple_extent_dims(DataSpace, dims_out, NULL);this->Pseudo_Number_of_Elements = dims_out[0];
+	int *Element_Index_to_Connectivity; Element_Index_to_Connectivity = (int*) malloc((Pseudo_Number_of_Elements) * sizeof(int)); 
+    status = H5Dread(DataSet, H5T_NATIVE_INT, H5S_ALL, H5S_ALL,H5P_DEFAULT, Element_Index_to_Connectivity);
+    H5Sclose(DataSpace); H5Dclose(DataSet);
 
 	int *Node_Map; Node_Map = (int*) malloc((Number_of_Nodes) * sizeof(int));
 	int *Element_Map; Element_Map = (int*) malloc((Number_of_Elements) * sizeof(int));
 	int *Inverse_Node_Map; Inverse_Node_Map = (int*) malloc((Pseudo_Number_of_Nodes) * sizeof(int));
 	int *Inverse_Element_Map; Inverse_Element_Map = (int*) malloc((Pseudo_Number_of_Elements) * sizeof(int));
+	int Whether_Maps_Build[1] = {1};
 
 	int index =0;
 	for (int i = 0; i < Pseudo_Number_of_Nodes; i++)
@@ -722,6 +758,7 @@ void pvESSI::Build_Maps(){
 	}
 
 	cout << "Number of Nodes " << index << " " << Number_of_Nodes << endl;
+	cout << "Pseudo_Number_of_Nodes " << index << " " << Pseudo_Number_of_Nodes << endl;
 
 	index =0;
 	for (int i = 0; i < Pseudo_Number_of_Elements; ++i)
@@ -737,53 +774,35 @@ void pvESSI::Build_Maps(){
 	}
 
 	cout << "Number of Elements " << index << " " << Number_of_Elements << endl;;
+	cout << "Pseudo_Number_of_Elements " << index << " " << Pseudo_Number_of_Elements << endl;
 
-try{
-	Group group(file.createGroup("Maps"));
-	dims_out[0]= Number_of_Nodes; DataSpace Node_Map_DataSpace (1,dims_out);
-	DataSet Node_Map_DataSet = file.createDataSet("Maps/NodeMap",PredType::NATIVE_INT,Node_Map_DataSpace);
-	Node_Map_DataSet.write(Node_Map, PredType::NATIVE_INT );
+	Group = H5Gcreate(File, "/Maps", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT); status = H5Gclose(Group); 
 
-	dims_out[0] = Number_of_Elements; DataSpace Element_Map_DataSpace (1,dims_out);
-	DataSet Element_Map_DataSet = file.createDataSet("Maps/ElementMap",PredType::NATIVE_INT,Element_Map_DataSpace);
-	Element_Map_DataSet.write(Element_Map, PredType::NATIVE_INT );
+	dims_out[0]= Number_of_Nodes; DataSpace = H5Screate_simple(1, dims_out, NULL);
+	DataSet = H5Dcreate(File,"Maps/NodeMap",H5T_STD_I32BE,DataSpace,H5P_DEFAULT,H5P_DEFAULT, H5P_DEFAULT);
+	status = H5Dwrite(DataSet, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Node_Map);
+	status = H5Sclose(DataSpace); status = H5Dclose(DataSet); 
 
-	dims_out[0] = Pseudo_Number_of_Nodes; DataSpace Inverse_Node_Map_DataSpace (1,dims_out);
-	DataSet Inverse_Node_Map_DataSet = file.createDataSet("Maps/InverseNodeMap",PredType::NATIVE_INT,Inverse_Node_Map_DataSpace);
-	Inverse_Node_Map_DataSet.write(Inverse_Node_Map,PredType::NATIVE_INT);
+	dims_out[0]= Number_of_Elements; DataSpace = H5Screate_simple(1, dims_out, NULL);
+	DataSet = H5Dcreate(File,"Maps/ElementMap",H5T_STD_I32BE,DataSpace,H5P_DEFAULT,H5P_DEFAULT, H5P_DEFAULT);
+	status = H5Dwrite(DataSet, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Element_Map);
+	status = H5Sclose(DataSpace); status = H5Dclose(DataSet); 
 
-	dims_out[0] = Pseudo_Number_of_Elements; DataSpace Inverse_Element_Map_DataSpace (1,dims_out);
-	DataSet Inverse_Element_Map_DataSet = file.createDataSet("Maps/InverseElementMap",PredType::NATIVE_INT,Inverse_Element_Map_DataSpace);
-	Inverse_Element_Map_DataSet.write(Inverse_Node_Map,PredType::NATIVE_INT);
+	dims_out[0]= Pseudo_Number_of_Nodes; DataSpace = H5Screate_simple(1, dims_out, NULL);
+	DataSet = H5Dcreate(File,"Maps/InverseNodeMap",H5T_STD_I32BE,DataSpace,H5P_DEFAULT,H5P_DEFAULT, H5P_DEFAULT);
+	status = H5Dwrite(DataSet, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Inverse_Node_Map);
+	status = H5Sclose(DataSpace); status = H5Dclose(DataSet); 
 
-	dims_out[0] = 1; DataSpace Whether_Maps_Build_DataSpace (1,dims_out);int Whether_Maps_Build[1]; Whether_Maps_Build [0]= 1;
-	DataSet Whether_Maps_Build_DataSet = file.createDataSet("Whether_Maps_Build",PredType::NATIVE_INT,Whether_Maps_Build_DataSpace);
-	Whether_Maps_Build_DataSet.write(Whether_Maps_Build,PredType::NATIVE_INT);
+	dims_out[0]= Pseudo_Number_of_Elements; DataSpace = H5Screate_simple(1, dims_out, NULL);
+	DataSet = H5Dcreate(File,"Maps/InverseElementMap",H5T_STD_I32BE,DataSpace,H5P_DEFAULT,H5P_DEFAULT, H5P_DEFAULT);
+	status = H5Dwrite(DataSet, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Inverse_Element_Map);
+	status = H5Sclose(DataSpace); status = H5Dclose(DataSet); 
 
+	DataSet = H5Dopen(File,"Whether_Maps_Build",H5P_DEFAULT);DataSpace = H5Dget_space(DataSet);
+	status = H5Dwrite(DataSet, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Whether_Maps_Build);
+	status = H5Sclose(DataSpace); status = H5Dclose(DataSet); 
 
-}
-
-   catch( FileIException error )
-   {
-      cout << " Dataset is not found." << endl;
-   }
-   // catch failure caused by the DataSet operations
-   catch( DataSetIException error )
-   {
-      cout << "DataSetIException" << endl;
-   }
-   // catch failure caused by the DataSpace operations
-   catch( DataSpaceIException error )
-   {
-      cout << "DataSpaceIException" << endl;
-   }
-   // catch failure caused by the DataSpace operations
-   catch( DataTypeIException error )
-   {
-     cout << " DataTypeIException" << endl;
-   }
-
-	file.close();
+	H5Fclose(File);
 }
 
 void pvESSI::Build_Time_Map(){
