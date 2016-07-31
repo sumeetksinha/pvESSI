@@ -83,6 +83,7 @@ protected:
  
   int RequestData(vtkInformation *, vtkInformationVector **, vtkInformationVector *);
   int RequestInformation( vtkInformation *, vtkInformationVector **, vtkInformationVector* );
+  int ProcessRequest(vtkInformation *, vtkInformationVector ** , vtkInformationVector * );
   static void ProgressFunction(vtkObject* caller, long unsigned int eventId, void* clientData, void* callData);
   
   //////////////////////// Important Variables /////////////////////////////////////////
@@ -119,6 +120,7 @@ private:
   void Build_Gauss_Attributes();
   void Build_Node_Attributes();
   void Build_All_Attributes(); // need to implement
+  void Build_Delaunay3D_Gauss_Mesh();
   double *Time; 
  
   char* FileName;
@@ -127,7 +129,6 @@ private:
   vtkSmartPointer<vtkUnstructuredGrid> UGrid_Node_Mesh;     // Mesh with nodes
   vtkSmartPointer<vtkUnstructuredGrid> UGrid_Gauss_Mesh;    // Mesh with only gauss points
   vtkSmartPointer<vtkUnstructuredGrid> UGrid_All_Mesh;      // Mesh with both gauss points and nodes
-  vtkSmartPointer<vtkUnstructuredGrid> UGrid_Current_Mesh;  // Current mesh pipeline active in paraview
   int Number_of_Elements, Number_of_Nodes, Number_of_Gauss_Nodes;
   int Pseudo_Number_of_Elements, Pseudo_Number_of_Nodes;
   int Display_Node_Mesh,Display_Gauss_Mesh,Display_All_Mesh,Whether_Node_Mesh_Build, Whether_Gauss_Mesh_Build, Whether_All_Mesh_Build;
