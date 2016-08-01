@@ -73,9 +73,6 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 		UGrid_Current_Node_Mesh->ShallowCopy(UGrid_Node_Mesh);
 	} 
 
-	// this->Get_Node_Mesh();
-	// this->Get_Gauss_Mesh();
-	// 
 	if (!Whether_Gauss_Mesh_Build ){ 
 		this->Get_Gauss_Mesh(UGrid_Gauss_Mesh);
 		UGrid_Current_Gauss_Mesh->ShallowCopy(UGrid_Gauss_Mesh);
@@ -85,7 +82,6 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 	// outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_EXTENT(), extent);
 
   	this->Node_Mesh_Current_Time = Time_Map.find( Node_Mesh->Get(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP()))->second;
-  	// Gauss_Mesh_Current_Time = Node_Mesh_Current_Time;
   	this->Gauss_Mesh_Current_Time = Time_Map.find( Gauss_Mesh->Get(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP()))->second;
 
   	// int Clength = outInfo->Length(vtkStreamingDemandDrivenPipeline::TIME_STEPS());
@@ -99,19 +95,13 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
  	std::cout<< "Node_Mesh_Current_Time " << Node_Mesh_Current_Time<< std::endl;
  	std::cout<< "Gauss_Mesh_Current_Time " << Gauss_Mesh_Current_Time<< std::endl;
 
- 	// vtkIndent indent;
- 	// outputVector->PrintSelf(std::cout, indent);
- 	// delaunay3D->PrintSelf(std::cout, indent);
-
- // 	cout << "Number of Nodes "   << " " << Number_of_Nodes << endl;
+ 	/////////////////////////////////  Printing For Debugging ////////////////////////////////
+ 	// cout << "Number of Nodes "   << " " << Number_of_Nodes << endl;
 	// cout << "Pseudo_Number_of_Nodes "  << " " << Pseudo_Number_of_Nodes << endl;
-	// cout << " Number of Gauss Points " << Number_of_Gauss_Nodes << endl;
-
-  // Generate a tetrahedral mesh from the input points. By
-  // default, the generated volume is the convex hull of the points.
-
-  //Read the file
-
+	// cout << "Number of Gauss Points " << Number_of_Gauss_Nodes << endl;
+ 	// cout << "Number of Elements "   << " " << Number_of_Elements << endl;
+	// cout << "Pseudo_Number_of_Elements"  << " " << Pseudo_Number_of_Elements << endl;
+	/////////////////////////////////////////////////////////////////////////////////////////
 
 
  	// cout<< "Gauss_Mesh_Current_Time " << Gauss_Mesh_Current_Time<< endl;
@@ -136,61 +126,18 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 	// outInfo->Set(vtkStreamingDemandDrivenPipeline::MAXIMUM_NUMBER_OF_PIECES(), -1);
 	///////////////////////////////////////////////////////////////////////////////
 
-	// get the ouptut pointer to paraview 
-	// if(Node_Mesh_Current_Time!=Node_Mesh_Previous_Time){
-		Build_Node_Attributes(UGrid_Current_Node_Mesh, this->Node_Mesh_Current_Time );
-	// 	Node_Mesh_Previous_Time = Node_Mesh_Current_Time;
-	// }
-	// else if(Gauss_Mesh_Current_Time!=Gauss_Mesh_Previous_Time){
-		Build_Gauss_Attributes(UGrid_Current_Gauss_Mesh, this->Gauss_Mesh_Current_Time );
-	// 	Gauss_Mesh_Previous_Time = Gauss_Mesh_Current_Time;
-	// }
+	
+	Build_Node_Attributes(UGrid_Current_Node_Mesh, this->Node_Mesh_Current_Time );
+	Build_Gauss_Attributes(UGrid_Current_Gauss_Mesh, this->Gauss_Mesh_Current_Time );
 
+	// get the ouptut pointer to paraview 
 	vtkUnstructuredGrid *Output_Node_Mesh = vtkUnstructuredGrid::SafeDownCast(Node_Mesh->Get(vtkDataObject::DATA_OBJECT()));
 	vtkUnstructuredGrid *Output_Gauss_Mesh = vtkUnstructuredGrid::SafeDownCast(Gauss_Mesh->Get(vtkDataObject::DATA_OBJECT()));
+
 	Output_Node_Mesh->ShallowCopy(UGrid_Current_Node_Mesh);
 	Output_Gauss_Mesh->ShallowCopy(UGrid_Current_Gauss_Mesh);
 
-	// vtkUnstructuredGrid *GaussMesh = vtkUnstructuredGrid::SafeDownCast(outInfo2->Get(vtkDataObject::DATA_OBJECT()));
 
-	// /////////////////////////////////////////////////////////////////////// Gauss Point Visualization ///////////////////////////////////////////////////////////////
-
-	// // Add a quadrature scheme dictionary to the data set. This filter is
-	// // solely for our convinience. Typically we would expect that users
-	// // provide there own in XML format and use the readers or to generate
-	// // them on the fly.
-
-	//   vtkUnstructuredGrid *input=0;
-	// vtkSmartPointer<vtkQuadratureSchemeDictionaryGenerator> dictGen = vtkSmartPointer<vtkQuadratureSchemeDictionaryGenerator>::New();
-	// dictGen->SetInputData(UGrid);
-
-	// // Interpolate fields to the quadrature points. This generates new field data
-	// // arrays, but not a set of points.
-	// vtkSmartPointer<vtkQuadraturePointInterpolator> fieldInterp =vtkSmartPointer<vtkQuadraturePointInterpolator>::New();
-	// fieldInterp->SetInputArrayToProcess(0, 0, 0, vtkDataObject::FIELD_ASSOCIATION_CELLS, "QuadratureOffset");
-	// fieldInterp->SetInputConnection(dictGen->GetOutputPort());
-
-	// // Generate the quadrature point set using a specific array as point data.
-	// vtkSmartPointer<vtkQuadraturePointsGenerator> pointGen = vtkSmartPointer<vtkQuadraturePointsGenerator>::New();
-	// pointGen->SetInputArrayToProcess(0, 0, 0, vtkDataObject::FIELD_ASSOCIATION_CELLS, "QuadratureOffset");
-	// // pointGen->SetInputConnection(thresholder->GetOutputPort());
-	// vtkPolyData *Coutput=ildvtkPolyData::SafeDownCast(pointGen->GetOutput());
-	// pointGen->Update();
-	// const char* activeScalars = "pressure";
-	// UGrid->GetPointData()->SetActiveScalars(activeScalars);
-
-	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-	// cout << "Reached Here" << endl;
-	// Build_Gauss_Attributes();
-	// Build_Node_Attributes();
-
-
-	// UGrid_Current_Mesh->ShallowCopy(UGrid_Node_Mesh);
-	// GaussMesh->ShallowCopy(UGrid_Gauss_Mesh);
-	// output->ShallowCopy(GeneralMesh);
-
-	// cout << "Reached Here" << endl;
 	return 1;
 }
 
