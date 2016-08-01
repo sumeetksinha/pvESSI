@@ -56,7 +56,7 @@
 
 
 vtkStandardNewMacro(pvESSI);
- 
+
 pvESSI::pvESSI(){ 
 
 
@@ -70,6 +70,11 @@ pvESSI::pvESSI(){
 	this->set_VTK_To_ESSI_Elements_Connectivity();
 	this->initialize();
 }
+
+/*****************************************************************************
+* This method responds to the request made by vtk Pipeleine. 
+* This method is invoked when the time stamp is changed from paraview VCR.
+*****************************************************************************/
 
 int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector **vtkNotUsed(inputVector),	vtkInformationVector *outputVector){
  
@@ -204,6 +209,12 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 	return 1;
 }
 
+/*****************************************************************************
+* This method is called only once for information about time stamp and extent. 
+* This is the method which is called firt after the default constructor is 
+* initialized
+*****************************************************************************/
+
 int pvESSI::RequestInformation( vtkInformation *request, vtkInformationVector **vtkNotUsed(inVec), vtkInformationVector* outVec){
 
 	vtkInformation* Node_Mesh = outVec->GetInformationObject(0);
@@ -304,6 +315,10 @@ int pvESSI::RequestInformation( vtkInformation *request, vtkInformationVector **
 }
 
 
+/*****************************************************************************
+* This method creates and process the request from vtk Pipeleine
+*****************************************************************************/
+
 int pvESSI::ProcessRequest(vtkInformation  *request_type, vtkInformationVector  **inInfo, vtkInformationVector *outInfo){
 
 	// cout << "-----------------------------------------------------------------------------------\n";
@@ -313,12 +328,24 @@ int pvESSI::ProcessRequest(vtkInformation  *request_type, vtkInformationVector  
   return this->Superclass::ProcessRequest(request_type, inInfo, outInfo);
 }
 
+/*****************************************************************************
+* This method prints about reader plugin i.e itself
+*****************************************************************************/
+
 void pvESSI::PrintSelf(ostream& os, vtkIndent indent){
 
 	this->Superclass::PrintSelf(os,indent);
 	os << indent << "File Name: " << (this->FileName ? this->FileName : "(none)") << "\n";
 	return;
 }
+
+/*****************************************************************************
+* This method creates a map for the connectivity order from ESSI connectivity
+* to vtk elements connectivity. The connectivity order is stored in\
+* ESSI_to_VTK_Element map whose key is the number of connectivity nodes. 
+*
+* !!!I think a better key is needed so that it can be robust.
+*****************************************************************************/
 
 void pvESSI::set_VTK_To_ESSI_Elements_Connectivity(){
 
@@ -335,6 +362,11 @@ void pvESSI::set_VTK_To_ESSI_Elements_Connectivity(){
 	int TriQudratic_hexahedron[27] = {6,5,4,7,2,1,0,3,13,12,15,14,9,8,11,10,18,17,16,19,23,21,22,24,26,25,20}; 	connectivity_vector.assign(TriQudratic_hexahedron,TriQudratic_hexahedron+27);	ESSI_to_VTK_Connectivity[27]= connectivity_vector;	connectivity_vector.clear();
 	return;
 }
+
+/*****************************************************************************
+* This Method builds node attributes for the current time and pushes it to 
+* the <vtkUnstructuredGrid> input vtkobject.
+*****************************************************************************/
 
 void pvESSI::Build_Node_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh){
 
@@ -438,6 +470,11 @@ void pvESSI::Build_Node_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Node_Mes
 
   	return;
 }
+
+/*****************************************************************************
+* This Method builds gauss attributes for the current time and pushes it to 
+* the <vtkUnstructuredGrid> input vtkobject.
+*****************************************************************************/
 
 void pvESSI::Build_Gauss_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Gauss_Mesh){
 
@@ -691,6 +728,11 @@ void pvESSI::Build_ProbeFilter_Gauss_Mesh(vtkSmartPointer<vtkUnstructuredGrid> P
 }
 
 
+/*****************************************************************************
+* This function creates a Node Mesh i.e a mesh from the given node data 
+* and element data from hdf5 file. The function stores the mesh in the 
+* given input <vtkUnstructuredGrid> input object.
+*****************************************************************************/
 
 void pvESSI::Get_Node_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh){
 
@@ -781,6 +823,11 @@ void pvESSI::Get_Node_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh){
 	
 }
 
+/*****************************************************************************
+* This Function builds a gauss mesh from the given gauss mesh coordinates  
+* Uses Delaunay3D filter to generate the mesh 
+*****************************************************************************/
+
 void pvESSI::Get_Gauss_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Gauss_Mesh){
 
 	herr_t status;
@@ -841,8 +888,10 @@ void pvESSI::Get_Gauss_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Gauss_Mesh){
 	
 }
 
-  // Generate a tetrahedral mesh from the input points. By
-  // default, the generated volume is the convex hull of the points.
+/*****************************************************************************
+* Generate a tetrahedral mesh from the given input points, and stores the 
+* newly generated mesh in the same input vtkUnstructuredGrid object.  
+*****************************************************************************/
 
 void pvESSI::Build_Delaunay3D_Gauss_Mesh(vtkSmartPointer<vtkUnstructuredGrid> GaussMesh){
 
@@ -859,6 +908,13 @@ void pvESSI::Build_Delaunay3D_Gauss_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Ga
   GaussMesh->ShallowCopy( delaunay3D->GetOutput());
 
 }
+
+
+/*****************************************************************************
+* This function generates the metadatay attributes array all at one place  
+* I am thinking it to remove it. Was meant to be public accessibe to all but
+* currently takes lot of parameters. 
+*****************************************************************************/
 
 void pvESSI::SetMetaArrays( vtkSmartPointer<vtkFloatArray> &vtk_Generalized_Displacements, vtkSmartPointer<vtkFloatArray> &vtk_Generalized_Velocity, vtkSmartPointer<vtkFloatArray> &vtk_Generalized_Acceleration, vtkSmartPointer<vtkFloatArray> &Elastic_Strain_Tensor, vtkSmartPointer<vtkFloatArray> &Plastic_Strain_Tensor, vtkSmartPointer<vtkFloatArray> &Stress_Tensor, vtkSmartPointer<vtkFloatArray> &Material_Properties, vtkSmartPointer<vtkFloatArray> &Total_Energy, vtkSmartPointer<vtkFloatArray> &Incremental_Energy, vtkSmartPointer<vtkIntArray> &Node_Label, vtkSmartPointer<vtkIntArray> &Element_Label ){
 
@@ -926,8 +982,12 @@ void pvESSI::SetMetaArrays( vtkSmartPointer<vtkFloatArray> &vtk_Generalized_Disp
 
 	return;
 
-	/*************************************************************************************************************************************************/
 }
+
+
+/*****************************************************************************
+* Initializes some variables to default values
+*****************************************************************************/
 
 void pvESSI::initialize(){
 
@@ -944,6 +1004,16 @@ void pvESSI::initialize(){
 	// this->DebugOn();
 	// cout << "xascaS" << endl;
 }
+
+
+/*****************************************************************************
+* Builds maps in hdf5 output file for efficient visualization
+* Creates a maps group in the files with the following data set 
+*	Node_Map: From global/(input) node number to reduced node numbers
+*	Element_Map : From global(input) element number to reduced element numbers
+* 	Inverse_Node_Map: From reduced node number to global(input) node number 
+* 	Inverse_Element_Map: From reduced element number to global(input) element number 
+*****************************************************************************/
 
 void pvESSI::Build_Maps(){
 
@@ -989,9 +1059,6 @@ void pvESSI::Build_Maps(){
 	
 	}
 
-	// cout << "Number of Nodes " << index << " " << Number_of_Nodes << endl;
-	// cout << "Pseudo_Number_of_Nodes " << index << " " << Pseudo_Number_of_Nodes << endl;
-
 	index =0;
 	for (int i = 0; i < Pseudo_Number_of_Elements; ++i)
 	{
@@ -1005,8 +1072,12 @@ void pvESSI::Build_Maps(){
 		}
 	}
 
+	//////////////////////// Debugg Printing /////////////////////////////////////////////////////
+	// cout << "Number of Nodes " << index << " " << Number_of_Nodes << endl;
+	// cout << "Pseudo_Number_of_Nodes " << index << " " << Pseudo_Number_of_Nodes << endl;
 	// cout << "Number of Elements " << index << " " << Number_of_Elements << endl;;
 	// cout << "Pseudo_Number_of_Elements " << index << " " << Pseudo_Number_of_Elements << endl;
+	///////////////////////////////////////////////////////////////////////////////////////////////
 
 	Group = H5Gcreate(File, "/Maps", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT); status = H5Gclose(Group); 
 
@@ -1036,6 +1107,15 @@ void pvESSI::Build_Maps(){
 
 	H5Fclose(File);
 }
+
+
+/*****************************************************************************
+* Builds time map i.e. a way to get the index number from a given non-interger
+* time request from paraview desk. Although it works fine, its not the great 
+* way to achieve it. 
+* Needs to be changed. I think, paraview has fixed this issue in their latest 
+* version, but I am not sure, need to check it. 
+*****************************************************************************/
 
 void pvESSI::Build_Time_Map(){
 
