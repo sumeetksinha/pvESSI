@@ -121,6 +121,7 @@ private:
   void Build_Node_Attributes();
   void Build_All_Attributes(); // need to implement
   void Build_Delaunay3D_Gauss_Mesh();
+  void Build_ProbeFilter_Gauss_Mesh();
   double *Time; 
  
   char* FileName;

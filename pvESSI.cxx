@@ -28,6 +28,7 @@
 #include "vtkExecutive.h"
 #include <sstream>
 #include "hdf5.h"
+#include "vtkProbeFilter.h"
 // using std::ostringstream;
 
 #include <vtkCellArray.h>
@@ -106,7 +107,7 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 
  // 	cout << "Number of Nodes "   << " " << Number_of_Nodes << endl;
 	// cout << "Pseudo_Number_of_Nodes "  << " " << Pseudo_Number_of_Nodes << endl;
-	// cout << " Number of Gauss Points " << Number_of_Gauss_Nodes << endl;
+	cout << " Number of Gauss Points " << Number_of_Gauss_Nodes << endl;
 
   // Generate a tetrahedral mesh from the input points. By
   // default, the generated volume is the convex hull of the points.
@@ -430,6 +431,8 @@ void pvESSI::Build_Node_Attributes(){
 
 void pvESSI::Build_Gauss_Attributes(){
 
+	this->Build_ProbeFilter_Gauss_Mesh();
+
 	herr_t status;
 	hid_t File, DataSet, DataSpace, MemSpace; 
 	hsize_t  dims_out[2], offset[2], count[2], col_dims[1];
@@ -479,12 +482,17 @@ void pvESSI::Build_Gauss_Attributes(){
 	vtkSmartPointer<vtkIntArray>   Node_Label = vtkSmartPointer<vtkIntArray> ::New();
 	vtkSmartPointer<vtkIntArray>   Element_Label = vtkSmartPointer<vtkIntArray> ::New();
 
-	vtkSmartPointer<vtkFloatArray> vtk_Gauss_Generalized_Displacements = vtkSmartPointer<vtkFloatArray>::New();
-	vtk_Gauss_Generalized_Displacements->SetName("Gauss_Generalized_Displacements");
-	vtk_Gauss_Generalized_Displacements->SetNumberOfComponents(3);
-	vtk_Gauss_Generalized_Displacements->SetComponentName(0,"X-axis");
-	vtk_Gauss_Generalized_Displacements->SetComponentName(1,"Y-axis");
-	vtk_Gauss_Generalized_Displacements->SetComponentName(2,"Z-axis");
+
+	// > Symmetric Tensor the order is 0 1 2 1 3 4 2 4 5 so like in a matrix
+	// > 0 1 2
+	// > 1 3 4
+	// > 2 4 6
+
+	// > Assymetriic Tensor tensor the order is  0 1 2 3 4 5 6 7 8
+	// > 0 1 2
+	// > 3 4 5
+	// > 6 7 8
+
 
  	SetMetaArrays( vtk_Generalized_Displacements, vtk_Generalized_Velocity, vtk_Generalized_Acceleration, Elastic_Strain_Tensor, Plastic_Strain_Tensor, Stress_Tensor, Material_Properties, Total_Energy, Incremental_Energy, Node_Label, Element_Label);
  	int Index_of_Gauss_Nodes =0, element_no, No_of_Element_Gauss_Nodes,Output_Index, gauss_number=0;
@@ -498,19 +506,17 @@ void pvESSI::Build_Gauss_Attributes(){
 
 		for(int j=0; j< No_of_Element_Gauss_Nodes ; j++){
 
-			float El_Strain_Tuple[9] ={Element_Outputs[Output_Index],Element_Outputs[Output_Index+1],Element_Outputs[Output_Index+3],Element_Outputs[Output_Index+1],Element_Outputs[Output_Index+2],Element_Outputs[Output_Index+4],Element_Outputs[Output_Index+3],Element_Outputs[Output_Index+4],Element_Outputs[Output_Index+5]};
+			float El_Strain_Tuple[6] ={Element_Outputs[Output_Index],Element_Outputs[Output_Index+3],Element_Outputs[Output_Index+4],Element_Outputs[Output_Index+1],Element_Outputs[Output_Index+5],Element_Outputs[Output_Index+2]};
 			Output_Index = Output_Index+6;
-			float Pl_Strain_Tuple[9] ={Element_Outputs[Output_Index],Element_Outputs[Output_Index+1],Element_Outputs[Output_Index+3],Element_Outputs[Output_Index+1],Element_Outputs[Output_Index+2],Element_Outputs[Output_Index+4],Element_Outputs[Output_Index+3],Element_Outputs[Output_Index+4],Element_Outputs[Output_Index+5]};
+			float Pl_Strain_Tuple[6] ={Element_Outputs[Output_Index],Element_Outputs[Output_Index+3],Element_Outputs[Output_Index+4],Element_Outputs[Output_Index+1],Element_Outputs[Output_Index+5],Element_Outputs[Output_Index+2]};
 			Output_Index = Output_Index+6;
-			float Stress_Tuple[9] ={Element_Outputs[Output_Index],Element_Outputs[Output_Index+1],Element_Outputs[Output_Index+3],Element_Outputs[Output_Index+1],Element_Outputs[Output_Index+2],Element_Outputs[Output_Index+4],Element_Outputs[Output_Index+3],Element_Outputs[Output_Index+4],Element_Outputs[Output_Index+5]};
+			float Stress_Tuple[6] ={Element_Outputs[Output_Index],Element_Outputs[Output_Index+3],Element_Outputs[Output_Index+4],Element_Outputs[Output_Index+1],Element_Outputs[Output_Index+5],Element_Outputs[Output_Index+2]};
 			Output_Index = Output_Index+6;
+
 			Elastic_Strain_Tensor->InsertTypedTuple (Index_of_Gauss_Nodes,El_Strain_Tuple);
 			Plastic_Strain_Tensor->InsertTypedTuple (Index_of_Gauss_Nodes,Pl_Strain_Tuple);
 			Stress_Tensor->InsertTypedTuple (Index_of_Gauss_Nodes,Stress_Tuple);
 			
-			float tuple[3] ={Index_of_Gauss_Nodes*0.5,Index_of_Gauss_Nodes*0.5,Index_of_Gauss_Nodes*0.5};
-			vtk_Gauss_Generalized_Displacements->InsertTypedTuple(Index_of_Gauss_Nodes,tuple);
-
 			Index_of_Gauss_Nodes+=1;
 
 		}
@@ -519,7 +525,6 @@ void pvESSI::Build_Gauss_Attributes(){
 	UGrid_Gauss_Mesh->GetPointData()->AddArray(Stress_Tensor);
   	UGrid_Gauss_Mesh->GetPointData()->AddArray(Plastic_Strain_Tensor);
   	UGrid_Gauss_Mesh->GetPointData()->AddArray(Elastic_Strain_Tensor);
-  	// UGrid_Gauss_Mesh->GetPointData()->AddArray(vtk_Gauss_Generalized_Displacements);
 
 	// freeing heap allocation for variables 
 
@@ -539,10 +544,35 @@ void pvESSI::Build_Gauss_Attributes(){
 	// // free(Element_Outputs);
 	// // free(Node_Generalized_Displacements);
 
+
 	H5Fclose(File);
 
 	return;
 }
+
+/*****************************************************************************
+* This Method probes node mesh variables at gauss mesh 
+* By Default it probes only generalized displacement
+* But the user can choose an option to probe all variables
+*****************************************************************************/
+
+void Build_ProbeFilter_Gauss_Mesh(){
+
+	vtkSmartPointer<vtkUnstructuredGrid> Probe_Source = vtkSmartPointer<vtkUnstructuredGrid>::New();
+	Probe_Source->ShallowCopy(UGrid_Node_Mesh);
+
+	vtkSmartPointer<vtkProbeFilter> probe = vtkSmartPointer<vtkProbeFilter>::New();
+	probe->SetSourceData(Probe_Source);
+	probe->SetInputData(UGrid_Gauss_Mesh);
+	probe->Update();
+
+	UGrid_Gauss_Mesh->DeepCopy( probe->GetOutput());
+	// UGrid_Gauss_Mesh->GetPointData()->RemoveArray("Material_Tag");
+	// UGrid_Gauss_Mesh->GetPointData()->RemoveArray("Node_No");
+	// UGrid_Gauss_Mesh->GetPointData()->RemoveArray("Element_No");
+
+}
+
 
 
 void pvESSI::Get_Node_Mesh(){
@@ -718,57 +748,48 @@ void pvESSI::SetMetaArrays( vtkSmartPointer<vtkFloatArray> &vtk_Generalized_Disp
 
 	vtk_Generalized_Displacements->SetName("Generalized_Displacements");
 	vtk_Generalized_Displacements->SetNumberOfComponents(3);
-	vtk_Generalized_Displacements->SetComponentName(0,"X-axis");
-	vtk_Generalized_Displacements->SetComponentName(1,"Y-axis");
-	vtk_Generalized_Displacements->SetComponentName(2,"Z-axis");
+	vtk_Generalized_Displacements->SetComponentName(0,"UX");
+	vtk_Generalized_Displacements->SetComponentName(1,"UY");
+	vtk_Generalized_Displacements->SetComponentName(2,"UZ");
 
 	vtk_Generalized_Velocity->SetName("Velocity");
 	vtk_Generalized_Velocity->SetNumberOfComponents(3);
-	vtk_Generalized_Velocity->SetComponentName(0,"X-axis");
-	vtk_Generalized_Velocity->SetComponentName(1,"Y-axis");
-	vtk_Generalized_Velocity->SetComponentName(2,"Z-axis");
+	vtk_Generalized_Velocity->SetComponentName(0,"VX");
+	vtk_Generalized_Velocity->SetComponentName(1,"VY");
+	vtk_Generalized_Velocity->SetComponentName(2,"VZ");
 
 	vtk_Generalized_Acceleration->SetName("Acceleration");
 	vtk_Generalized_Acceleration->SetNumberOfComponents(3);
-	vtk_Generalized_Acceleration->SetComponentName(0,"X-axis");
-	vtk_Generalized_Acceleration->SetComponentName(1,"Y-axis");
-	vtk_Generalized_Acceleration->SetComponentName(2,"Z-axis");
+	vtk_Generalized_Acceleration->SetComponentName(0,"AX");
+	vtk_Generalized_Acceleration->SetComponentName(1,"AY");
+	vtk_Generalized_Acceleration->SetComponentName(2,"AZ");
 
 	Elastic_Strain_Tensor->SetName("Elastic_Strain");
-	Elastic_Strain_Tensor->SetNumberOfComponents(9);
-	Elastic_Strain_Tensor->SetComponentName(0,"El-Strain-xx");
-	Elastic_Strain_Tensor->SetComponentName(1,"El-Strain-xy");
-	Elastic_Strain_Tensor->SetComponentName(2,"El-Strain-xz");
-	Elastic_Strain_Tensor->SetComponentName(3,"El-Strain-yx");
-	Elastic_Strain_Tensor->SetComponentName(4,"El-Strain-yy");
-	Elastic_Strain_Tensor->SetComponentName(5,"El-Strain-yz");
-	Elastic_Strain_Tensor->SetComponentName(6,"El-Strain-zx");
-	Elastic_Strain_Tensor->SetComponentName(7,"El-Strain-zy");
-	Elastic_Strain_Tensor->SetComponentName(8,"El-Strain-zz");
+	Elastic_Strain_Tensor->SetNumberOfComponents(6);
+	Elastic_Strain_Tensor->SetComponentName(0,"eps_xx");
+	Elastic_Strain_Tensor->SetComponentName(1,"eps_xy");
+	Elastic_Strain_Tensor->SetComponentName(2,"eps_xz");
+	Elastic_Strain_Tensor->SetComponentName(3,"eps_yy");
+	Elastic_Strain_Tensor->SetComponentName(4,"eps_yz");
+	Elastic_Strain_Tensor->SetComponentName(5,"eps_zz");
 
 	Plastic_Strain_Tensor->SetName("Plastic_Strain");
-	Plastic_Strain_Tensor->SetNumberOfComponents(9);
-	Plastic_Strain_Tensor->SetComponentName(0,"Pl-Strain-xx");
-	Plastic_Strain_Tensor->SetComponentName(1,"Pl-Strain-xy");
-	Plastic_Strain_Tensor->SetComponentName(2,"Pl-Strain-xz");
-	Plastic_Strain_Tensor->SetComponentName(3,"Pl-Strain-yx");
-	Plastic_Strain_Tensor->SetComponentName(4,"Pl-Strain-yy");
-	Plastic_Strain_Tensor->SetComponentName(5,"Pl-Strain-yz");
-	Plastic_Strain_Tensor->SetComponentName(6,"Pl-Strain-zx");
-	Plastic_Strain_Tensor->SetComponentName(7,"Pl-Strain-zy");
-	Plastic_Strain_Tensor->SetComponentName(8,"Pl-Strain-zz");	
+	Plastic_Strain_Tensor->SetNumberOfComponents(6);
+	Plastic_Strain_Tensor->SetComponentName(0,"eps_xx");
+	Plastic_Strain_Tensor->SetComponentName(1,"eps_xy");
+	Plastic_Strain_Tensor->SetComponentName(2,"eps_xz");
+	Plastic_Strain_Tensor->SetComponentName(3,"eps_yy");
+	Plastic_Strain_Tensor->SetComponentName(4,"eps_yz");
+	Plastic_Strain_Tensor->SetComponentName(5,"eps_zz");
 
 	Stress_Tensor->SetName("Stress");
-	Stress_Tensor->SetNumberOfComponents(9);
-	Stress_Tensor->SetComponentName(0,"Stress-xx");
-	Stress_Tensor->SetComponentName(1,"Stress-xy");
-	Stress_Tensor->SetComponentName(2,"Stress-xz");
-	Stress_Tensor->SetComponentName(3,"Stress-yx");
-	Stress_Tensor->SetComponentName(4,"Stress-yy");
-	Stress_Tensor->SetComponentName(5,"Stress-yz");
-	Stress_Tensor->SetComponentName(6,"Stress-zx");
-	Stress_Tensor->SetComponentName(7,"Stress-zy");
-	Stress_Tensor->SetComponentName(8,"Stress-zz");	
+	Stress_Tensor->SetNumberOfComponents(6);
+	Stress_Tensor->SetComponentName(0,"sig_xx");
+	Stress_Tensor->SetComponentName(1,"sig_xy");
+	Stress_Tensor->SetComponentName(2,"sig_xz");
+	Stress_Tensor->SetComponentName(3,"sig_yy");
+	Stress_Tensor->SetComponentName(4,"sig_yz");
+	Stress_Tensor->SetComponentName(5,"sig_zz");
 
 	Material_Properties->SetName("Material_Properties");
 	Material_Properties->SetNumberOfComponents(1);
@@ -850,9 +871,8 @@ void pvESSI::Build_Maps(){
 	
 	}
 
-	cout << "Number of Nodes " << index << " " << Number_of_Nodes << endl;
-	cout << "Pseudo_Number_of_Nodes " << index << " " << Pseudo_Number_of_Nodes << endl;
-	cout << " Number of Gauss Points " << Number_of_Gauss_Nodes << endl;
+	// cout << "Number of Nodes " << index << " " << Number_of_Nodes << endl;
+	// cout << "Pseudo_Number_of_Nodes " << index << " " << Pseudo_Number_of_Nodes << endl;
 
 	index =0;
 	for (int i = 0; i < Pseudo_Number_of_Elements; ++i)
@@ -867,8 +887,8 @@ void pvESSI::Build_Maps(){
 		}
 	}
 
-	cout << "Number of Elements " << index << " " << Number_of_Elements << endl;;
-	cout << "Pseudo_Number_of_Elements " << index << " " << Pseudo_Number_of_Elements << endl;
+	// cout << "Number of Elements " << index << " " << Number_of_Elements << endl;;
+	// cout << "Pseudo_Number_of_Elements " << index << " " << Pseudo_Number_of_Elements << endl;
 
 	Group = H5Gcreate(File, "/Maps", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT); status = H5Gclose(Group); 
 

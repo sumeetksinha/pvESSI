@@ -81,6 +81,7 @@
 
       <Hints>
         <ReaderFactory extensions="feioutput" file_description="Example File Format" />
+        <OutputPort index="1" visible="0" />
       </Hints>
 
 <!--   <Hints> 
@@ -95,7 +96,7 @@
 
     <ProxyGroup name="filters">
    <SourceProxy name="Gauuss"  label="Gau5ss">
-     <!-- <Documentation
+     <Documentation
         long_help="Create point attribute array by projecting points onto an elevation vector."
         short_help="Create a point array representing elevation.">
           The Elevation filter generates point scalar values for an input data
@@ -110,7 +111,7 @@
           The line can be specified interactively using the 3D line widget. See
           section 7.4 for more information about this widget.
      </Documentation>
-     <InputProperty  name="Input"   command="SetInputConnection">
+<!--      <InputProperty  name="Input"   command="SetInputConnection">
            <ProxyGroupDomain name="groups">
              <Group name="sources"/>
              <Group name="filters"/>
@@ -141,12 +142,12 @@
            Define other end of the line (large scalar values). Default is (0,0,1).
          </Documentation>
       </DoubleVectorProperty>
- -->
+
       <Hints>
         <ShowInMenu category="pvESSI" />
         <ShowInMenu icon=":pvESSI_Icons/Icons/Solid.png" />
       </Hints>
-
+ -->
    </SourceProxy>
  </ProxyGroup>
 
