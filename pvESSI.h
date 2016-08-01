@@ -56,7 +56,7 @@ public:
   vtkTypeMacro(pvESSI,vtkUnstructuredGridAlgorithm);
   void PrintSelf(ostream& os, vtkIndent indent);
   void Plot_Node_Mesh(int x){ if(x) Display_Node_Mesh=1;	else Display_Node_Mesh =0; }
-  void Plot_Gauss_Mesh(int x){ if(x){this->Get_Gauss_Mesh(); Display_Gauss_Mesh=1;}  else Display_Gauss_Mesh =0; }
+  void Plot_Gauss_Mesh(int x){ if(x){/**this->Get_Gauss_Mesh(UGrid_Gauss_Mesh);**/ Display_Gauss_Mesh=1;}  else Display_Gauss_Mesh =0; }
   void Plot_All_Mesh(int x){ if(x) Display_All_Mesh=1;  else Display_All_Mesh =0; }
   void PrintX(int x){}
 
@@ -117,27 +117,31 @@ private:
   void initialize();
   void Build_Maps();
   void Build_Time_Map();
-  void Build_Gauss_Attributes();
-  void Build_Node_Attributes();
-  void Build_All_Attributes(); // need to implement
-  void Build_Delaunay3D_Gauss_Mesh();
-  void Build_ProbeFilter_Gauss_Mesh();
+  void Build_Gauss_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Gauss_Mesh);
+  void Build_Node_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh);
+  void Build_All_Attributes(vtkSmartPointer<vtkUnstructuredGrid> All_Mesh); // need to implement
+  void Build_Delaunay3D_Gauss_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Mesh);
+  void Build_ProbeFilter_Gauss_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Probe_Input, int probe_type);  // Probing variables at gauss nodes from node mesh
   double *Time; 
  
   char* FileName;
 
   /******************************************* Mesh ******************************************/
-  vtkSmartPointer<vtkUnstructuredGrid> UGrid_Node_Mesh;     // Mesh with nodes
-  vtkSmartPointer<vtkUnstructuredGrid> UGrid_Gauss_Mesh;    // Mesh with only gauss points
-  vtkSmartPointer<vtkUnstructuredGrid> UGrid_All_Mesh;      // Mesh with both gauss points and nodes
+  vtkSmartPointer<vtkUnstructuredGrid> UGrid_Node_Mesh;          // Mesh with nodes
+  vtkSmartPointer<vtkUnstructuredGrid> UGrid_Gauss_Mesh;         // Mesh with only gauss points
+  vtkSmartPointer<vtkUnstructuredGrid> UGrid_All_Mesh;           // Mesh with both gauss points and nodes  // Not implemented
+  vtkSmartPointer<vtkUnstructuredGrid> UGrid_Current_Node_Mesh;  // Contains mesh with data attributes 
+  vtkSmartPointer<vtkUnstructuredGrid> UGrid_Current_Gauss_Mesh; // Contains mesh with data attributes   
+  vtkSmartPointer<vtkUnstructuredGrid> UGrid_Current_All_Mesh;   // Contains mesh with data attributes     // Not implemented
+
   int Number_of_Elements, Number_of_Nodes, Number_of_Gauss_Nodes;
   int Pseudo_Number_of_Elements, Pseudo_Number_of_Nodes;
   int Display_Node_Mesh,Display_Gauss_Mesh,Display_All_Mesh,Whether_Node_Mesh_Build, Whether_Gauss_Mesh_Build, Whether_All_Mesh_Build;
 
 
-  void Get_Node_Mesh(); 	  // Building the node mesh skeleton
-  void Get_Gauss_Mesh(); 		// Building the gauss mesh skeleton
-  void Get_All_Mesh();      // Building the node as well as gauss mesh skeleton // still to implement
+  void Get_Node_Mesh(vtkSmartPointer<vtkUnstructuredGrid> UGrid_Node_Mesh); 	  // Building the node mesh skeleton
+  void Get_Gauss_Mesh(vtkSmartPointer<vtkUnstructuredGrid> UGrid_Gauss_Mesh); 	// Building the gauss mesh skeleton
+  void Get_All_Mesh(vtkSmartPointer<vtkUnstructuredGrid> All_Mesh);             // Building the node as well as gauss mesh skeleton // still to implement
   void SetMetaArrays( vtkSmartPointer<vtkFloatArray> &vtk_Generalized_Displacements, vtkSmartPointer<vtkFloatArray> &vtk_Generalized_Velocity, 
     vtkSmartPointer<vtkFloatArray> &vtk_Generalized_Acceleration, vtkSmartPointer<vtkFloatArray> &Elastic_Strain_Tensor, vtkSmartPointer<vtkFloatArray> &Plastic_Strain_Tensor, 
     vtkSmartPointer<vtkFloatArray> &Stress_Tensor, vtkSmartPointer<vtkFloatArray> &Material_Properties, vtkSmartPointer<vtkFloatArray> &Total_Energy, 
