@@ -111,15 +111,17 @@ private:
   std::map<int,int> ESSI_to_VTK_Element;
   std::map<int,std::vector<int> > ESSI_to_VTK_Connectivity;
   std::map<double,int > Time_Map;
+  std::map<std::string,int > Meta_Array_Map;
   pvESSI(const pvESSI&);  // Not implemented.
   void operator=(const pvESSI&);  // Not implemented.
   void set_VTK_To_ESSI_Elements_Connectivity();
   void initialize();
   void Build_Maps();
   void Build_Time_Map();
-  void Build_Gauss_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Gauss_Mesh);
-  void Build_Node_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh);
-  void Build_All_Attributes(vtkSmartPointer<vtkUnstructuredGrid> All_Mesh); // need to implement
+  void Build_Meta_Array_Map();
+  void Build_Gauss_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Gauss_Mesh, int Node_Mesh_Current_Time);
+  void Build_Node_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh, int Gauss_Mesh_Current_Time);
+  void Build_All_Attributes(vtkSmartPointer<vtkUnstructuredGrid> All_Mesh, int All_Mesh_Current_Time);  // need to implement
   void Build_Delaunay3D_Gauss_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Mesh);
   void Build_ProbeFilter_Gauss_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Probe_Input, int probe_type);  // Probing variables at gauss nodes from node mesh
   double *Time; 
@@ -134,6 +136,20 @@ private:
   vtkSmartPointer<vtkUnstructuredGrid> UGrid_Current_Gauss_Mesh; // Contains mesh with data attributes   
   vtkSmartPointer<vtkUnstructuredGrid> UGrid_Current_All_Mesh;   // Contains mesh with data attributes     // Not implemented
 
+  // Meta Da
+  vtkSmartPointer<vtkFloatArray> Generalized_Displacements;
+  vtkSmartPointer<vtkFloatArray> Generalized_Velocity;
+  vtkSmartPointer<vtkFloatArray> Generalized_Acceleration;
+  vtkSmartPointer<vtkFloatArray> Elastic_Strain;
+  vtkSmartPointer<vtkFloatArray> Plastic_Strain;
+  vtkSmartPointer<vtkFloatArray> Stress;
+  vtkSmartPointer<vtkIntArray> Material_Tag;
+  vtkSmartPointer<vtkIntArray> Total_Energy;
+  vtkSmartPointer<vtkIntArray> Incremental_Energy;
+  vtkSmartPointer<vtkIntArray> Node_Tag;
+  vtkSmartPointer<vtkIntArray> Element_Tag;
+
+
   int Number_of_Elements, Number_of_Nodes, Number_of_Gauss_Nodes;
   int Pseudo_Number_of_Elements, Pseudo_Number_of_Nodes;
   int Display_Node_Mesh,Display_Gauss_Mesh,Display_All_Mesh,Whether_Node_Mesh_Build, Whether_Gauss_Mesh_Build, Whether_All_Mesh_Build;
@@ -142,10 +158,7 @@ private:
   void Get_Node_Mesh(vtkSmartPointer<vtkUnstructuredGrid> UGrid_Node_Mesh); 	  // Building the node mesh skeleton
   void Get_Gauss_Mesh(vtkSmartPointer<vtkUnstructuredGrid> UGrid_Gauss_Mesh); 	// Building the gauss mesh skeleton
   void Get_All_Mesh(vtkSmartPointer<vtkUnstructuredGrid> All_Mesh);             // Building the node as well as gauss mesh skeleton // still to implement
-  void SetMetaArrays( vtkSmartPointer<vtkFloatArray> &vtk_Generalized_Displacements, vtkSmartPointer<vtkFloatArray> &vtk_Generalized_Velocity, 
-    vtkSmartPointer<vtkFloatArray> &vtk_Generalized_Acceleration, vtkSmartPointer<vtkFloatArray> &Elastic_Strain_Tensor, vtkSmartPointer<vtkFloatArray> &Plastic_Strain_Tensor, 
-    vtkSmartPointer<vtkFloatArray> &Stress_Tensor, vtkSmartPointer<vtkFloatArray> &Material_Properties, vtkSmartPointer<vtkFloatArray> &Total_Energy, 
-    vtkSmartPointer<vtkFloatArray> &Incremental_Energy, vtkSmartPointer<vtkIntArray> &Node_Label, vtkSmartPointer<vtkIntArray> &Element_Label );
+  void Set_Meta_Array(int Meta_Data_Id );
 
   /*******************************************************************************************/
 
