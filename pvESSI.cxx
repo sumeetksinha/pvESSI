@@ -314,10 +314,10 @@ void pvESSI::Build_Node_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Node_Mes
 
 	//////////////////////////////////////////////////// Reading Map Data ///////////////////////////////////////////////////////////////////////////////////////////
 
-	DataSet = H5Dopen(File, "Maps/NodeMap", H5P_DEFAULT); int *Node_Map; Node_Map = (int*) malloc((Number_of_Nodes) * sizeof(int));
+	DataSet = H5Dopen(File, "Maps/Node_Map", H5P_DEFAULT); int *Node_Map; Node_Map = (int*) malloc((Number_of_Nodes) * sizeof(int));
 	status = H5Dread(DataSet, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Node_Map); status=H5Dclose(DataSet);
 
-	DataSet = H5Dopen(File, "Maps/ElementMap", H5P_DEFAULT); int *Element_Map; Element_Map = (int*) malloc((Number_of_Elements) * sizeof(int));
+	DataSet = H5Dopen(File, "Maps/Element_Map", H5P_DEFAULT); int *Element_Map; Element_Map = (int*) malloc((Number_of_Elements) * sizeof(int));
 	status = H5Dread(DataSet, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Element_Map); status=H5Dclose(DataSet);
 
 	////////////////////////////////////////////////////// Reading Node Attributes /////////////////////////////////////////////////////////////////////////////
@@ -428,7 +428,7 @@ void pvESSI::Build_Gauss_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Gauss_M
 
 	//////////////////////////////////////////////////// Reading Map Data ///////////////////////////////////////////////////////////////////////////////////////////
 
-	DataSet = H5Dopen(File, "Maps/ElementMap", H5P_DEFAULT); int *Element_Map; Element_Map = (int*) malloc((Number_of_Elements) * sizeof(int));
+	DataSet = H5Dopen(File, "Maps/Element_Map", H5P_DEFAULT); int *Element_Map; Element_Map = (int*) malloc((Number_of_Elements) * sizeof(int));
 	status = H5Dread(DataSet, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Element_Map); status=H5Dclose(DataSet);
 
 	////////////////////////////////////////////////////// Reading Element  Attributes /////////////////////////////////////////////////////////////////////////////
@@ -573,7 +573,7 @@ void pvESSI::Build_ProbeFilter_Gauss_Mesh(vtkSmartPointer<vtkUnstructuredGrid> P
 
 		//////////////////////////////////////////////////// Reading Map Data ///////////////////////////////////////////////////////////////////////////////////////////
 
-		DataSet = H5Dopen(File, "Maps/NodeMap", H5P_DEFAULT); int *Node_Map; Node_Map = (int*) malloc((Number_of_Nodes) * sizeof(int));
+		DataSet = H5Dopen(File, "Maps/Node_Map", H5P_DEFAULT); int *Node_Map; Node_Map = (int*) malloc((Number_of_Nodes) * sizeof(int));
 		status = H5Dread(DataSet, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Node_Map); status=H5Dclose(DataSet);
 
 		////////////////////////////////////////////////////// Reading Node Attributes /////////////////////////////////////////////////////////////////////////////
@@ -661,13 +661,13 @@ void pvESSI::Get_Node_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh){
 
 	//////////////////////////////////////////////////// Reading Map Data ///////////////////////////////////////////////////////////////////////////////////////////
 
-	DataSet = H5Dopen(File, "Maps/NodeMap", H5P_DEFAULT); int *Node_Map; Node_Map = (int*) malloc((Number_of_Nodes) * sizeof(int));
+	DataSet = H5Dopen(File, "Maps/Node_Map", H5P_DEFAULT); int *Node_Map; Node_Map = (int*) malloc((Number_of_Nodes) * sizeof(int));
 	status = H5Dread(DataSet, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Node_Map); status=H5Dclose(DataSet);
 
-	DataSet = H5Dopen(File, "Maps/InverseNodeMap", H5P_DEFAULT); int *Inverse_Node_Map; Inverse_Node_Map = (int*) malloc((Pseudo_Number_of_Nodes) * sizeof(int));
+	DataSet = H5Dopen(File, "Maps/Inverse_Node_Map", H5P_DEFAULT); int *Inverse_Node_Map; Inverse_Node_Map = (int*) malloc((Pseudo_Number_of_Nodes) * sizeof(int));
 	status = H5Dread(DataSet, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Inverse_Node_Map); status=H5Dclose(DataSet);
 
-	DataSet = H5Dopen(File, "Maps/ElementMap", H5P_DEFAULT); int *Element_Map; Element_Map = (int*) malloc((Number_of_Elements) * sizeof(int));
+	DataSet = H5Dopen(File, "Maps/Element_Map", H5P_DEFAULT); int *Element_Map; Element_Map = (int*) malloc((Number_of_Elements) * sizeof(int));
 	status = H5Dread(DataSet, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Element_Map); status=H5Dclose(DataSet);
 
 	//////////////////////////////////////////////////// Reading Element Data ///////////////////////////////////////////////////////////////////////////////////////////
@@ -770,7 +770,7 @@ void pvESSI::Get_Gauss_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Gauss_Mesh){
 
 	//////////////////////////////////////////////////// Reading Map Data ///////////////////////////////////////////////////////////////////////////////////////////
 
-	DataSet = H5Dopen(File, "Maps/ElementMap", H5P_DEFAULT); int *Element_Map; Element_Map = (int*) malloc((Number_of_Elements) * sizeof(int));
+	DataSet = H5Dopen(File, "Maps/Element_Map", H5P_DEFAULT); int *Element_Map; Element_Map = (int*) malloc((Number_of_Elements) * sizeof(int));
 	status = H5Dread(DataSet, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Element_Map); status=H5Dclose(DataSet);
 
 	/////////////////////////////////////////////////////////////////////// Reading Element Data ///////////////////////////////////////////////////////////////////////////////////////////
@@ -1049,22 +1049,22 @@ void pvESSI::Build_Maps(){
 	Group = H5Gcreate(File, "/Maps", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT); status = H5Gclose(Group); 
 
 	dims_out[0]= Number_of_Nodes; DataSpace = H5Screate_simple(1, dims_out, NULL);
-	DataSet = H5Dcreate(File,"Maps/NodeMap",H5T_STD_I32BE,DataSpace,H5P_DEFAULT,H5P_DEFAULT, H5P_DEFAULT);
+	DataSet = H5Dcreate(File,"Maps/Node_Map",H5T_STD_I32BE,DataSpace,H5P_DEFAULT,H5P_DEFAULT, H5P_DEFAULT);
 	status = H5Dwrite(DataSet, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Node_Map);
 	status = H5Sclose(DataSpace); status = H5Dclose(DataSet); 
 
 	dims_out[0]= Number_of_Elements; DataSpace = H5Screate_simple(1, dims_out, NULL);
-	DataSet = H5Dcreate(File,"Maps/ElementMap",H5T_STD_I32BE,DataSpace,H5P_DEFAULT,H5P_DEFAULT, H5P_DEFAULT);
+	DataSet = H5Dcreate(File,"Maps/Element_Map",H5T_STD_I32BE,DataSpace,H5P_DEFAULT,H5P_DEFAULT, H5P_DEFAULT);
 	status = H5Dwrite(DataSet, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Element_Map);
 	status = H5Sclose(DataSpace); status = H5Dclose(DataSet); 
 
 	dims_out[0]= Pseudo_Number_of_Nodes; DataSpace = H5Screate_simple(1, dims_out, NULL);
-	DataSet = H5Dcreate(File,"Maps/InverseNodeMap",H5T_STD_I32BE,DataSpace,H5P_DEFAULT,H5P_DEFAULT, H5P_DEFAULT);
+	DataSet = H5Dcreate(File,"Maps/Inverse_Node_Map",H5T_STD_I32BE,DataSpace,H5P_DEFAULT,H5P_DEFAULT, H5P_DEFAULT);
 	status = H5Dwrite(DataSet, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Inverse_Node_Map);
 	status = H5Sclose(DataSpace); status = H5Dclose(DataSet); 
 
 	dims_out[0]= Pseudo_Number_of_Elements; DataSpace = H5Screate_simple(1, dims_out, NULL);
-	DataSet = H5Dcreate(File,"Maps/InverseElementMap",H5T_STD_I32BE,DataSpace,H5P_DEFAULT,H5P_DEFAULT, H5P_DEFAULT);
+	DataSet = H5Dcreate(File,"Maps/Inverse_Element_Map",H5T_STD_I32BE,DataSpace,H5P_DEFAULT,H5P_DEFAULT, H5P_DEFAULT);
 	status = H5Dwrite(DataSet, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Inverse_Element_Map);
 	status = H5Sclose(DataSpace); status = H5Dclose(DataSet); 
 
