@@ -416,7 +416,7 @@ void pvESSI::Build_Node_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Node_Mes
 
 void pvESSI::Build_Gauss_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Gauss_Mesh, int Current_Time){
 
-	this->Build_ProbeFilter_Gauss_Mesh(Gauss_Mesh, 0);
+	this->Build_ProbeFilter_Gauss_Mesh(Gauss_Mesh, 1);
 
 	herr_t status;
 	hid_t File, DataSet, DataSpace, MemSpace; 
@@ -1119,6 +1119,3 @@ void pvESSI::Build_Meta_Array_Map(){
 	Meta_Array_Map["Element_Tag"] = key; key=key+1;
 
 }
-
-
-
