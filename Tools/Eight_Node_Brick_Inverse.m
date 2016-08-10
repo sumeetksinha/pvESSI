@@ -5,7 +5,7 @@ function Eight_Node_Brick_Inverse = Eight_Node_Brick_Inverse()
 
 	Eight_Node_Brick_Inverse = zeros(8,8);
 
-	SQRT_3 = sqrt(3);
+	SQRT_3 = sqrt(1/3);
 
 
 	for j=1:8

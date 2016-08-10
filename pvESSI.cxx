@@ -1710,7 +1710,12 @@ void pvESSI::Build_Inverse_Matrices(){
 
 	Build_Brick_Coordinates();
 
-	double SQRT_3 = sqrt(3);
+	for(int i=0; i<8; i++){
+		cout << Brick_8_Gauss_Coordinates[i][0] << " " << Brick_8_Gauss_Coordinates[i][1] << " " << Brick_8_Gauss_Coordinates[i][2] << endl;
+	}
+	cout << endl;
+
+	double SQRT_1_3 = 1.0/sqrt(3.0);
 	double SQRT_3_5 = sqrt(0.6);
 
 	/////////////////////////////////////////// Building 8_Node_Brick_Inverse ///////////////////////////////////////
@@ -1725,15 +1730,15 @@ void pvESSI::Build_Inverse_Matrices(){
 
 	for (int j=0; j<8;j++){
 		for (int i=0; i<8;i++){
-			Temp_Eight_Node_Brick[j][i] =   0.125*(1+Brick_Coordinates[j][0]*Brick_Coordinates[i][0]*SQRT_3)*
-											      (1+Brick_Coordinates[j][1]*Brick_Coordinates[i][1]*SQRT_3)*
-											      (1+Brick_Coordinates[j][2]*Brick_Coordinates[i][2]*SQRT_3);
+			Temp_Eight_Node_Brick[j][i] =   0.125*(1+Brick_Coordinates[i][0]*Brick_8_Gauss_Coordinates[j][0]*SQRT_1_3)*
+											      (1+Brick_Coordinates[i][1]*Brick_8_Gauss_Coordinates[j][1]*SQRT_1_3)*
+											      (1+Brick_Coordinates[i][2]*Brick_8_Gauss_Coordinates[j][2]*SQRT_1_3);
 		}
 	}
 
 	vtkMath::InvertMatrix(Temp_Eight_Node_Brick,Eight_Node_Brick_Inverse,8);
 
-	//////////////////////////////////////// Building 20_Node_Brick_Inverse //////////////////////////////////////
+	////////////////////////////////////// Building 20_Node_Brick_Inverse //////////////////////////////////////
 
   	this->Twenty_Node_Brick_Inverse = new double*[20];
 	double **Temp_Twenty_Node_Brick = new double*[20];
@@ -1743,33 +1748,33 @@ void pvESSI::Build_Inverse_Matrices(){
 	}
 	for (int j=0; j<20;j++){
 		for (int i=0; i<8;i++){
-			Temp_Twenty_Node_Brick[j][i] =   0.125*(1+Brick_Coordinates[j][0]*Brick_Coordinates[i][0]*SQRT_3_5)* 
-												   (1+Brick_Coordinates[j][1]*Brick_Coordinates[i][1]*SQRT_3_5)* 
-												   (1+Brick_Coordinates[j][2]*Brick_Coordinates[i][2]*SQRT_3_5)* 
-												   (-2+ (Brick_Coordinates[j][0]*Brick_Coordinates[i][0]*SQRT_3_5)+ 
-												        (Brick_Coordinates[j][1]*Brick_Coordinates[i][1]*SQRT_3_5)+ 
-												        (Brick_Coordinates[j][2]*Brick_Coordinates[i][2]*SQRT_3_5));
+			Temp_Twenty_Node_Brick[j][i] =   0.125*(1+Brick_20_Gauss_Coordinates[j][0]*Brick_Coordinates[i][0]*SQRT_3_5)* 
+												   (1+Brick_20_Gauss_Coordinates[j][1]*Brick_Coordinates[i][1]*SQRT_3_5)* 
+												   (1+Brick_20_Gauss_Coordinates[j][2]*Brick_Coordinates[i][2]*SQRT_3_5)* 
+												   (-2+ (Brick_20_Gauss_Coordinates[j][0]*Brick_Coordinates[i][0]*SQRT_3_5)+ 
+												        (Brick_20_Gauss_Coordinates[j][1]*Brick_Coordinates[i][1]*SQRT_3_5)+ 
+												        (Brick_20_Gauss_Coordinates[j][2]*Brick_Coordinates[i][2]*SQRT_3_5));
 		}
 		int x[] = { 8,10,12,14};
 		for (int k=0; k<4;k++){
 			int i = x[k];
-			Temp_Twenty_Node_Brick[j][i] = 1.0/4.0*(1-pow((Brick_Coordinates[j][0]*SQRT_3_5),2))*
-												   (1+Brick_Coordinates[j][1]*Brick_Coordinates[i][1]*SQRT_3_5)*
-												   (1+Brick_Coordinates[j][2]*Brick_Coordinates[i][2]*SQRT_3_5);
+			Temp_Twenty_Node_Brick[j][i] = 1.0/4.0*(1-pow(SQRT_3_5,2))*
+												   (1+Brick_20_Gauss_Coordinates[j][1]*Brick_Coordinates[i][1]*SQRT_3_5)*
+												   (1+Brick_20_Gauss_Coordinates[j][2]*Brick_Coordinates[i][2]*SQRT_3_5);
 		}
 		x[0] = 9; x[1]=11; x[2]=13; x[3]=15;
 		for (int k=0; k<4;k++){
 			int i = x[k];
-			Temp_Twenty_Node_Brick[j][i] = 1.0/4.0*(1-pow((Brick_Coordinates[j][1]*SQRT_3_5),2))*
-												   (1+Brick_Coordinates[j][0]*Brick_Coordinates[i][0]*SQRT_3_5)*
-												   (1+Brick_Coordinates[j][2]*Brick_Coordinates[i][2]*SQRT_3_5);
+			Temp_Twenty_Node_Brick[j][i] = 1.0/4.0*(1-pow(SQRT_3_5,2))*
+												   (1+Brick_20_Gauss_Coordinates[j][0]*Brick_Coordinates[i][0]*SQRT_3_5)*
+												   (1+Brick_20_Gauss_Coordinates[j][2]*Brick_Coordinates[i][2]*SQRT_3_5);
 		}
 		x[0]=16; x[1]=17; x[2]=18; x[3]=19;
 		for (int k=0; k<4;k++){
 			int i = x[k];
-			Temp_Twenty_Node_Brick[j][i] = 1.0/4.0*(1-pow((Brick_Coordinates[j][2]*SQRT_3_5),2))*
-												   (1+Brick_Coordinates[j][0]*Brick_Coordinates[i][0]*SQRT_3_5)*
-												   (1+Brick_Coordinates[j][1]*Brick_Coordinates[i][1]*SQRT_3_5);
+			Temp_Twenty_Node_Brick[j][i] = 1.0/4.0*(1-pow(SQRT_3_5,2))*
+												   (1+Brick_20_Gauss_Coordinates[j][0]*Brick_Coordinates[i][0]*SQRT_3_5)*
+												   (1+Brick_20_Gauss_Coordinates[j][1]*Brick_Coordinates[i][1]*SQRT_3_5);
 		}
 
 	}
@@ -1786,75 +1791,75 @@ void pvESSI::Build_Inverse_Matrices(){
 	}
 	for (int j=0; j<27;j++){
 		for (int i=0; i<8;i++){
-			Temp_Twenty_Seven_Brick[j][i]         = 0.125*(1+Brick_Coordinates[j][0]*Brick_Coordinates[i][0]*SQRT_3_5)*
-												         (1+Brick_Coordinates[j][1]*Brick_Coordinates[i][1]*SQRT_3_5)*
-												         (1+Brick_Coordinates[j][2]*Brick_Coordinates[i][2]*SQRT_3_5)*
-												         ((Brick_Coordinates[j][0]*Brick_Coordinates[i][0]*SQRT_3_5)*
-												         (Brick_Coordinates[j][1]*Brick_Coordinates[i][1]*SQRT_3_5)*
-												         (Brick_Coordinates[j][2]*Brick_Coordinates[i][2]*SQRT_3_5));
+			Temp_Twenty_Seven_Brick[j][i]         = 0.125*(1+Brick_27_Gauss_Coordinates[j][0]*Brick_Coordinates[i][0]*SQRT_3_5)*
+												         (1+Brick_27_Gauss_Coordinates[j][1]*Brick_Coordinates[i][1]*SQRT_3_5)*
+												         (1+Brick_27_Gauss_Coordinates[j][2]*Brick_Coordinates[i][2]*SQRT_3_5)*
+												         ((Brick_27_Gauss_Coordinates[j][0]*Brick_Coordinates[i][0]*SQRT_3_5)*
+												         (Brick_27_Gauss_Coordinates[j][1]*Brick_Coordinates[i][1]*SQRT_3_5)*
+												         (Brick_27_Gauss_Coordinates[j][2]*Brick_Coordinates[i][2]*SQRT_3_5));
 		}
 		int x[] = { 8,10,12,14};
 		for (int k=0; k<4;k++){
 			int i = x[k];
-			Temp_Twenty_Seven_Brick[j][i]         = 0.25*(1-pow((Brick_Coordinates[j][0]*SQRT_3_5),2))*
-												        (1+Brick_Coordinates[j][1]*Brick_Coordinates[i][1]*SQRT_3_5)*
-												        (1+Brick_Coordinates[j][2]*Brick_Coordinates[i][2]*SQRT_3_5)*
-												        ((Brick_Coordinates[j][1]*Brick_Coordinates[i][1]*SQRT_3_5)*
-												        (Brick_Coordinates[j][2]*Brick_Coordinates[i][2]*SQRT_3_5));
+			Temp_Twenty_Seven_Brick[j][i]         = 0.25*(1-pow(SQRT_3_5,2))*
+												        (1+Brick_27_Gauss_Coordinates[j][1]*Brick_Coordinates[i][1]*SQRT_3_5)*
+												        (1+Brick_27_Gauss_Coordinates[j][2]*Brick_Coordinates[i][2]*SQRT_3_5)*
+												        ((Brick_27_Gauss_Coordinates[j][1]*Brick_Coordinates[i][1]*SQRT_3_5)*
+												        (Brick_27_Gauss_Coordinates[j][2]*Brick_Coordinates[i][2]*SQRT_3_5));
 		}
 		x[0] = 9; x[1]=11; x[2]=13; x[3]=15;
 		for (int k=0; k<4;k++){
 			int i = x[k];
-			Temp_Twenty_Seven_Brick[j][i]         = 0.25*(1-pow((Brick_Coordinates[j][1]*SQRT_3_5),2))*
-												        (1+Brick_Coordinates[j][0]*Brick_Coordinates[i][0]*SQRT_3_5)*
-												        (1+Brick_Coordinates[j][2]*Brick_Coordinates[i][2]*SQRT_3_5)*
-												        ((Brick_Coordinates[j][0]*Brick_Coordinates[i][0]*SQRT_3_5)*
-												        (Brick_Coordinates[j][2]*Brick_Coordinates[i][2]*SQRT_3_5));
+			Temp_Twenty_Seven_Brick[j][i]         = 0.25*(1-pow(SQRT_3_5,2))*
+												        (1+Brick_27_Gauss_Coordinates[j][0]*Brick_Coordinates[i][0]*SQRT_3_5)*
+												        (1+Brick_27_Gauss_Coordinates[j][2]*Brick_Coordinates[i][2]*SQRT_3_5)*
+												        ((Brick_27_Gauss_Coordinates[j][0]*Brick_Coordinates[i][0]*SQRT_3_5)*
+												        (Brick_27_Gauss_Coordinates[j][2]*Brick_Coordinates[i][2]*SQRT_3_5));
 		}
 		x[0]=16; x[1]=17; x[2]=18; x[3]=19;
 		for (int k=0; k<4;k++){
 			int i = x[k];
-			Temp_Twenty_Seven_Brick[j][i]         = 0.25*(1-pow((Brick_Coordinates[j][2]*SQRT_3_5),2))*
-												        (1+Brick_Coordinates[j][0]*Brick_Coordinates[i][0]*SQRT_3_5)*
-												        (1+Brick_Coordinates[j][1]*Brick_Coordinates[i][1]*SQRT_3_5)*
-												        ((Brick_Coordinates[j][0]*Brick_Coordinates[i][0]*SQRT_3_5)*
-												        (Brick_Coordinates[j][1]*Brick_Coordinates[i][1]*SQRT_3_5));
+			Temp_Twenty_Seven_Brick[j][i]         = 0.25*(1-pow(SQRT_3_5,2))*
+												        (1+Brick_27_Gauss_Coordinates[j][0]*Brick_Coordinates[i][0]*SQRT_3_5)*
+												        (1+Brick_27_Gauss_Coordinates[j][1]*Brick_Coordinates[i][1]*SQRT_3_5)*
+												        ((Brick_27_Gauss_Coordinates[j][0]*Brick_Coordinates[i][0]*SQRT_3_5)*
+												        (Brick_27_Gauss_Coordinates[j][1]*Brick_Coordinates[i][1]*SQRT_3_5));
 		}
 		{
 			int i =20;
-			Temp_Twenty_Seven_Brick[j][i]         = 0.25*(1-pow((Brick_Coordinates[j][0]*SQRT_3_5),2))*
-													    (1-pow((Brick_Coordinates[j][1]*SQRT_3_5),2))*
-													    (1-pow((Brick_Coordinates[j][2]*SQRT_3_5),2));
+			Temp_Twenty_Seven_Brick[j][i]         = 0.25*(1-pow(SQRT_3_5,2))*
+													     (1-pow(SQRT_3_5,2))*
+													     (1-pow(SQRT_3_5,2));
 		}
 		int y[] = {21,23};
 		for (int k=0; k<2;k++){
 			int i = y[k];
-			Temp_Twenty_Seven_Brick[j][i]         = 0.5*(1-pow((Brick_Coordinates[j][0]*SQRT_3_5),2))*
-													   (1-pow((Brick_Coordinates[j][2]*SQRT_3_5),2))*
-													   (1+Brick_Coordinates[j][1]*Brick_Coordinates[i][1]*SQRT_3_5)*
-													   (Brick_Coordinates[j][1]*Brick_Coordinates[i][1]*SQRT_3_5);
+			Temp_Twenty_Seven_Brick[j][i]         = 0.5*(1-pow(SQRT_3_5,2))*
+													   (1-pow(SQRT_3_5,2))*
+													   (1+Brick_27_Gauss_Coordinates[j][1]*Brick_Coordinates[i][1]*SQRT_3_5)*
+													      (Brick_27_Gauss_Coordinates[j][1]*Brick_Coordinates[i][1]*SQRT_3_5);
 		}
 		y[0]=22; y[1]=24;
 		for (int k=0; k<2;k++){
 			int i = y[k];
-			Temp_Twenty_Seven_Brick[j][i]         = 0.5*(1-pow((Brick_Coordinates[j][1]*SQRT_3_5),2))*
-													   (1-pow((Brick_Coordinates[j][2]*SQRT_3_5),2))*
-													   (1+Brick_Coordinates[j][0]*Brick_Coordinates[i][0]*SQRT_3_5)*
-													   (Brick_Coordinates[j][0]*Brick_Coordinates[i][0]*SQRT_3_5);
+			Temp_Twenty_Seven_Brick[j][i]         = 0.5*(1-pow(SQRT_3_5,2))*
+													   (1-pow(SQRT_3_5,2))*
+													   (1+Brick_27_Gauss_Coordinates[j][0]*Brick_Coordinates[i][0]*SQRT_3_5)*
+													     (Brick_27_Gauss_Coordinates[j][0]*Brick_Coordinates[i][0]*SQRT_3_5);
 		}
 		y[0]=25; y[1]=26;
 		for (int k=0; k<2;k++){
 			int i = y[k];
-			Temp_Twenty_Seven_Brick[j][i]         = 0.5*(1-pow((Brick_Coordinates[j][0]*SQRT_3_5),2))*
-													   (1-pow((Brick_Coordinates[j][1]*SQRT_3_5),2))*
-													   (1+Brick_Coordinates[j][2]*Brick_Coordinates[i][2]*SQRT_3_5)*
-													   (Brick_Coordinates[j][2]*Brick_Coordinates[i][2]*SQRT_3_5);
+			Temp_Twenty_Seven_Brick[j][i]         = 0.5*(1-pow(SQRT_3_5,2))*
+													   (1-pow(SQRT_3_5,2))*
+													   (1+Brick_27_Gauss_Coordinates[j][2]*Brick_Coordinates[i][2]*SQRT_3_5)*
+													     (Brick_27_Gauss_Coordinates[j][2]*Brick_Coordinates[i][2]*SQRT_3_5);
 		}
 	}
 
 	vtkMath::InvertMatrix(Temp_Twenty_Seven_Brick,Twenty_Seven_Node_Brick_Inverse,27);
 
-	///////////////////////////// Printing For Debugging //////////////////////////////////////////////////////////
+	// ///////////////////////////// Printing For Debugging //////////////////////////////////////////////////////////
 
 	// for (int j=0; j<27;j++){
 	// 	for (int i=0; i<27;i++){
@@ -1865,7 +1870,7 @@ void pvESSI::Build_Inverse_Matrices(){
 	// }
 
 	free(Temp_Twenty_Seven_Brick);
-	free(Temp_Twenty_Node_Brick);
+	// free(Temp_Twenty_Node_Brick);
 	free(Temp_Eight_Node_Brick);
 
 
@@ -1873,6 +1878,65 @@ void pvESSI::Build_Inverse_Matrices(){
   }
 
 void pvESSI::Build_Brick_Coordinates(){
+
+	Brick_8_Gauss_Coordinates[0 ][0]=-1;  Brick_8_Gauss_Coordinates[0 ][1]=-1; Brick_8_Gauss_Coordinates[0 ][2]=-1;
+	Brick_8_Gauss_Coordinates[1 ][0]=-1;  Brick_8_Gauss_Coordinates[1 ][1]=-1; Brick_8_Gauss_Coordinates[1 ][2]= 1;
+	Brick_8_Gauss_Coordinates[2 ][0]=-1;  Brick_8_Gauss_Coordinates[2 ][1]= 1; Brick_8_Gauss_Coordinates[2 ][2]=-1;
+	Brick_8_Gauss_Coordinates[3 ][0]=-1;  Brick_8_Gauss_Coordinates[3 ][1]= 1; Brick_8_Gauss_Coordinates[3 ][2]= 1;
+	Brick_8_Gauss_Coordinates[4 ][0]= 1;  Brick_8_Gauss_Coordinates[4 ][1]=-1; Brick_8_Gauss_Coordinates[4 ][2]=-1;
+	Brick_8_Gauss_Coordinates[5 ][0]= 1;  Brick_8_Gauss_Coordinates[5 ][1]=-1; Brick_8_Gauss_Coordinates[5 ][2]= 1;
+	Brick_8_Gauss_Coordinates[6 ][0]= 1;  Brick_8_Gauss_Coordinates[6 ][1]= 1; Brick_8_Gauss_Coordinates[6 ][2]=-1;
+	Brick_8_Gauss_Coordinates[7 ][0]= 1;  Brick_8_Gauss_Coordinates[7 ][1]= 1; Brick_8_Gauss_Coordinates[7 ][2]= 1;
+
+
+	Brick_20_Gauss_Coordinates[0 ][0]=-1;  Brick_20_Gauss_Coordinates[0 ][1]=-1; Brick_20_Gauss_Coordinates[0 ][2]=-1;
+	Brick_20_Gauss_Coordinates[1 ][0]=-1;  Brick_20_Gauss_Coordinates[1 ][1]=-1; Brick_20_Gauss_Coordinates[1 ][2]= 0;
+	Brick_20_Gauss_Coordinates[2 ][0]=-1;  Brick_20_Gauss_Coordinates[2 ][1]=-1; Brick_20_Gauss_Coordinates[2 ][2]= 1;
+	Brick_20_Gauss_Coordinates[3 ][0]=-1;  Brick_20_Gauss_Coordinates[3 ][1]= 0; Brick_20_Gauss_Coordinates[3 ][2]=-1;
+	Brick_20_Gauss_Coordinates[4 ][0]=-1;  Brick_20_Gauss_Coordinates[4 ][1]= 0; Brick_20_Gauss_Coordinates[4 ][2]= 1;
+	Brick_20_Gauss_Coordinates[5 ][0]=-1;  Brick_20_Gauss_Coordinates[5 ][1]= 1; Brick_20_Gauss_Coordinates[5 ][2]=-1;
+	Brick_20_Gauss_Coordinates[6 ][0]=-1;  Brick_20_Gauss_Coordinates[6 ][1]= 1; Brick_20_Gauss_Coordinates[6 ][2]= 0;
+	Brick_20_Gauss_Coordinates[7 ][0]=-1;  Brick_20_Gauss_Coordinates[7 ][1]= 1; Brick_20_Gauss_Coordinates[7 ][2]= 1;
+	Brick_20_Gauss_Coordinates[8 ][0]= 0;  Brick_20_Gauss_Coordinates[8 ][1]=-1; Brick_20_Gauss_Coordinates[8 ][2]=-1;
+	Brick_20_Gauss_Coordinates[9 ][0]= 0;  Brick_20_Gauss_Coordinates[9 ][1]=-1; Brick_20_Gauss_Coordinates[9 ][2]= 1;
+	Brick_20_Gauss_Coordinates[10][0]= 0;  Brick_20_Gauss_Coordinates[10][1]= 1; Brick_20_Gauss_Coordinates[10][2]=-1;
+	Brick_20_Gauss_Coordinates[11][0]= 0;  Brick_20_Gauss_Coordinates[11][1]= 1; Brick_20_Gauss_Coordinates[11][2]= 1;
+	Brick_20_Gauss_Coordinates[12][0]= 1;  Brick_20_Gauss_Coordinates[12][1]=-1; Brick_20_Gauss_Coordinates[12][2]=-1;
+	Brick_20_Gauss_Coordinates[13][0]= 1;  Brick_20_Gauss_Coordinates[13][1]=-1; Brick_20_Gauss_Coordinates[13][2]= 0;
+	Brick_20_Gauss_Coordinates[14][0]= 1;  Brick_20_Gauss_Coordinates[14][1]=-1; Brick_20_Gauss_Coordinates[14][2]= 1;
+	Brick_20_Gauss_Coordinates[15][0]= 1;  Brick_20_Gauss_Coordinates[15][1]= 0; Brick_20_Gauss_Coordinates[15][2]=-1;
+	Brick_20_Gauss_Coordinates[16][0]= 1;  Brick_20_Gauss_Coordinates[16][1]= 0; Brick_20_Gauss_Coordinates[16][2]= 1;
+	Brick_20_Gauss_Coordinates[17][0]= 1;  Brick_20_Gauss_Coordinates[17][1]= 1; Brick_20_Gauss_Coordinates[17][2]=-1;
+	Brick_20_Gauss_Coordinates[18][0]= 1;  Brick_20_Gauss_Coordinates[18][1]= 1; Brick_20_Gauss_Coordinates[18][2]= 0;
+	Brick_20_Gauss_Coordinates[19][0]= 1;  Brick_20_Gauss_Coordinates[19][1]= 1; Brick_20_Gauss_Coordinates[19][2]= 1;
+
+	Brick_27_Gauss_Coordinates[0 ][0]=-1;  Brick_27_Gauss_Coordinates[0 ][1]=-1; Brick_27_Gauss_Coordinates[0 ][2]=-1;
+	Brick_27_Gauss_Coordinates[1 ][0]=-1;  Brick_27_Gauss_Coordinates[1 ][1]=-1; Brick_27_Gauss_Coordinates[1 ][2]= 0;
+	Brick_27_Gauss_Coordinates[2 ][0]=-1;  Brick_27_Gauss_Coordinates[2 ][1]=-1; Brick_27_Gauss_Coordinates[2 ][2]= 1;
+	Brick_27_Gauss_Coordinates[3 ][0]=-1;  Brick_27_Gauss_Coordinates[3 ][1]= 0; Brick_27_Gauss_Coordinates[3 ][2]=-1;
+	Brick_27_Gauss_Coordinates[4 ][0]=-1;  Brick_27_Gauss_Coordinates[4 ][1]= 0; Brick_27_Gauss_Coordinates[4 ][2]= 0;
+	Brick_27_Gauss_Coordinates[5 ][0]=-1;  Brick_27_Gauss_Coordinates[5 ][1]= 0; Brick_27_Gauss_Coordinates[5 ][2]= 1;
+	Brick_27_Gauss_Coordinates[6 ][0]=-1;  Brick_27_Gauss_Coordinates[6 ][1]= 1; Brick_27_Gauss_Coordinates[6 ][2]=-1;
+	Brick_27_Gauss_Coordinates[7 ][0]=-1;  Brick_27_Gauss_Coordinates[7 ][1]= 1; Brick_27_Gauss_Coordinates[7 ][2]= 0;
+	Brick_27_Gauss_Coordinates[8 ][0]=-1;  Brick_27_Gauss_Coordinates[8 ][1]= 1; Brick_27_Gauss_Coordinates[8 ][2]= 1;
+	Brick_27_Gauss_Coordinates[9 ][0]= 0;  Brick_27_Gauss_Coordinates[9 ][1]=-1; Brick_27_Gauss_Coordinates[9 ][2]=-1;
+	Brick_27_Gauss_Coordinates[10][0]= 0;  Brick_27_Gauss_Coordinates[10][1]=-1; Brick_27_Gauss_Coordinates[10][2]= 0;
+	Brick_27_Gauss_Coordinates[11][0]= 0;  Brick_27_Gauss_Coordinates[11][1]=-1; Brick_27_Gauss_Coordinates[11][2]= 1;
+	Brick_27_Gauss_Coordinates[12][0]= 0;  Brick_27_Gauss_Coordinates[12][1]= 0; Brick_27_Gauss_Coordinates[12][2]=-1;
+	Brick_27_Gauss_Coordinates[13][0]= 0;  Brick_27_Gauss_Coordinates[13][1]= 0; Brick_27_Gauss_Coordinates[13][2]= 0;
+	Brick_27_Gauss_Coordinates[14][0]= 0;  Brick_27_Gauss_Coordinates[14][1]= 0; Brick_27_Gauss_Coordinates[14][2]= 1;
+	Brick_27_Gauss_Coordinates[15][0]= 0;  Brick_27_Gauss_Coordinates[15][1]= 1; Brick_27_Gauss_Coordinates[15][2]=-1;
+	Brick_27_Gauss_Coordinates[16][0]= 0;  Brick_27_Gauss_Coordinates[16][1]= 1; Brick_27_Gauss_Coordinates[16][2]= 0;
+	Brick_27_Gauss_Coordinates[17][0]= 0;  Brick_27_Gauss_Coordinates[17][1]= 1; Brick_27_Gauss_Coordinates[17][2]= 1;
+	Brick_27_Gauss_Coordinates[18][0]= 1;  Brick_27_Gauss_Coordinates[18][1]=-1; Brick_27_Gauss_Coordinates[18][2]=-1;
+	Brick_27_Gauss_Coordinates[19][0]= 1;  Brick_27_Gauss_Coordinates[19][1]=-1; Brick_27_Gauss_Coordinates[19][2]= 0;
+	Brick_27_Gauss_Coordinates[20][0]= 1;  Brick_27_Gauss_Coordinates[20][1]=-1; Brick_27_Gauss_Coordinates[20][2]= 1;
+	Brick_27_Gauss_Coordinates[21][0]= 1;  Brick_27_Gauss_Coordinates[21][1]= 0; Brick_27_Gauss_Coordinates[21][2]=-1;
+	Brick_27_Gauss_Coordinates[22][0]= 1;  Brick_27_Gauss_Coordinates[22][1]= 0; Brick_27_Gauss_Coordinates[22][2]= 0;
+	Brick_27_Gauss_Coordinates[23][0]= 1;  Brick_27_Gauss_Coordinates[23][1]= 0; Brick_27_Gauss_Coordinates[23][2]= 1;
+	Brick_27_Gauss_Coordinates[24][0]= 1;  Brick_27_Gauss_Coordinates[24][1]= 1; Brick_27_Gauss_Coordinates[24][2]=-1;
+	Brick_27_Gauss_Coordinates[25][0]= 1;  Brick_27_Gauss_Coordinates[25][1]= 1; Brick_27_Gauss_Coordinates[25][2]= 0;
+	Brick_27_Gauss_Coordinates[26][0]= 1;  Brick_27_Gauss_Coordinates[26][1]= 1; Brick_27_Gauss_Coordinates[26][2]= 1;
 
 	Brick_Coordinates[0 ][0]= 1;  Brick_Coordinates[0 ][1]= 1; Brick_Coordinates[0 ][2]= 1;
 	Brick_Coordinates[1 ][0]=-1;  Brick_Coordinates[1 ][1]= 1; Brick_Coordinates[1 ][2]= 1;
@@ -1901,6 +1965,7 @@ void pvESSI::Build_Brick_Coordinates(){
 	Brick_Coordinates[24][0]= 1;  Brick_Coordinates[24][1]= 0; Brick_Coordinates[24][2]= 0;
 	Brick_Coordinates[25][0]= 0;  Brick_Coordinates[25][1]= 0; Brick_Coordinates[25][2]= 1;
 	Brick_Coordinates[26][0]= 0;  Brick_Coordinates[26][1]= 0; Brick_Coordinates[26][2]=-1;
+
 	return;
 
 }
@@ -2266,6 +2331,8 @@ void pvESSI::Build_Stress_Field_At_Nodes(vtkSmartPointer<vtkUnstructuredGrid> No
 
 				if(it != Gauss_To_Node_Interpolation_Map.end()){
 
+					std::vector<int> Nodes_Connectivity_Order = ESSI_to_VTK_Connectivity.find(number_of_element_nodes)->second;
+
 					connectivity_index = Element_Index_to_Connectivity[element_no]; 
 
 					number_of_element_nodes = Element_Number_of_Nodes[element_no];
@@ -2310,7 +2377,6 @@ void pvESSI::Build_Stress_Field_At_Nodes(vtkSmartPointer<vtkUnstructuredGrid> No
 					vtkMath::MultiplyMatrix	(it->second,Stress_Strain_At_Gauss_Points,number_of_element_nodes,number_of_element_nodes,number_of_element_nodes,18,Stress_Strain_At_Nodes);
 
 					///////////////////////// Adding the Calculated Stresses at Nodes //////////////////////////
-
 					for(int j=0; j< number_of_element_nodes ; j++){
 						int node_no = Inverse_Node_Map[Element_Connectivity[connectivity_index+j]];
 						for(int k=0; k< 18 ; k++){

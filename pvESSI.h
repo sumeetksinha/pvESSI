@@ -335,6 +335,9 @@ private:
 
   void Build_Inverse_Matrices();
   void Build_Brick_Coordinates();
+  double Brick_8_Gauss_Coordinates[8][3];
+  double Brick_20_Gauss_Coordinates[20][3];
+  double Brick_27_Gauss_Coordinates[27][3];
   double Brick_Coordinates[27][3];
   double **Twenty_Node_Brick_Inverse;
   double **Twenty_Seven_Node_Brick_Inverse;
