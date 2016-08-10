@@ -313,7 +313,7 @@ void pvESSI::Build_Node_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Node_Mes
 	int Node_Index_to_Generalized_Displacements[Pseudo_Number_of_Nodes];
 	H5Dread(id_Index_to_Generalized_Displacements, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Node_Index_to_Generalized_Displacements); 
 
-	double Element_Material_Tags[Pseudo_Number_of_Nodes];
+	int Element_Material_Tags[Pseudo_Number_of_Nodes];
 	H5Dread(id_Material_tags, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Element_Material_Tags); 
 
 	///////////////////////////////////////////  Output Dataset for a particular time /////////////////////////////////////////////////////////////////////////////	
@@ -372,12 +372,11 @@ void pvESSI::Build_Node_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Node_Mes
 	Node_Mesh->GetPointData()->AddArray(Node_Tag);
 
 	// /////////////////////////////////////////////////////////////////////// DataSet Visualization in Cell   ///////////////////////////////////////////////////////////////
- 	int Element_No; 
 	for (int i = 0; i < Number_of_Elements; i++){
 
-		Element_No = Element_Map[i]; 
-		Element_Tag -> InsertValue(i,Element_No);
-		Material_Tag -> InsertValue(i,Element_Material_Tags[Element_No]);
+		element_no = Element_Map[i]; 
+		Element_Tag -> InsertValue(i,element_no);
+		Material_Tag -> InsertValue(i,Element_Material_Tags[element_no]);
 
 	}
 
@@ -1283,11 +1282,11 @@ void pvESSI::initialize(){
 
 	  /***************** Model Info *******************************/
 	  this->id_Model_group = H5Gopen(id_File, "Model", H5P_DEFAULT); 
-	  this->id_Whether_Maps_Build = H5Dopen(id_File, "/Whether_Maps_Build", H5P_DEFAULT); 
 	  this->id_Number_of_Elements = H5Dopen(id_File, "/Number_of_Elements", H5P_DEFAULT); 
 	  this->id_Number_of_Nodes    = H5Dopen(id_File, "/Number_of_Nodes", H5P_DEFAULT);
 	  this->id_Number_of_Processes_Used = H5Dopen(id_File, "/Number_of_Processes_Used", H5P_DEFAULT);
 	  this->id_Process_Number     = H5Dopen(id_File, "/Process_Number", H5P_DEFAULT);
+	  this->id_Whether_Maps_Build = H5Dopen(id_File, "/Whether_Maps_Build", H5P_DEFAULT);
 
 	  /**************** Element Info ******************************/
 	  this->id_Elements_group = H5Gopen(id_File, "/Model/Elements", H5P_DEFAULT); 
@@ -1316,20 +1315,23 @@ void pvESSI::initialize(){
 	  this->id_Number_of_DOFs= H5Dopen(id_File, "Model/Nodes/Number_of_DOFs", H5P_DEFAULT);
 
 	  /**************** Maps ***********************************/
-	  this->id_Maps_group  = H5Gopen(id_File, "/Maps", H5P_DEFAULT); 
-	  this->id_Element_Map = H5Dopen(id_File, "Maps/Element_Map", H5P_DEFAULT);
-	  this->id_Node_Map = H5Dopen(id_File, "Maps/Node_Map", H5P_DEFAULT);
-	  this->id_Inverse_Node_Map = H5Dopen(id_File, "Maps/Inverse_Node_Map", H5P_DEFAULT);
-	  this->id_Inverse_Element_Map = H5Dopen(id_File, "Maps/Inverse_Element_Map", H5P_DEFAULT);
-	  this->id_Number_of_Elements_Shared = H5Dopen(id_File, "Maps/Number_of_Elements_Shared", H5P_DEFAULT);
-	  this->id_Number_of_Gauss_Elements_Shared = H5Dopen(id_File, "Maps/Number_of_Gauss_Elements_Shared", H5P_DEFAULT);
+	  if(id_Whether_Maps_Build>0) {
+		  this->id_Maps_group  = H5Gopen(id_File, "/Maps", H5P_DEFAULT); 
+		  this->id_Element_Map = H5Dopen(id_File, "Maps/Element_Map", H5P_DEFAULT);
+		  this->id_Node_Map = H5Dopen(id_File, "Maps/Node_Map", H5P_DEFAULT);
+		  this->id_Inverse_Node_Map = H5Dopen(id_File, "Maps/Inverse_Node_Map", H5P_DEFAULT);
+		  this->id_Inverse_Element_Map = H5Dopen(id_File, "Maps/Inverse_Element_Map", H5P_DEFAULT);
+		  this->id_Number_of_Elements_Shared = H5Dopen(id_File, "Maps/Number_of_Elements_Shared", H5P_DEFAULT);
+		  this->id_Number_of_Gauss_Elements_Shared = H5Dopen(id_File, "Maps/Number_of_Gauss_Elements_Shared", H5P_DEFAULT);
 
 	  /*************** Field at Nodes ***************************/
-	  this->id_Field_at_Nodes_group = H5Gopen(id_File, "/Field_at_Nodes", H5P_DEFAULT); 
+	  this->id_Field_at_Nodes_group = H5Gopen(id_File, "/Field_at_Nodes", H5P_DEFAULT);
 	  this->id_Stress_and_Strain = H5Dopen(id_File, "/Field_at_Nodes/Stress_And_Strain", H5P_DEFAULT);
 	  this->id_Whether_Stress_Strain_Build = H5Dopen(id_File, "/Field_at_Nodes/Whether_Stress_Strain_Build", H5P_DEFAULT);
 	  // this->id_Energy = H5Dopen(id_File, "/Field_at_Nodes/Energy", H5P_DEFAULT);                                         // Not implemented
 	  // this->id_Whether_Energy_Build = H5Dopen(id_File, "/Field_at_Nodes/Whether_Energy_Build", H5P_DEFAULT);             // Not implemented
+	  
+	  }
 
 }
 
@@ -2348,8 +2350,8 @@ void pvESSI::Build_Stress_Field_At_Nodes(vtkSmartPointer<vtkUnstructuredGrid> No
 
 	///////////////////// Reading the stress-strain at nodes ///////////////////////////
 
-	offset3[0] = 0;  					     offset3[1] =dims3[1]-1;    offset3[2] = 0;
-    count3 [0] = this->Number_of_Nodes;		 count3 [1] = 1;		    count3 [2] = 18;
+	offset3[0] = 0;  					     offset3[1] =Int_Variable_1;    offset3[2] = 0;
+    count3 [0] = this->Number_of_Nodes;		 count3 [1] = 1;		    	count3 [2] = 18;
     dims2_out[0] =this->Number_of_Nodes;	 dims2_out[1] = 18;
 
     DataSpace = H5Dget_space(id_Stress_and_Strain);
@@ -2396,7 +2398,7 @@ void pvESSI::Build_Stress_Field_At_Nodes(vtkSmartPointer<vtkUnstructuredGrid> No
 	Node_Mesh->GetPointData()->AddArray(Plastic_Strain);
 	Node_Mesh->GetPointData()->AddArray(Stress);
 
-	cout << "<<<<pvESSI>>>> Build_Stress_Field_At_Nodes:: Calculation done for this step  " << Node_Mesh_Current_Time << endl;
+	// cout << "<<<<pvESSI>>>> Build_Stress_Field_At_Nodes:: Calculation done for this step  " << Node_Mesh_Current_Time << endl;
 
 	return;
 }
