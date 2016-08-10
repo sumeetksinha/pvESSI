@@ -625,7 +625,10 @@ void pvESSI::Get_Node_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh){
 	int Node_Index_to_Coordinates[Pseudo_Number_of_Nodes];
 	H5Dread(id_Index_to_Coordinates, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Node_Index_to_Coordinates); 
 
-	double Node_Coordinates[Number_of_Nodes*3];
+	DataSpace = H5Dget_space(id_Coordinates);
+	H5Sget_simple_extent_dims(DataSpace, dims1_out, NULL);	
+	double Node_Coordinates[dims1_out[0]];
+	H5Sclose(DataSpace); 
 	H5Dread(id_Coordinates, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT,Node_Coordinates); 
 
 	//////////////////////////////////////////////////// Reading Element Data ///////////////////////////////////////////////////////////////////////////////////////////
@@ -1315,7 +1318,7 @@ void pvESSI::initialize(){
 	  this->id_Number_of_DOFs= H5Dopen(id_File, "Model/Nodes/Number_of_DOFs", H5P_DEFAULT);
 
 	  /**************** Maps ***********************************/
-	  if(id_Whether_Maps_Build>0) {
+	  // if(id_Whether_Maps_Build>0) {
 		  this->id_Maps_group  = H5Gopen(id_File, "/Maps", H5P_DEFAULT); 
 		  this->id_Element_Map = H5Dopen(id_File, "Maps/Element_Map", H5P_DEFAULT);
 		  this->id_Node_Map = H5Dopen(id_File, "Maps/Node_Map", H5P_DEFAULT);
@@ -1331,7 +1334,7 @@ void pvESSI::initialize(){
 	  // this->id_Energy = H5Dopen(id_File, "/Field_at_Nodes/Energy", H5P_DEFAULT);                                         // Not implemented
 	  // this->id_Whether_Energy_Build = H5Dopen(id_File, "/Field_at_Nodes/Whether_Energy_Build", H5P_DEFAULT);             // Not implemented
 	  
-	  }
+	  // }
 
 }
 
