@@ -1738,126 +1738,126 @@ void pvESSI::Build_Inverse_Matrices(){
 
 	vtkMath::InvertMatrix(Temp_Eight_Node_Brick,Eight_Node_Brick_Inverse,8);
 
-	////////////////////////////////////// Building 20_Node_Brick_Inverse //////////////////////////////////////
+	// ////////////////////////////////////// Building 20_Node_Brick_Inverse //////////////////////////////////////
 
-  	this->Twenty_Node_Brick_Inverse = new double*[20];
-	double **Temp_Twenty_Node_Brick = new double*[20];
-	for(int i = 0; i < 20; ++i){
-    	Temp_Twenty_Node_Brick[i] = new double[20];
-    	Twenty_Node_Brick_Inverse[i] = new double[20];
-	}
-	for (int j=0; j<20;j++){
-		for (int i=0; i<8;i++){
-			Temp_Twenty_Node_Brick[j][i] =   0.125*(1+Brick_20_Gauss_Coordinates[j][0]*Brick_Coordinates[i][0]*SQRT_3_5)* 
-												   (1+Brick_20_Gauss_Coordinates[j][1]*Brick_Coordinates[i][1]*SQRT_3_5)* 
-												   (1+Brick_20_Gauss_Coordinates[j][2]*Brick_Coordinates[i][2]*SQRT_3_5)* 
-												   (-2+ (Brick_20_Gauss_Coordinates[j][0]*Brick_Coordinates[i][0]*SQRT_3_5)+ 
-												        (Brick_20_Gauss_Coordinates[j][1]*Brick_Coordinates[i][1]*SQRT_3_5)+ 
-												        (Brick_20_Gauss_Coordinates[j][2]*Brick_Coordinates[i][2]*SQRT_3_5));
-		}
-		int x[] = { 8,10,12,14};
-		for (int k=0; k<4;k++){
-			int i = x[k];
-			Temp_Twenty_Node_Brick[j][i] = 1.0/4.0*(1-pow(SQRT_3_5,2))*
-												   (1+Brick_20_Gauss_Coordinates[j][1]*Brick_Coordinates[i][1]*SQRT_3_5)*
-												   (1+Brick_20_Gauss_Coordinates[j][2]*Brick_Coordinates[i][2]*SQRT_3_5);
-		}
-		x[0] = 9; x[1]=11; x[2]=13; x[3]=15;
-		for (int k=0; k<4;k++){
-			int i = x[k];
-			Temp_Twenty_Node_Brick[j][i] = 1.0/4.0*(1-pow(SQRT_3_5,2))*
-												   (1+Brick_20_Gauss_Coordinates[j][0]*Brick_Coordinates[i][0]*SQRT_3_5)*
-												   (1+Brick_20_Gauss_Coordinates[j][2]*Brick_Coordinates[i][2]*SQRT_3_5);
-		}
-		x[0]=16; x[1]=17; x[2]=18; x[3]=19;
-		for (int k=0; k<4;k++){
-			int i = x[k];
-			Temp_Twenty_Node_Brick[j][i] = 1.0/4.0*(1-pow(SQRT_3_5,2))*
-												   (1+Brick_20_Gauss_Coordinates[j][0]*Brick_Coordinates[i][0]*SQRT_3_5)*
-												   (1+Brick_20_Gauss_Coordinates[j][1]*Brick_Coordinates[i][1]*SQRT_3_5);
-		}
+ //  	this->Twenty_Node_Brick_Inverse = new double*[20];
+	// double **Temp_Twenty_Node_Brick = new double*[20];
+	// for(int i = 0; i < 20; ++i){
+ //    	Temp_Twenty_Node_Brick[i] = new double[20];
+ //    	Twenty_Node_Brick_Inverse[i] = new double[20];
+	// }
+	// for (int j=0; j<20;j++){
+	// 	for (int i=0; i<8;i++){
+	// 		Temp_Twenty_Node_Brick[j][i] =   0.125*(1+Brick_20_Gauss_Coordinates[j][0]*Brick_Coordinates[i][0]*SQRT_3_5)* 
+	// 											   (1+Brick_20_Gauss_Coordinates[j][1]*Brick_Coordinates[i][1]*SQRT_3_5)* 
+	// 											   (1+Brick_20_Gauss_Coordinates[j][2]*Brick_Coordinates[i][2]*SQRT_3_5)* 
+	// 											   (-2+ (Brick_20_Gauss_Coordinates[j][0]*Brick_Coordinates[i][0]*SQRT_3_5)+ 
+	// 											        (Brick_20_Gauss_Coordinates[j][1]*Brick_Coordinates[i][1]*SQRT_3_5)+ 
+	// 											        (Brick_20_Gauss_Coordinates[j][2]*Brick_Coordinates[i][2]*SQRT_3_5));
+	// 	}
+	// 	int x[] = { 8,10,12,14};
+	// 	for (int k=0; k<4;k++){
+	// 		int i = x[k];
+	// 		Temp_Twenty_Node_Brick[j][i] = 1.0/4.0*(1-pow(SQRT_3_5,2))*
+	// 											   (1+Brick_20_Gauss_Coordinates[j][1]*Brick_Coordinates[i][1]*SQRT_3_5)*
+	// 											   (1+Brick_20_Gauss_Coordinates[j][2]*Brick_Coordinates[i][2]*SQRT_3_5);
+	// 	}
+	// 	x[0] = 9; x[1]=11; x[2]=13; x[3]=15;
+	// 	for (int k=0; k<4;k++){
+	// 		int i = x[k];
+	// 		Temp_Twenty_Node_Brick[j][i] = 1.0/4.0*(1-pow(SQRT_3_5,2))*
+	// 											   (1+Brick_20_Gauss_Coordinates[j][0]*Brick_Coordinates[i][0]*SQRT_3_5)*
+	// 											   (1+Brick_20_Gauss_Coordinates[j][2]*Brick_Coordinates[i][2]*SQRT_3_5);
+	// 	}
+	// 	x[0]=16; x[1]=17; x[2]=18; x[3]=19;
+	// 	for (int k=0; k<4;k++){
+	// 		int i = x[k];
+	// 		Temp_Twenty_Node_Brick[j][i] = 1.0/4.0*(1-pow(SQRT_3_5,2))*
+	// 											   (1+Brick_20_Gauss_Coordinates[j][0]*Brick_Coordinates[i][0]*SQRT_3_5)*
+	// 											   (1+Brick_20_Gauss_Coordinates[j][1]*Brick_Coordinates[i][1]*SQRT_3_5);
+	// 	}
 
-	}
+	// }
 
-	vtkMath::InvertMatrix(Temp_Twenty_Node_Brick,Twenty_Node_Brick_Inverse,20);
+	// vtkMath::InvertMatrix(Temp_Twenty_Node_Brick,Twenty_Node_Brick_Inverse,20);
 
-	////////////////////////////////////////// Building 27_Node_Brick_Inverse //////////////////////////////////////
+	// ////////////////////////////////////////// Building 27_Node_Brick_Inverse //////////////////////////////////////
 
-  	this->Twenty_Seven_Node_Brick_Inverse = new double*[27];
-	double **Temp_Twenty_Seven_Brick = new double*[27];
-	for(int i = 0; i < 27; ++i){
-    	Temp_Twenty_Seven_Brick[i] = new double[27];
-    	Twenty_Seven_Node_Brick_Inverse[i] = new double[27];
-	}
-	for (int j=0; j<27;j++){
-		for (int i=0; i<8;i++){
-			Temp_Twenty_Seven_Brick[j][i]         = 0.125*(1+Brick_27_Gauss_Coordinates[j][0]*Brick_Coordinates[i][0]*SQRT_3_5)*
-												         (1+Brick_27_Gauss_Coordinates[j][1]*Brick_Coordinates[i][1]*SQRT_3_5)*
-												         (1+Brick_27_Gauss_Coordinates[j][2]*Brick_Coordinates[i][2]*SQRT_3_5)*
-												         ((Brick_27_Gauss_Coordinates[j][0]*Brick_Coordinates[i][0]*SQRT_3_5)*
-												         (Brick_27_Gauss_Coordinates[j][1]*Brick_Coordinates[i][1]*SQRT_3_5)*
-												         (Brick_27_Gauss_Coordinates[j][2]*Brick_Coordinates[i][2]*SQRT_3_5));
-		}
-		int x[] = { 8,10,12,14};
-		for (int k=0; k<4;k++){
-			int i = x[k];
-			Temp_Twenty_Seven_Brick[j][i]         = 0.25*(1-pow(SQRT_3_5,2))*
-												        (1+Brick_27_Gauss_Coordinates[j][1]*Brick_Coordinates[i][1]*SQRT_3_5)*
-												        (1+Brick_27_Gauss_Coordinates[j][2]*Brick_Coordinates[i][2]*SQRT_3_5)*
-												        ((Brick_27_Gauss_Coordinates[j][1]*Brick_Coordinates[i][1]*SQRT_3_5)*
-												        (Brick_27_Gauss_Coordinates[j][2]*Brick_Coordinates[i][2]*SQRT_3_5));
-		}
-		x[0] = 9; x[1]=11; x[2]=13; x[3]=15;
-		for (int k=0; k<4;k++){
-			int i = x[k];
-			Temp_Twenty_Seven_Brick[j][i]         = 0.25*(1-pow(SQRT_3_5,2))*
-												        (1+Brick_27_Gauss_Coordinates[j][0]*Brick_Coordinates[i][0]*SQRT_3_5)*
-												        (1+Brick_27_Gauss_Coordinates[j][2]*Brick_Coordinates[i][2]*SQRT_3_5)*
-												        ((Brick_27_Gauss_Coordinates[j][0]*Brick_Coordinates[i][0]*SQRT_3_5)*
-												        (Brick_27_Gauss_Coordinates[j][2]*Brick_Coordinates[i][2]*SQRT_3_5));
-		}
-		x[0]=16; x[1]=17; x[2]=18; x[3]=19;
-		for (int k=0; k<4;k++){
-			int i = x[k];
-			Temp_Twenty_Seven_Brick[j][i]         = 0.25*(1-pow(SQRT_3_5,2))*
-												        (1+Brick_27_Gauss_Coordinates[j][0]*Brick_Coordinates[i][0]*SQRT_3_5)*
-												        (1+Brick_27_Gauss_Coordinates[j][1]*Brick_Coordinates[i][1]*SQRT_3_5)*
-												        ((Brick_27_Gauss_Coordinates[j][0]*Brick_Coordinates[i][0]*SQRT_3_5)*
-												        (Brick_27_Gauss_Coordinates[j][1]*Brick_Coordinates[i][1]*SQRT_3_5));
-		}
-		{
-			int i =20;
-			Temp_Twenty_Seven_Brick[j][i]         = 0.25*(1-pow(SQRT_3_5,2))*
-													     (1-pow(SQRT_3_5,2))*
-													     (1-pow(SQRT_3_5,2));
-		}
-		int y[] = {21,23};
-		for (int k=0; k<2;k++){
-			int i = y[k];
-			Temp_Twenty_Seven_Brick[j][i]         = 0.5*(1-pow(SQRT_3_5,2))*
-													   (1-pow(SQRT_3_5,2))*
-													   (1+Brick_27_Gauss_Coordinates[j][1]*Brick_Coordinates[i][1]*SQRT_3_5)*
-													      (Brick_27_Gauss_Coordinates[j][1]*Brick_Coordinates[i][1]*SQRT_3_5);
-		}
-		y[0]=22; y[1]=24;
-		for (int k=0; k<2;k++){
-			int i = y[k];
-			Temp_Twenty_Seven_Brick[j][i]         = 0.5*(1-pow(SQRT_3_5,2))*
-													   (1-pow(SQRT_3_5,2))*
-													   (1+Brick_27_Gauss_Coordinates[j][0]*Brick_Coordinates[i][0]*SQRT_3_5)*
-													     (Brick_27_Gauss_Coordinates[j][0]*Brick_Coordinates[i][0]*SQRT_3_5);
-		}
-		y[0]=25; y[1]=26;
-		for (int k=0; k<2;k++){
-			int i = y[k];
-			Temp_Twenty_Seven_Brick[j][i]         = 0.5*(1-pow(SQRT_3_5,2))*
-													   (1-pow(SQRT_3_5,2))*
-													   (1+Brick_27_Gauss_Coordinates[j][2]*Brick_Coordinates[i][2]*SQRT_3_5)*
-													     (Brick_27_Gauss_Coordinates[j][2]*Brick_Coordinates[i][2]*SQRT_3_5);
-		}
-	}
+ //  	this->Twenty_Seven_Node_Brick_Inverse = new double*[27];
+	// double **Temp_Twenty_Seven_Brick = new double*[27];
+	// for(int i = 0; i < 27; ++i){
+ //    	Temp_Twenty_Seven_Brick[i] = new double[27];
+ //    	Twenty_Seven_Node_Brick_Inverse[i] = new double[27];
+	// }
+	// for (int j=0; j<27;j++){
+	// 	for (int i=0; i<8;i++){
+	// 		Temp_Twenty_Seven_Brick[j][i]         = 0.125*(1+Brick_27_Gauss_Coordinates[j][0]*Brick_Coordinates[i][0]*SQRT_3_5)*
+	// 											         (1+Brick_27_Gauss_Coordinates[j][1]*Brick_Coordinates[i][1]*SQRT_3_5)*
+	// 											         (1+Brick_27_Gauss_Coordinates[j][2]*Brick_Coordinates[i][2]*SQRT_3_5)*
+	// 											         ((Brick_27_Gauss_Coordinates[j][0]*Brick_Coordinates[i][0]*SQRT_3_5)*
+	// 											         (Brick_27_Gauss_Coordinates[j][1]*Brick_Coordinates[i][1]*SQRT_3_5)*
+	// 											         (Brick_27_Gauss_Coordinates[j][2]*Brick_Coordinates[i][2]*SQRT_3_5));
+	// 	}
+	// 	int x[] = { 8,10,12,14};
+	// 	for (int k=0; k<4;k++){
+	// 		int i = x[k];
+	// 		Temp_Twenty_Seven_Brick[j][i]         = 0.25*(1-pow(SQRT_3_5,2))*
+	// 											        (1+Brick_27_Gauss_Coordinates[j][1]*Brick_Coordinates[i][1]*SQRT_3_5)*
+	// 											        (1+Brick_27_Gauss_Coordinates[j][2]*Brick_Coordinates[i][2]*SQRT_3_5)*
+	// 											        ((Brick_27_Gauss_Coordinates[j][1]*Brick_Coordinates[i][1]*SQRT_3_5)*
+	// 											        (Brick_27_Gauss_Coordinates[j][2]*Brick_Coordinates[i][2]*SQRT_3_5));
+	// 	}
+	// 	x[0] = 9; x[1]=11; x[2]=13; x[3]=15;
+	// 	for (int k=0; k<4;k++){
+	// 		int i = x[k];
+	// 		Temp_Twenty_Seven_Brick[j][i]         = 0.25*(1-pow(SQRT_3_5,2))*
+	// 											        (1+Brick_27_Gauss_Coordinates[j][0]*Brick_Coordinates[i][0]*SQRT_3_5)*
+	// 											        (1+Brick_27_Gauss_Coordinates[j][2]*Brick_Coordinates[i][2]*SQRT_3_5)*
+	// 											        ((Brick_27_Gauss_Coordinates[j][0]*Brick_Coordinates[i][0]*SQRT_3_5)*
+	// 											        (Brick_27_Gauss_Coordinates[j][2]*Brick_Coordinates[i][2]*SQRT_3_5));
+	// 	}
+	// 	x[0]=16; x[1]=17; x[2]=18; x[3]=19;
+	// 	for (int k=0; k<4;k++){
+	// 		int i = x[k];
+	// 		Temp_Twenty_Seven_Brick[j][i]         = 0.25*(1-pow(SQRT_3_5,2))*
+	// 											        (1+Brick_27_Gauss_Coordinates[j][0]*Brick_Coordinates[i][0]*SQRT_3_5)*
+	// 											        (1+Brick_27_Gauss_Coordinates[j][1]*Brick_Coordinates[i][1]*SQRT_3_5)*
+	// 											        ((Brick_27_Gauss_Coordinates[j][0]*Brick_Coordinates[i][0]*SQRT_3_5)*
+	// 											        (Brick_27_Gauss_Coordinates[j][1]*Brick_Coordinates[i][1]*SQRT_3_5));
+	// 	}
+	// 	{
+	// 		int i =20;
+	// 		Temp_Twenty_Seven_Brick[j][i]         = 0.25*(1-pow(SQRT_3_5,2))*
+	// 												     (1-pow(SQRT_3_5,2))*
+	// 												     (1-pow(SQRT_3_5,2));
+	// 	}
+	// 	int y[] = {21,23};
+	// 	for (int k=0; k<2;k++){
+	// 		int i = y[k];
+	// 		Temp_Twenty_Seven_Brick[j][i]         = 0.5*(1-pow(SQRT_3_5,2))*
+	// 												   (1-pow(SQRT_3_5,2))*
+	// 												   (1+Brick_27_Gauss_Coordinates[j][1]*Brick_Coordinates[i][1]*SQRT_3_5)*
+	// 												      (Brick_27_Gauss_Coordinates[j][1]*Brick_Coordinates[i][1]*SQRT_3_5);
+	// 	}
+	// 	y[0]=22; y[1]=24;
+	// 	for (int k=0; k<2;k++){
+	// 		int i = y[k];
+	// 		Temp_Twenty_Seven_Brick[j][i]         = 0.5*(1-pow(SQRT_3_5,2))*
+	// 												   (1-pow(SQRT_3_5,2))*
+	// 												   (1+Brick_27_Gauss_Coordinates[j][0]*Brick_Coordinates[i][0]*SQRT_3_5)*
+	// 												     (Brick_27_Gauss_Coordinates[j][0]*Brick_Coordinates[i][0]*SQRT_3_5);
+	// 	}
+	// 	y[0]=25; y[1]=26;
+	// 	for (int k=0; k<2;k++){
+	// 		int i = y[k];
+	// 		Temp_Twenty_Seven_Brick[j][i]         = 0.5*(1-pow(SQRT_3_5,2))*
+	// 												   (1-pow(SQRT_3_5,2))*
+	// 												   (1+Brick_27_Gauss_Coordinates[j][2]*Brick_Coordinates[i][2]*SQRT_3_5)*
+	// 												     (Brick_27_Gauss_Coordinates[j][2]*Brick_Coordinates[i][2]*SQRT_3_5);
+	// 	}
+	// }
 
-	vtkMath::InvertMatrix(Temp_Twenty_Seven_Brick,Twenty_Seven_Node_Brick_Inverse,27);
+	// vtkMath::InvertMatrix(Temp_Twenty_Seven_Brick,Twenty_Seven_Node_Brick_Inverse,27);
 
 	// ///////////////////////////// Printing For Debugging //////////////////////////////////////////////////////////
 
@@ -1869,7 +1869,7 @@ void pvESSI::Build_Inverse_Matrices(){
 	// 	cout << endl;
 	// }
 
-	free(Temp_Twenty_Seven_Brick);
+	// free(Temp_Twenty_Seven_Brick);
 	// free(Temp_Twenty_Node_Brick);
 	free(Temp_Eight_Node_Brick);
 
@@ -1974,8 +1974,8 @@ void pvESSI::Build_Brick_Coordinates(){
 void pvESSI::Build_Gauss_To_Node_Interpolation_Map(){
 
 	Gauss_To_Node_Interpolation_Map[8001] = this->Eight_Node_Brick_Inverse;
-	Gauss_To_Node_Interpolation_Map[8005] = this->Twenty_Node_Brick_Inverse;
-	Gauss_To_Node_Interpolation_Map[8002] = this->Twenty_Seven_Node_Brick_Inverse;
+	// Gauss_To_Node_Interpolation_Map[8005] = this->Twenty_Node_Brick_Inverse;
+	// Gauss_To_Node_Interpolation_Map[8002] = this->Twenty_Seven_Node_Brick_Inverse;
 }
 
 void pvESSI::HDF5_Read_INT_Array_Data(hid_t id_DataSet,
