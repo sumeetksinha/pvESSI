@@ -45,7 +45,7 @@ pvESSI::pvESSI(){
 
 	this->FileName = NULL;
 	this->SetNumberOfInputPorts(0);
-	this->SetNumberOfOutputPorts(1);
+	this->SetNumberOfOutputPorts(2);
 	UGrid_Gauss_Mesh          = vtkSmartPointer<vtkUnstructuredGrid>::New();
 	UGrid_Node_Mesh           = vtkSmartPointer<vtkUnstructuredGrid>::New();
 	UGrid_Current_Node_Mesh   = vtkSmartPointer<vtkUnstructuredGrid>::New();
@@ -65,7 +65,7 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
  
 	// get the info object
 	vtkInformation *Node_Mesh = outputVector->GetInformationObject(0);
-	// vtkInformation *Gauss_Mesh = outputVector->GetInformationObject(1);
+	vtkInformation *Gauss_Mesh = outputVector->GetInformationObject(1);
 	// outInfo->Print(std::cout);
 
 	if (!Whether_Node_Mesh_Build){
@@ -73,23 +73,23 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 		UGrid_Current_Node_Mesh->ShallowCopy(UGrid_Node_Mesh);
 	} 
 
-	// if (!Whether_Gauss_Mesh_Build ){ 
-	// 	this->Get_Gauss_Mesh(UGrid_Gauss_Mesh);
-	// 	UGrid_Current_Gauss_Mesh->ShallowCopy(UGrid_Gauss_Mesh);
-	// } 
+	if (!Whether_Gauss_Mesh_Build ){ 
+		this->Get_Gauss_Mesh(UGrid_Gauss_Mesh);
+		UGrid_Current_Gauss_Mesh->ShallowCopy(UGrid_Gauss_Mesh);
+	} 
 
 	// int extent[6] = {0,-1,0,-1,0,-1};
 	// outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_EXTENT(), extent);
 
   	this->Node_Mesh_Current_Time = Time_Map.find( Node_Mesh->Get(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP()))->second;
-  	// this->Gauss_Mesh_Current_Time = Time_Map.find( Gauss_Mesh->Get(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP()))->second;
+  	this->Gauss_Mesh_Current_Time = Time_Map.find( Gauss_Mesh->Get(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP()))->second;
 
   	// int Clength = outInfo->Length(vtkStreamingDemandDrivenPipeline::TIME_STEPS());
   	// double* Csteps = outInfo->Get(vtkStreamingDemandDrivenPipeline::TIME_STEPS());
 
-  	// if(Gauss_Mesh_Current_Time > Number_Of_Time_Steps){
-  	// 	Gauss_Mesh_Current_Time =0;
-  	// }
+  	if(Gauss_Mesh_Current_Time > Number_Of_Time_Steps){
+  		Gauss_Mesh_Current_Time =0;
+  	}
 
 
  	// std::cout<< "Node_Mesh_Current_Time " << Node_Mesh_Current_Time<< std::endl;
@@ -130,14 +130,14 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 	Build_Node_Attributes(UGrid_Current_Node_Mesh, this->Node_Mesh_Current_Time );
 	Build_Stress_Field_At_Nodes(UGrid_Current_Node_Mesh, this->Node_Mesh_Current_Time);
 	
-	// Build_Gauss_Attributes(UGrid_Current_Gauss_Mesh, this->Gauss_Mesh_Current_Time );
+	Build_Gauss_Attributes(UGrid_Current_Gauss_Mesh, this->Gauss_Mesh_Current_Time );
 
 	// get the ouptut pointer to paraview 
 	vtkUnstructuredGrid *Output_Node_Mesh = vtkUnstructuredGrid::SafeDownCast(Node_Mesh->Get(vtkDataObject::DATA_OBJECT()));
-	// vtkUnstructuredGrid *Output_Gauss_Mesh = vtkUnstructuredGrid::SafeDownCast(Gauss_Mesh->Get(vtkDataObject::DATA_OBJECT()));
+	vtkUnstructuredGrid *Output_Gauss_Mesh = vtkUnstructuredGrid::SafeDownCast(Gauss_Mesh->Get(vtkDataObject::DATA_OBJECT()));
 
 	Output_Node_Mesh->ShallowCopy(UGrid_Current_Node_Mesh);
-	// Output_Gauss_Mesh->ShallowCopy(UGrid_Current_Gauss_Mesh);
+	Output_Gauss_Mesh->ShallowCopy(UGrid_Current_Gauss_Mesh);
 
 	return 1;
 }
@@ -153,7 +153,7 @@ int pvESSI::RequestInformation( vtkInformation *request, vtkInformationVector **
 	this->initialize();
 
 	vtkInformation* Node_Mesh = outVec->GetInformationObject(0);
-	// vtkInformation* Gauss_Mesh = outVec->GetInformationObject(1);
+	vtkInformation* Gauss_Mesh = outVec->GetInformationObject(1);
 
 	////////////////////////////////////////////////////// Reading General Outside Data /////////////////////////////////////////////////////////////////////////////
 
@@ -227,8 +227,8 @@ int pvESSI::RequestInformation( vtkInformation *request, vtkInformationVector **
 	Node_Mesh->Set(vtkStreamingDemandDrivenPipeline::TIME_STEPS(),Time, this->Number_Of_Time_Steps);
 	Node_Mesh->Set(vtkStreamingDemandDrivenPipeline::TIME_RANGE(),Time_range,2);
 
-	// Gauss_Mesh->Set(vtkStreamingDemandDrivenPipeline::TIME_STEPS(),Time, this->Number_Of_Time_Steps);
-	// Gauss_Mesh->Set(vtkStreamingDemandDrivenPipeline::TIME_RANGE(),Time_range,2);
+	Gauss_Mesh->Set(vtkStreamingDemandDrivenPipeline::TIME_STEPS(),Time, this->Number_Of_Time_Steps);
+	Gauss_Mesh->Set(vtkStreamingDemandDrivenPipeline::TIME_RANGE(),Time_range,2);
 
 	// outInfo->Set(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT(),extent,6);
 	// outInfo->Set(vtkAlgorithm::CAN_PRODUCE_SUB_EXTENT(),1);
@@ -706,7 +706,6 @@ void pvESSI::Get_Gauss_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Gauss_Mesh){
 	int Element_Map[Number_of_Elements];
 	H5Dread(id_Element_Map, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Element_Map); 
 
-
 	/////////////////////////////////////////////////////////////////////// Reading Element Data ///////////////////////////////////////////////////////////////////////////////////////////
 
 	int Element_Index_to_Gauss_Point_Coordinates[Pseudo_Number_of_Elements];
@@ -717,14 +716,14 @@ void pvESSI::Get_Gauss_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Gauss_Mesh){
 
 	DataSpace = H5Dget_space(id_Gauss_Point_Coordinates);
 	H5Sget_simple_extent_dims(DataSpace, dims1_out, NULL);	
-	float Element_Gauss_Point_Coordinates[dims1_out[0]];
-	H5Dread(id_Gauss_Point_Coordinates, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Element_Gauss_Point_Coordinates); 
+	double Element_Gauss_Point_Coordinates[dims1_out[0]];
+	H5Dread(id_Gauss_Point_Coordinates, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT,Element_Gauss_Point_Coordinates); 
 	status=H5Sclose(DataSpace); 
 
 	////////////////////////////////////////////////////////////////////// Building up the elements //////////////////////////////////////////////////////
 
 	vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
-	points->SetNumberOfPoints(Number_of_Gauss_Nodes);
+	// points->SetNumberOfPoints(Number_of_Gauss_Nodes);
 	int No_of_Element_Gauss_Nodes; vtkIdType onevertex;
 
 	this->Number_of_Gauss_Nodes =0;
@@ -739,14 +738,14 @@ void pvESSI::Get_Gauss_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Gauss_Mesh){
 			Gauss_Mesh->InsertNextCell(VTK_VERTEX, 1, &onevertex);
 
 			/// updating number_of_gauss_nodes
-			Number_of_Gauss_Nodes = Number_of_Gauss_Nodes+1;
+			this->Number_of_Gauss_Nodes = this->Number_of_Gauss_Nodes+1;
 		}
 
 	}
 
 	Gauss_Mesh->SetPoints(points);
 
-	// this->Build_Delaunay3D_Gauss_Mesh(Gauss_Mesh);
+	this->Build_Delaunay3D_Gauss_Mesh(Gauss_Mesh);
 
 	Whether_Gauss_Mesh_Build=1;
 
@@ -1318,7 +1317,7 @@ void pvESSI::initialize(){
 	  this->id_Number_of_DOFs= H5Dopen(id_File, "Model/Nodes/Number_of_DOFs", H5P_DEFAULT);
 
 	  /**************** Maps ***********************************/
-	  // if(id_Whether_Maps_Build>0) {
+	  if(id_Whether_Maps_Build>0) {
 		  this->id_Maps_group  = H5Gopen(id_File, "/Maps", H5P_DEFAULT); 
 		  this->id_Element_Map = H5Dopen(id_File, "Maps/Element_Map", H5P_DEFAULT);
 		  this->id_Node_Map = H5Dopen(id_File, "Maps/Node_Map", H5P_DEFAULT);
@@ -1334,7 +1333,7 @@ void pvESSI::initialize(){
 	  // this->id_Energy = H5Dopen(id_File, "/Field_at_Nodes/Energy", H5P_DEFAULT);                                         // Not implemented
 	  // this->id_Whether_Energy_Build = H5Dopen(id_File, "/Field_at_Nodes/Whether_Energy_Build", H5P_DEFAULT);             // Not implemented
 	  
-	  // }
+	  }
 
 }
 
@@ -2288,6 +2287,18 @@ void pvESSI::Build_Stress_Field_At_Nodes(vtkSmartPointer<vtkUnstructuredGrid> No
 							Stress_Strain_At_Gauss_Points[j][k] = Element_Outputs[output_index+j*18+k];
 						}
 					}
+
+					// /*******************************************************************************************/
+
+					// vtkIdType Vertices[No_of_Element_Nodes];
+					// Cell_Type = ESSI_to_VTK_Element.find(No_of_Element_Nodes)->second;
+					// std::vector<int> Nodes_Connectivity_Order = ESSI_to_VTK_Connectivity.find(No_of_Element_Nodes)->second;
+
+					// for(int j=0; j<No_of_Element_Nodes ; j++){
+					// 	Vertices[j] = Inverse_Node_Map[Element_Connectivity[connectivity_index+Nodes_Connectivity_Order[j]]];
+					// }
+
+					// /*******************************************************************************************/
 
 					// for(int p =0; p<number_of_element_nodes ; p++ ){
 					// 	for(int q=0; q<18; q++)
