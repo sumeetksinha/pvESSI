@@ -50,8 +50,8 @@
 #include "pqServerManagerModel.h"
 #include "pqUndoStack.h"
 
-class pvESSI : public vtkUnstructuredGridAlgorithm
-{
+class pvESSI : public vtkUnstructuredGridAlgorithm{
+
 public:
   vtkTypeMacro(pvESSI,vtkUnstructuredGridAlgorithm);
   void PrintSelf(ostream& os, vtkIndent indent);
@@ -88,13 +88,184 @@ protected:
   
   //////////////////////// Important Variables /////////////////////////////////////////
 
-  int TimeStep, Number_Of_Time_Steps;;
-  int Node_Mesh_Current_Time, Gauss_Mesh_Current_Time;
-  int Node_Mesh_Previous_Time, Gauss_Mesh_Previous_Time; 
+  /************************************** Time parameters ***************************************/
+  int TimeStep;                 
+  int Time_Step_Range[2];             // Range of Time Steps
+  int Number_Of_Time_Steps;           // Stores the Number of TimeSteps in the analysis
+  int Node_Mesh_Current_Time;         // Stores the currengt time step of Node Mesh
+  int Gauss_Mesh_Current_Time;        // Stores the currengt time step of Gauss Mesh
+
+  /************************************ Element Info Parameters *********************************/
+  int Number_of_Gauss_Nodes;          // Stores the Number of Gauss Nodes in Model
+  int Pseudo_Number_of_Elements;      // Stores the Number of Elements in ESSI ( max_ESSI_Element_Tag )
+  int Number_of_Elements;             // Stores the Number of Elements in the model
+
+  /********************************** Node Info parameters **************************************/
+  int Number_of_Nodes;                // Stores the Number of Nodes in Model
+  int Pseudo_Number_of_Nodes;         // Stores the Number of Nodes in ESSI ( max_ESSI_Node_Tag ) 
+
+  /*************************** Visualization Parameters *****************************************/
+  int Display_Node_Mesh;              // Whether One Wants to display Node Mesh
+  int Display_Gauss_Mesh;             // Whether one wants to display gauss mesh
+  int Display_All_Mesh;               // Whether one wants to display all mesh
+  int Whether_Node_Mesh_Build;        // Whether node_mesh_build
+  int Whether_Gauss_Mesh_Build;       // Whether gauss mesh build
+  int Whether_All_Mesh_Build;         // Whether all mesh build
+  int Build_Map_Status;               // Whether Map is Build
+
+  ///////////////////////////// HDF5 ID /////////////////////////////////////////////////////// 
+
+  /***************** File_id **********************************/
+  hid_t id_File;
+
+  /***************** Time Steps *******************************/
+  hid_t id_time;
+  hid_t id_Number_of_Time_Steps;
+
+  /***************** Model Info *******************************/
+  hid_t id_Model_group; 
+  hid_t id_Whether_Maps_Build; 
+  hid_t id_Number_of_Elements;
+  hid_t id_Number_of_Nodes;
+  hid_t id_Number_of_Processes_Used;
+  hid_t id_Process_Number;
+
+  /**************** Element Info ******************************/
+  hid_t id_Elements_group;
+  hid_t id_Class_Tags;
+  hid_t id_Connectivity;
+  hid_t id_Element_types;
+  hid_t id_Gauss_Point_Coordinates;
+  hid_t id_Index_to_Connectivity;
+  hid_t id_Index_to_Gauss_Point_Coordinates;
+  hid_t id_Index_to_Outputs;
+  hid_t id_Material_tags;
+  hid_t id_Number_of_Gauss_Points;
+  hid_t id_Element_Number_of_Nodes;
+  hid_t id_Number_of_Output_Fields;
+  hid_t id_Outputs;
+  hid_t id_Substep_Outputs;
+
+  /**************** Node Info ******************************/
+  hid_t id_Nodes_group;
+  hid_t id_Constrained_DOFs;
+  hid_t id_Constarined_Nodes;
+  hid_t id_Coordinates;
+  hid_t id_Generalized_Displacements;
+  hid_t id_Index_to_Coordinates;
+  hid_t id_Index_to_Generalized_Displacements;
+  hid_t id_Number_of_DOFs;
+
+  /**************** Maps ***********************************/
+  hid_t id_Maps_group;
+  hid_t id_Element_Map;
+  hid_t id_Node_Map;
+  hid_t id_Inverse_Node_Map;
+  hid_t id_Inverse_Element_Map;
+  hid_t id_Number_of_Elements_Shared;
+  hid_t id_Number_of_Gauss_Elements_Shared;
+
+  /*************** Field at Nodes ***************************/
+  hid_t id_Field_at_Nodes_group;
+  hid_t id_Stress_and_Strain;
+  hid_t id_Whether_Stress_Strain_Build;
+  hid_t id_Energy;                            // Not implemented
+  hid_t id_Whether_Energy_Build;              // Not implemented
+
+
+  /************** General Variable **************************/
+  hid_t DataSpace;
+  hid_t DataSet;
+  hid_t Group; 
+  hid_t MemSpace;
+
+  hsize_t  dims1_out[1], dims2_out[2];
+  hsize_t  dims3[3],     dims2[2];
+  hsize_t  maxdims3[3],  maxdims2[2];
+
+  hsize_t  block3[3],  block2[2],  block1[1];
+  hsize_t  count3[3],  count2[2],  count1[1];
+  hsize_t offset3[3], offset2[2], offset1[1];
+  hsize_t stride3[3], stride2[2], stride1[1];
+
+  herr_t status;
+
+  hsize_t index_i,index_j,index_k;
+
+  int Int_Variable_1, Int_Variable_2, Int_Variable_3, Int_Variable_4, index;
+  int node_no, element_no;
+  float Float_Variable_1, Float_Variable_2;
+
+  /************* Hdf5 function ******************************/
+  void HDF5_Read_INT_Array_Data(hid_t id_DataSet,
+                               int rank,
+                               hsize_t *data_dims,
+                               hsize_t *offset,
+                               hsize_t *stride,
+                               hsize_t *count,
+                               hsize_t *block,
+                               int* data);
+
+  void HDF5_Write_INT_Array_Data(hid_t id_DataSet,
+                                 int rank,
+                                 hsize_t *data_dims,
+                                 hsize_t *offset,
+                                 hsize_t *stride,
+                                 hsize_t *count,
+                                 hsize_t *block,
+                                 int* data);
+
+  void HDF5_Read_FLOAT_Array_Data(hid_t id_DataSet,
+                                   int rank,
+                                   hsize_t *data_dims,
+                                   hsize_t *offset,
+                                   hsize_t *stride,
+                                   hsize_t *count,
+                                   hsize_t *block,
+                                   float* data);
+
+  void HDF5_Read_DOUBLE_Array_Data(hid_t id_DataSet,
+                                   int rank,
+                                   hsize_t *data_dims,
+                                   hsize_t *offset,
+                                   hsize_t *stride,
+                                   hsize_t *count,
+                                   hsize_t *block,
+                                   double* data);
+
+  void HDF5_Write_FLOAT_Array_Data(hid_t id_DataSet,
+                                   int rank,
+                                   hsize_t *data_dims,
+                                   hsize_t *offset,
+                                   hsize_t *stride,
+                                   hsize_t *count,
+                                   hsize_t *block,
+                                   float* data);
+
+  void HDF5_Write_DOUBLE_Array_Data(hid_t id_DataSet,
+                                   int rank,
+                                   hsize_t *data_dims,
+                                   hsize_t *offset,
+                                   hsize_t *stride,
+                                   hsize_t *count,
+                                   hsize_t *block,
+                                   double* data);
+
+  void HDF5_Read_STRING_Array_Data(hid_t id_DataSet,
+                                   int rank,
+                                   hsize_t *data_dims,
+                                   hsize_t *offset,
+                                   hsize_t *stride,
+                                   hsize_t *count,
+                                   hsize_t *block,
+                                   int* data);
+
+  void Append_Number_of_Elements_Shared(int message);
+
+  /************************* Some common Variables ********************************/
 
   // vtkTimeStamp ReadMTime;
   // int ReadError;
-  int Time_Step_Range[2];
 
 // // incrementally fine-tuned progress updates.
 //   virtual void GetProgressRange(float* range);
@@ -112,6 +283,8 @@ private:
   std::map<int,std::vector<int> > ESSI_to_VTK_Connectivity;
   std::map<double,int > Time_Map;
   std::map<std::string,int > Meta_Array_Map;
+  std::map<int,double**> Gauss_To_Node_Interpolation_Map;
+
   pvESSI(const pvESSI&);  // Not implemented.
   void operator=(const pvESSI&);  // Not implemented.
   void set_VTK_To_ESSI_Elements_Connectivity();
@@ -119,11 +292,14 @@ private:
   void Build_Maps();
   void Build_Time_Map();
   void Build_Meta_Array_Map();
+  void Build_Gauss_To_Node_Interpolation_Map();
   void Build_Gauss_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Gauss_Mesh, int Node_Mesh_Current_Time);
   void Build_Node_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh, int Gauss_Mesh_Current_Time);
   void Build_All_Attributes(vtkSmartPointer<vtkUnstructuredGrid> All_Mesh, int All_Mesh_Current_Time);  // need to implement
   void Build_Delaunay3D_Gauss_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Mesh);
   void Build_ProbeFilter_Gauss_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Probe_Input, int probe_type);  // Probing variables at gauss nodes from node mesh
+  void Build_Stress_Field_At_Nodes_v2(vtkSmartPointer<vtkUnstructuredGrid> Gauss_Mesh, int Node_Mesh_Current_Time);
+  void Build_Stress_Field_At_Nodes(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh, int Node_Mesh_Current_Time);
   double *Time; 
  
   char* FileName;
@@ -134,7 +310,9 @@ private:
   vtkSmartPointer<vtkUnstructuredGrid> UGrid_All_Mesh;           // Mesh with both gauss points and nodes  // Not implemented
   vtkSmartPointer<vtkUnstructuredGrid> UGrid_Current_Node_Mesh;  // Contains mesh with data attributes 
   vtkSmartPointer<vtkUnstructuredGrid> UGrid_Current_Gauss_Mesh; // Contains mesh with data attributes   
-  vtkSmartPointer<vtkUnstructuredGrid> UGrid_Current_All_Mesh;   // Contains mesh with data attributes     // Not implemented
+  // vtkSmartPointer<vtkUnstructure
+
+  ///////////////////////////// HDF5 ID /////////////////////////////////////////////////////// dGrid> UGrid_Current_All_Mesh;   // Contains mesh with data attributes     // Not implemented
 
   // Meta Da
   vtkSmartPointer<vtkFloatArray> Generalized_Displacements;
@@ -150,16 +328,17 @@ private:
   vtkSmartPointer<vtkIntArray> Element_Tag;
 
 
-  int Number_of_Elements, Number_of_Nodes, Number_of_Gauss_Nodes;
-  int Pseudo_Number_of_Elements, Pseudo_Number_of_Nodes;
-  int Display_Node_Mesh,Display_Gauss_Mesh,Display_All_Mesh,Whether_Node_Mesh_Build, Whether_Gauss_Mesh_Build, Whether_All_Mesh_Build;
-
-
   void Get_Node_Mesh(vtkSmartPointer<vtkUnstructuredGrid> UGrid_Node_Mesh); 	  // Building the node mesh skeleton
   void Get_Gauss_Mesh(vtkSmartPointer<vtkUnstructuredGrid> UGrid_Gauss_Mesh); 	// Building the gauss mesh skeleton
   void Get_All_Mesh(vtkSmartPointer<vtkUnstructuredGrid> All_Mesh);             // Building the node as well as gauss mesh skeleton // still to implement
   void Set_Meta_Array(int Meta_Data_Id );
 
+  void Build_Inverse_Matrices();
+  void Build_Brick_Coordinates();
+  double Brick_Coordinates[27][3];
+  double **Twenty_Node_Brick_Inverse;
+  double **Twenty_Seven_Node_Brick_Inverse;
+  double **Eight_Node_Brick_Inverse;
   /*******************************************************************************************/
 
 };
