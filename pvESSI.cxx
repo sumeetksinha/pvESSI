@@ -2165,8 +2165,6 @@ void pvESSI::Build_Stress_Field_At_Nodes(vtkSmartPointer<vtkUnstructuredGrid> No
 
 	double Node_Stress_And_Strain_Field[this->Number_of_Nodes][18];
 
-	cout << "<<<<pvESSI>>>> Stress-Strains are not interpolated for this time_step " << Node_Mesh_Current_Time <<endl;
-
 	if(Int_Variable_1==-1){
 
 		cout << "<<<<pvESSI>>>> Stress-Strains are not interpolated for this time_step " << Node_Mesh_Current_Time <<endl;
