@@ -269,7 +269,7 @@ int pvESSI::RequestInformation( vtkInformation *request, vtkInformationVector **
     EXTENT[5] = Model_Bounds[5] -0.5;
 
 	Node_Mesh->Set(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT(),EXTENT,6);
-	Node_Mesh->Set(CAN_HANDLE_PIECE_REQUEST(), Number_of_Processes_Used);
+	// Node_Mesh->Set(CAN_HANDLE_PIECE_REQUEST(), Number_of_Processes_Used);
 	// outInfo->Set(vtkAlgorithm::CAN_PRODUCE_SUB_EXTENT(),1);
 
 	// /////////////////////////////////////////////// Assign Key /////////////////////////////////////////////////////
@@ -2370,13 +2370,13 @@ void pvESSI::Build_Stress_Field_At_Nodes(vtkSmartPointer<vtkUnstructuredGrid> No
 
 				if(it != Gauss_To_Node_Interpolation_Map.end()){
 
-					std::vector<int> Nodes_Connectivity_Order = ESSI_to_VTK_Connectivity.find(number_of_element_nodes)->second;
-
 					connectivity_index = Element_Index_to_Connectivity[element_no]; 
 
 					number_of_element_nodes = Element_Number_of_Nodes[element_no];
 
-					//////////////////////// Initializing Containers ///////////////////////////////////////
+					std::vector<int> Nodes_Connectivity_Order = ESSI_to_VTK_Connectivity.find(number_of_element_nodes)->second;
+
+					////////////////////// Initializing Containers ///////////////////////////////////////
 					double **Stress_Strain_At_Nodes = new double*[number_of_element_nodes];
 				    double **Stress_Strain_At_Gauss_Points = new double*[number_of_element_nodes];					
 					for(int j = 0; j < number_of_element_nodes; ++j){
@@ -2384,7 +2384,7 @@ void pvESSI::Build_Stress_Field_At_Nodes(vtkSmartPointer<vtkUnstructuredGrid> No
 				    	Stress_Strain_At_Gauss_Points[j] = new double[18];
 					}
 
-					/////////////////////// Calculating Stresses at Nodes /////////////////////////////////
+					///////////////////// Calculating Stresses at Nodes /////////////////////////////////
 
 					int output_index = Element_Index_to_Outputs[element_no];
 
@@ -2394,7 +2394,7 @@ void pvESSI::Build_Stress_Field_At_Nodes(vtkSmartPointer<vtkUnstructuredGrid> No
 						}
 					}
 
-					// /*******************************************************************************************/
+					/*******************************************************************************************/
 
 					// vtkIdType Vertices[No_of_Element_Nodes];
 					// Cell_Type = ESSI_to_VTK_Element.find(No_of_Element_Nodes)->second;
@@ -2404,7 +2404,7 @@ void pvESSI::Build_Stress_Field_At_Nodes(vtkSmartPointer<vtkUnstructuredGrid> No
 					// 	Vertices[j] = Inverse_Node_Map[Element_Connectivity[connectivity_index+Nodes_Connectivity_Order[j]]];
 					// }
 
-					// /*******************************************************************************************/
+					/*******************************************************************************************/
 
 					// for(int p =0; p<number_of_element_nodes ; p++ ){
 					// 	for(int q=0; q<18; q++)
