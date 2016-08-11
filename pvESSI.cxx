@@ -230,7 +230,46 @@ int pvESSI::RequestInformation( vtkInformation *request, vtkInformationVector **
 	Gauss_Mesh->Set(vtkStreamingDemandDrivenPipeline::TIME_STEPS(),Time, this->Number_Of_Time_Steps);
 	Gauss_Mesh->Set(vtkStreamingDemandDrivenPipeline::TIME_RANGE(),Time_range,2);
 
-	// outInfo->Set(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT(),extent,6);
+	
+	/************************************************ Setting Model Bounds *************************************/
+
+	// Updating Model Bounds or Extent of the mesh
+	int EXTENT[6];	// Extent
+	float Model_Bounds[6];
+
+	count1[0]   =6;
+	dims1_out[0]=6;
+	index_i=0;
+    HDF5_Read_FLOAT_Array_Data(id_Model_Bounds,
+		                        1,
+		                       dims1_out,
+		                       &index_i,
+		                       NULL,
+		                       count1,
+		                       NULL,
+		                       Model_Bounds); // Model_Bounds
+
+	count1[0]   =1;
+	dims1_out[0]=1;
+    HDF5_Read_INT_Array_Data(id_Number_of_Processes_Used,
+		                        1,
+		                       dims1_out,
+		                       &index_i,
+		                       NULL,
+		                       count1,
+		                       NULL,
+		                       &Number_of_Processes_Used); // Number_of_Prpcesses Used
+
+
+    EXTENT[0] = Model_Bounds[0] +0.5;
+    EXTENT[1] = Model_Bounds[1] -0.5;    
+    EXTENT[2] = Model_Bounds[2] +0.5;
+    EXTENT[3] = Model_Bounds[3] -0.5;
+    EXTENT[4] = Model_Bounds[4] +0.5;
+    EXTENT[5] = Model_Bounds[5] -0.5;
+
+	Node_Mesh->Set(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT(),EXTENT,6);
+	Node_Mesh->Set(CAN_HANDLE_PIECE_REQUEST(), Number_of_Processes_Used);
 	// outInfo->Set(vtkAlgorithm::CAN_PRODUCE_SUB_EXTENT(),1);
 
 	// /////////////////////////////////////////////// Assign Key /////////////////////////////////////////////////////
@@ -1284,6 +1323,7 @@ void pvESSI::initialize(){
 
 	  /***************** Model Info *******************************/
 	  this->id_Model_group = H5Gopen(id_File, "Model", H5P_DEFAULT); 
+	  this->id_Model_Bounds = H5Dopen(id_File, "/Model/Model_Bounds", H5P_DEFAULT); 
 	  this->id_Number_of_Elements = H5Dopen(id_File, "/Number_of_Elements", H5P_DEFAULT); 
 	  this->id_Number_of_Nodes    = H5Dopen(id_File, "/Number_of_Nodes", H5P_DEFAULT);
 	  this->id_Number_of_Processes_Used = H5Dopen(id_File, "/Number_of_Processes_Used", H5P_DEFAULT);
@@ -1673,7 +1713,6 @@ void pvESSI::Append_Number_of_Elements_Shared(int message)  {
 * Needs to be changed. I think, paraview has fixed this issue in their latest 
 * version, but I am not sure, need to check it. 
 *****************************************************************************/
-
 void pvESSI::Build_Time_Map(){
 
 	for (int i = 0;i<Number_Of_Time_Steps ; i++)
@@ -1710,10 +1749,10 @@ void pvESSI::Build_Inverse_Matrices(){
 
 	Build_Brick_Coordinates();
 
-	for(int i=0; i<8; i++){
-		cout << Brick_8_Gauss_Coordinates[i][0] << " " << Brick_8_Gauss_Coordinates[i][1] << " " << Brick_8_Gauss_Coordinates[i][2] << endl;
-	}
-	cout << endl;
+	// for(int i=0; i<8; i++){
+	// 	cout << Brick_8_Gauss_Coordinates[i][0] << " " << Brick_8_Gauss_Coordinates[i][1] << " " << Brick_8_Gauss_Coordinates[i][2] << endl;
+	// }
+	// cout << endl;
 
 	double SQRT_1_3 = 1.0/sqrt(3.0);
 	double SQRT_3_5 = sqrt(0.6);

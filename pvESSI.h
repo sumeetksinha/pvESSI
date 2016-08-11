@@ -104,6 +104,9 @@ protected:
   int Number_of_Nodes;                // Stores the Number of Nodes in Model
   int Pseudo_Number_of_Nodes;         // Stores the Number of Nodes in ESSI ( max_ESSI_Node_Tag ) 
 
+  /********************************** Model Info *************************************************/
+  int Number_of_Processes_Used;       // Number of Processes used
+  
   /*************************** Visualization Parameters *****************************************/
   int Display_Node_Mesh;              // Whether One Wants to display Node Mesh
   int Display_Gauss_Mesh;             // Whether one wants to display gauss mesh
@@ -124,6 +127,7 @@ protected:
 
   /***************** Model Info *******************************/
   hid_t id_Model_group; 
+  hid_t id_Model_Bounds;
   hid_t id_Whether_Maps_Build; 
   hid_t id_Number_of_Elements;
   hid_t id_Number_of_Nodes;
