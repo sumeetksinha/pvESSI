@@ -45,7 +45,7 @@ pvESSI::pvESSI(){
 
 	this->FileName = NULL;
 	this->SetNumberOfInputPorts(0);
-	this->SetNumberOfOutputPorts(2);
+	this->SetNumberOfOutputPorts(1);
 	UGrid_Gauss_Mesh          = vtkSmartPointer<vtkUnstructuredGrid>::New();
 	UGrid_Node_Mesh           = vtkSmartPointer<vtkUnstructuredGrid>::New();
 	UGrid_Current_Node_Mesh   = vtkSmartPointer<vtkUnstructuredGrid>::New();
@@ -65,7 +65,7 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
  
 	// get the info object
 	vtkInformation *Node_Mesh = outputVector->GetInformationObject(0);
-	vtkInformation *Gauss_Mesh = outputVector->GetInformationObject(1);
+	// vtkInformation *Gauss_Mesh = outputVector->GetInformationObject(1);
 	// outInfo->Print(std::cout);
 
 	if (!Whether_Node_Mesh_Build){
@@ -73,23 +73,23 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 		UGrid_Current_Node_Mesh->ShallowCopy(UGrid_Node_Mesh);
 	} 
 
-	if (!Whether_Gauss_Mesh_Build ){ 
-		this->Get_Gauss_Mesh(UGrid_Gauss_Mesh);
-		UGrid_Current_Gauss_Mesh->ShallowCopy(UGrid_Gauss_Mesh);
-	} 
+	// if (!Whether_Gauss_Mesh_Build ){ 
+	// 	this->Get_Gauss_Mesh(UGrid_Gauss_Mesh);
+	// 	UGrid_Current_Gauss_Mesh->ShallowCopy(UGrid_Gauss_Mesh);
+	// } 
 
 	// int extent[6] = {0,-1,0,-1,0,-1};
 	// outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_EXTENT(), extent);
 
   	this->Node_Mesh_Current_Time = Time_Map.find( Node_Mesh->Get(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP()))->second;
-  	this->Gauss_Mesh_Current_Time = Time_Map.find( Gauss_Mesh->Get(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP()))->second;
+  	// this->Gauss_Mesh_Current_Time = Time_Map.find( Gauss_Mesh->Get(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP()))->second;
 
   	// int Clength = outInfo->Length(vtkStreamingDemandDrivenPipeline::TIME_STEPS());
   	// double* Csteps = outInfo->Get(vtkStreamingDemandDrivenPipeline::TIME_STEPS());
 
-  	if(Gauss_Mesh_Current_Time > Number_Of_Time_Steps){
-  		Gauss_Mesh_Current_Time =0;
-  	}
+  	// if(Gauss_Mesh_Current_Time > Number_Of_Time_Steps){
+  	// 	Gauss_Mesh_Current_Time =0;
+  	// }
 
 
  	// std::cout<< "Node_Mesh_Current_Time " << Node_Mesh_Current_Time<< std::endl;
@@ -130,14 +130,14 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 	Build_Node_Attributes(UGrid_Current_Node_Mesh, this->Node_Mesh_Current_Time );
 	Build_Stress_Field_At_Nodes(UGrid_Current_Node_Mesh, this->Node_Mesh_Current_Time);
 	
-	Build_Gauss_Attributes(UGrid_Current_Gauss_Mesh, this->Gauss_Mesh_Current_Time );
+	// Build_Gauss_Attributes(UGrid_Current_Gauss_Mesh, this->Gauss_Mesh_Current_Time );
 
 	// get the ouptut pointer to paraview 
 	vtkUnstructuredGrid *Output_Node_Mesh = vtkUnstructuredGrid::SafeDownCast(Node_Mesh->Get(vtkDataObject::DATA_OBJECT()));
-	vtkUnstructuredGrid *Output_Gauss_Mesh = vtkUnstructuredGrid::SafeDownCast(Gauss_Mesh->Get(vtkDataObject::DATA_OBJECT()));
+	// vtkUnstructuredGrid *Output_Gauss_Mesh = vtkUnstructuredGrid::SafeDownCast(Gauss_Mesh->Get(vtkDataObject::DATA_OBJECT()));
 
 	Output_Node_Mesh->ShallowCopy(UGrid_Current_Node_Mesh);
-	Output_Gauss_Mesh->ShallowCopy(UGrid_Current_Gauss_Mesh);
+	// Output_Gauss_Mesh->ShallowCopy(UGrid_Current_Gauss_Mesh);
 
 	return 1;
 }
@@ -153,7 +153,7 @@ int pvESSI::RequestInformation( vtkInformation *request, vtkInformationVector **
 	this->initialize();
 
 	vtkInformation* Node_Mesh = outVec->GetInformationObject(0);
-	vtkInformation* Gauss_Mesh = outVec->GetInformationObject(1);
+	// vtkInformation* Gauss_Mesh = outVec->GetInformationObject(1);
 
 	////////////////////////////////////////////////////// Reading General Outside Data /////////////////////////////////////////////////////////////////////////////
 
@@ -227,8 +227,8 @@ int pvESSI::RequestInformation( vtkInformation *request, vtkInformationVector **
 	Node_Mesh->Set(vtkStreamingDemandDrivenPipeline::TIME_STEPS(),Time, this->Number_Of_Time_Steps);
 	Node_Mesh->Set(vtkStreamingDemandDrivenPipeline::TIME_RANGE(),Time_range,2);
 
-	Gauss_Mesh->Set(vtkStreamingDemandDrivenPipeline::TIME_STEPS(),Time, this->Number_Of_Time_Steps);
-	Gauss_Mesh->Set(vtkStreamingDemandDrivenPipeline::TIME_RANGE(),Time_range,2);
+	// Gauss_Mesh->Set(vtkStreamingDemandDrivenPipeline::TIME_STEPS(),Time, this->Number_Of_Time_Steps);
+	// Gauss_Mesh->Set(vtkStreamingDemandDrivenPipeline::TIME_RANGE(),Time_range,2);
 
 	
 	/************************************************ Setting Model Bounds *************************************/
