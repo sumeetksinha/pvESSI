@@ -97,12 +97,12 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
  //    EXTENT[5] = Model_Bounds[5] -0.5;
 
 	Node_Mesh->Get(vtkStreamingDemandDrivenPipeline::UPDATE_EXTENT(),EXTENT);
-	 cout << EXTENT[0] << endl;;
-	 cout << EXTENT[1] << endl;;    
-	 cout << EXTENT[2] << endl;;
-	 cout << EXTENT[3] << endl;;
-	 cout << EXTENT[4] << endl;;
-	 cout << EXTENT[5] << endl;;
+	 // cout << EXTENT[0] << endl;;
+	 // cout << EXTENT[1] << endl;;    
+	 // cout << EXTENT[2] << endl;;
+	 // cout << EXTENT[3] << endl;;
+	 // cout << EXTENT[4] << endl;;
+	 // cout << EXTENT[5] << endl;;
 	// // int extent[6] = {0,-1,0,-1,0,-1};
 	// // outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_EXTENT(), extent);
 	// /**********************************************************************************************************************************/
