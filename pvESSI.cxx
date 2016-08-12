@@ -60,40 +60,53 @@ pvESSI::pvESSI(){
 * This method responds to the request made by vtk Pipeleine. 
 * This method is invoked when the time stamp is changed from paraview VCR.
 *****************************************************************************/
-
 int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector **vtkNotUsed(inputVector),	vtkInformationVector *outputVector){
+
+	cout << "this->id_Number_of_Elements " << this->Number_of_Elements  <<endl;
+	cout << "this->id_Number_of_Nodes    " << this->Number_of_Nodes     <<endl;
+
+	cout << "this->id_Number_of_Elements " << this->Pseudo_Number_of_Elements  <<endl;
+	cout << "this->id_Number_of_Nodes    " << this->Pseudo_Number_of_Nodes     <<endl;
+	cout << "this->id_Number_of_Processes" << this->Number_of_Processes_Used <<endl;
+
+	Step_Initializer(1);
  
-	// get the info object
-	vtkInformation *Node_Mesh = outputVector->GetInformationObject(0);
-	// vtkInformation *Gauss_Mesh = outputVector->GetInformationObject(1);
+ 	vtkInformation *Node_Mesh = outputVector->GetInformationObject(0);
 	// outInfo->Print(std::cout);
+
+	// /************************************** Setting th extent of the domian [mesh] ****************************************************/
+	// count1[0]   =6;	dims1_out[0]=6;	index_i=0;
+ //    HDF5_Read_FLOAT_Array_Data(id_Model_Bounds,1,dims1_out,&index_i,NULL,count1,NULL,Model_Bounds); // Model_Bounds
+
+	// count1[0]   =1;
+	// dims1_out[0]=1;
+
+	// H5Dread(id_Process_Number, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,&Process_Number);
+	// H5Dclose(id_Number_of_Time_Steps);
+
+
+ //    EXTENT[0] = Model_Bounds[0] +0.5;
+ //    EXTENT[1] = Model_Bounds[1] -0.5;    
+ //    EXTENT[2] = Model_Bounds[2] +0.5;
+ //    EXTENT[3] = Model_Bounds[3] -0.5;
+ //    EXTENT[4] = Model_Bounds[4] +0.5;
+ //    EXTENT[5] = Model_Bounds[5] -0.5;
+
+	// Node_Mesh->Set(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT(),EXTENT,6);
+	// // int extent[6] = {0,-1,0,-1,0,-1};
+	// // outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_EXTENT(), extent);
+	// /**********************************************************************************************************************************/
+
+  	this->Node_Mesh_Current_Time = Time_Map.find( Node_Mesh->Get(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP()))->second;
+
 
 	if (!Whether_Node_Mesh_Build){
 		this->Get_Node_Mesh(UGrid_Node_Mesh);
 		UGrid_Current_Node_Mesh->ShallowCopy(UGrid_Node_Mesh);
 	} 
 
-	// if (!Whether_Gauss_Mesh_Build ){ 
-	// 	this->Get_Gauss_Mesh(UGrid_Gauss_Mesh);
-	// 	UGrid_Current_Gauss_Mesh->ShallowCopy(UGrid_Gauss_Mesh);
-	// } 
-
-	// int extent[6] = {0,-1,0,-1,0,-1};
-	// outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_EXTENT(), extent);
-
-  	this->Node_Mesh_Current_Time = Time_Map.find( Node_Mesh->Get(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP()))->second;
-  	// this->Gauss_Mesh_Current_Time = Time_Map.find( Gauss_Mesh->Get(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP()))->second;
-
   	// int Clength = outInfo->Length(vtkStreamingDemandDrivenPipeline::TIME_STEPS());
   	// double* Csteps = outInfo->Get(vtkStreamingDemandDrivenPipeline::TIME_STEPS());
-
-  	// if(Gauss_Mesh_Current_Time > Number_Of_Time_Steps){
-  	// 	Gauss_Mesh_Current_Time =0;
-  	// }
-
-
- 	// std::cout<< "Node_Mesh_Current_Time " << Node_Mesh_Current_Time<< std::endl;
- 	// std::cout<< "Gauss_Mesh_Current_Time " << Gauss_Mesh_Current_Time<< std::endl;
 
  	/////////////////////////////////  Printing For Debugging ////////////////////////////////
  	// cout << "Number of Nodes "   << " " << Number_of_Nodes << endl;
@@ -103,41 +116,45 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 	// cout << "Pseudo_Number_of_Elements"  << " " << Pseudo_Number_of_Elements << endl;
 	/////////////////////////////////////////////////////////////////////////////////////////
 
-
- 	// cout<< "Gauss_Mesh_Current_Time " << Gauss_Mesh_Current_Time<< endl;
-	// cout<< "Clength " << "  " << vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP() << endl;
-	// for (int i =0 ; i< Clength ; i++){
-	// 	cout << Csteps[i] << "  " << endl;
-	// }
-
-    // cout << Node_Mesh_Current_Time/Time[0] << endl;
-
-	// if (outInfo->Has(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP()))
-	//          std::cout << "Update Time" << endl;
-	//     if (!outInfo->Has(vtkDataObject::DATA_TIME_STEP()))
-	    		// std::cout << "DATA_TIME_STEP" << endl;
-
 	// return outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP())
 	// int piece, numPieces;
 	// piece = outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_PIECE_NUMBER());
 	// numPieces = outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_PIECES());
 
-	/////////////////////////////// Read in Paralll //////////////////////////////
-	// outInfo->Set(vtkStreamingDemandDrivenPipeline::MAXIMUM_NUMBER_OF_PIECES(), -1);
-	///////////////////////////////////////////////////////////////////////////////
-
-	// cout << "Node Atributes  Started " <<endl;
 	Build_Node_Attributes(UGrid_Current_Node_Mesh, this->Node_Mesh_Current_Time );
 	Build_Stress_Field_At_Nodes(UGrid_Current_Node_Mesh, this->Node_Mesh_Current_Time);
 	
-	// Build_Gauss_Attributes(UGrid_Current_Gauss_Mesh, this->Gauss_Mesh_Current_Time );
-
 	// get the ouptut pointer to paraview 
 	vtkUnstructuredGrid *Output_Node_Mesh = vtkUnstructuredGrid::SafeDownCast(Node_Mesh->Get(vtkDataObject::DATA_OBJECT()));
-	// vtkUnstructuredGrid *Output_Gauss_Mesh = vtkUnstructuredGrid::SafeDownCast(Gauss_Mesh->Get(vtkDataObject::DATA_OBJECT()));
 
 	Output_Node_Mesh->ShallowCopy(UGrid_Current_Node_Mesh);
-	// Output_Gauss_Mesh->ShallowCopy(UGrid_Current_Gauss_Mesh);
+
+	/*************************************************************************************************************************************/
+	/****************************************************** if Gauss Mesh is Enabled *****************************************************/
+	if(Enable_Gauss_Mesh){
+		vtkInformation *Gauss_Mesh = outputVector->GetInformationObject(1);
+		if (!Whether_Gauss_Mesh_Build ){ 
+			this->Get_Gauss_Mesh(UGrid_Gauss_Mesh);
+			UGrid_Current_Gauss_Mesh->ShallowCopy(UGrid_Gauss_Mesh);
+		} 
+
+		this->Gauss_Mesh_Current_Time = Time_Map.find( Gauss_Mesh->Get(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP()))->second;
+	  	if(Gauss_Mesh_Current_Time > Number_Of_Time_Steps){
+	  		Gauss_Mesh_Current_Time =0;
+	  	}
+
+	 	// cout<< "Gauss_Mesh_Current_Time " << Gauss_Mesh_Current_Time<< endl;
+		// cout<< "Clength " << "  " << vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP() << endl;
+		// for (int i =0 ; i< Clength ; i++){
+		// 	cout << Csteps[i] << "  " << endl;
+		// }
+
+	  	Build_Gauss_Attributes(UGrid_Current_Gauss_Mesh, this->Gauss_Mesh_Current_Time );
+	  	vtkUnstructuredGrid *Output_Gauss_Mesh = vtkUnstructuredGrid::SafeDownCast(Gauss_Mesh->Get(vtkDataObject::DATA_OBJECT()));
+	  	Output_Gauss_Mesh->ShallowCopy(UGrid_Current_Gauss_Mesh);
+	}
+	/***************************************************************************************************************************************/
+	/***************************************************************************************************************************************/
 
 	return 1;
 }
@@ -150,133 +167,34 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 
 int pvESSI::RequestInformation( vtkInformation *request, vtkInformationVector **vtkNotUsed(inVec), vtkInformationVector* outVec){
 
-	this->initialize();
+	this->Initialize();
 
 	vtkInformation* Node_Mesh = outVec->GetInformationObject(0);
-	// vtkInformation* Gauss_Mesh = outVec->GetInformationObject(1);
-
-	////////////////////////////////////////////////////// Reading General Outside Data /////////////////////////////////////////////////////////////////////////////
-
-	H5Dread(id_Number_of_Time_Steps, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,&Number_Of_Time_Steps);
-	H5Dclose(id_Number_of_Time_Steps);
-
-	H5Dread(id_Number_of_Elements, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,&Number_of_Elements);
-	H5Dclose(id_Number_of_Elements);
-
-	H5Dread(id_Number_of_Nodes, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,&Number_of_Nodes);
-	H5Dclose(id_Number_of_Nodes);
-
-	DataSpace = H5Dget_space(id_Index_to_Coordinates);
-	H5Sget_simple_extent_dims(DataSpace, dims1_out, NULL);
-	this->Pseudo_Number_of_Nodes = dims1_out[0];
-	H5Sclose(DataSpace);
-
-	DataSpace = H5Dget_space(id_Index_to_Connectivity);
-	H5Sget_simple_extent_dims(DataSpace, dims1_out, NULL);
-	this->Pseudo_Number_of_Elements = dims1_out[0];
-	H5Sclose(DataSpace);
-
-	if(id_Whether_Maps_Build < 0){
-
-		cout << "<<<<pvESSI>>>> Whether_Maps_Build Dataset Not Build, So lets go and build it first \n " << endl;
-
-		dims1_out[0]=1; DataSpace = H5Screate_simple(1, dims1_out, NULL);
-		id_Whether_Maps_Build = H5Dcreate(id_File,"Whether_Maps_Build",H5T_NATIVE_INT,DataSpace,H5P_DEFAULT,H5P_DEFAULT, H5P_DEFAULT);
-
-		this->Build_Map_Status = -1; 
-
-		H5Sclose(DataSpace); 
-
-		cout << "<<<<pvESSI>>>> Maps are now built \n " << endl;
-	}
-	else{
-		H5Dread(id_Whether_Maps_Build, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,&Build_Map_Status);
-	}
-
-   	if(this->Build_Map_Status != 1){
-   		
-   		cout << "<<<<pvESSI>>>> Maps Not Built So Lets Go and Create the Maps \n" << endl;
-   		Build_Maps();
-
-		count1[0]   =1;
-		dims1_out[0]=1;
-		index_i=0;
-		this->Build_Map_Status =1;
-
-        HDF5_Write_INT_Array_Data(id_Whether_Maps_Build,
-			                        1,
-			                       dims1_out,
-			                       &index_i,
-			                       NULL,
-			                       count1,
-			                       NULL,
-			                       &Build_Map_Status); // Build_Map_Status
-
-   	}
-
-   	cout << "<<<<pvESSI>>>> Maps are build HURRAY!!! \n" << endl;
-
-	this->Time = new double[Number_Of_Time_Steps]; 
-	H5Dread(id_time, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT,Time);  
-	H5Dclose(id_time);
-
-	Build_Time_Map(); 
 
 	double Time_range[2]={Time[0],Time[Number_Of_Time_Steps-1]};
 
 	Node_Mesh->Set(vtkStreamingDemandDrivenPipeline::TIME_STEPS(),Time, this->Number_Of_Time_Steps);
 	Node_Mesh->Set(vtkStreamingDemandDrivenPipeline::TIME_RANGE(),Time_range,2);
 
-	// Gauss_Mesh->Set(vtkStreamingDemandDrivenPipeline::TIME_STEPS(),Time, this->Number_Of_Time_Steps);
-	// Gauss_Mesh->Set(vtkStreamingDemandDrivenPipeline::TIME_RANGE(),Time_range,2);
-
-	
-	/************************************************ Setting Model Bounds *************************************/
-
-	// Updating Model Bounds or Extent of the mesh
-	int EXTENT[6];	// Extent
-	float Model_Bounds[6];
-
-	count1[0]   =6;
-	dims1_out[0]=6;
-	index_i=0;
-    HDF5_Read_FLOAT_Array_Data(id_Model_Bounds,
-		                        1,
-		                       dims1_out,
-		                       &index_i,
-		                       NULL,
-		                       count1,
-		                       NULL,
-		                       Model_Bounds); // Model_Bounds
-
-	count1[0]   =1;
-	dims1_out[0]=1;
-    HDF5_Read_INT_Array_Data(id_Number_of_Processes_Used,
-		                        1,
-		                       dims1_out,
-		                       &index_i,
-		                       NULL,
-		                       count1,
-		                       NULL,
-		                       &Number_of_Processes_Used); // Number_of_Prpcesses Used
-
-
-    EXTENT[0] = Model_Bounds[0] +0.5;
-    EXTENT[1] = Model_Bounds[1] -0.5;    
-    EXTENT[2] = Model_Bounds[2] +0.5;
-    EXTENT[3] = Model_Bounds[3] -0.5;
-    EXTENT[4] = Model_Bounds[4] +0.5;
-    EXTENT[5] = Model_Bounds[5] -0.5;
-
 	Node_Mesh->Set(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT(),EXTENT,6);
-	// Node_Mesh->Set(CAN_HANDLE_PIECE_REQUEST(), Number_of_Processes_Used);
+	Node_Mesh->Set(CAN_HANDLE_PIECE_REQUEST(), Number_of_Processes_Used);
 	// outInfo->Set(vtkAlgorithm::CAN_PRODUCE_SUB_EXTENT(),1);
 
-	// /////////////////////////////////////////////// Assign Key /////////////////////////////////////////////////////
-	// // vtkSmartPointer<vtkInformationQuadratureSchemeDefinitionVectorKey> Quadrature_Definition_Vector = vtkSmartPointer<vtkInformationQuadratureSchemeDefinitionVectorKey> ::New();
+	/*************************************************************************************************************************************/
+	/****************************************************** if Gauss Mesh is Enabled *****************************************************/
+	if(Enable_Gauss_Mesh){
 
-	// // vtkSmartPointer<vtkQuadratureSchemeDefinition> Quadrature_Definition = vtkSmartPointer<vtkQuadratureSchemeDefinition>::New();
-	// // Quadrature_Definition->Initialize(VTK_HEXAHEDRON,8,8,W_QQ_64_A);
+		vtkInformation* Gauss_Mesh = outVec->GetInformationObject(1);
+
+		Gauss_Mesh->Set(vtkStreamingDemandDrivenPipeline::TIME_STEPS(),Time, this->Number_Of_Time_Steps);
+		Gauss_Mesh->Set(vtkStreamingDemandDrivenPipeline::TIME_RANGE(),Time_range,2);
+
+		Gauss_Mesh->Set(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT(),EXTENT,6);
+		Gauss_Mesh->Set(CAN_HANDLE_PIECE_REQUEST(), Number_of_Processes_Used);
+		// outInfo->Set(vtkAlgorithm::CAN_PRODUCE_SUB_EXTENT(),1);
+	}
+
+	/************************************************************************************************************************************/
 
 	return 1;
 }
@@ -352,8 +270,8 @@ void pvESSI::Build_Node_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Node_Mes
 	int Node_Index_to_Generalized_Displacements[Pseudo_Number_of_Nodes];
 	H5Dread(id_Index_to_Generalized_Displacements, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Node_Index_to_Generalized_Displacements); 
 
-	int Element_Material_Tags[Pseudo_Number_of_Nodes];
-	H5Dread(id_Material_tags, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Element_Material_Tags); 
+	// int Element_Material_Tags[Pseudo_Number_of_Nodes];
+	// H5Dread(id_Material_tags, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Element_Material_Tags); 
 
 	///////////////////////////////////////////  Output Dataset for a particular time /////////////////////////////////////////////////////////////////////////////	
 
@@ -415,12 +333,12 @@ void pvESSI::Build_Node_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Node_Mes
 
 		element_no = Element_Map[i]; 
 		Element_Tag -> InsertValue(i,element_no);
-		Material_Tag -> InsertValue(i,Element_Material_Tags[element_no]);
+		// Material_Tag -> InsertValue(i,Element_Material_Tags[element_no]);
 
 	}
 
 	Node_Mesh->GetCellData()->AddArray(Element_Tag);
-	Node_Mesh->GetCellData()->AddArray(Material_Tag);
+	// Node_Mesh->GetCellData()->AddArray(Material_Tag);
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -700,6 +618,9 @@ void pvESSI::Get_Node_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh){
 								Node_Coordinates[Node_Index_to_Coordinates[node_no]+1],
 								Node_Coordinates[Node_Index_to_Coordinates[node_no]+2]
 		);
+ 
+		// if(Node_Index_to_Coordinates[node_no] < 0)
+		// 	cout << "ERROR:::::" <<endl;
 	}
 
 	Node_Mesh->SetPoints(points);
@@ -714,6 +635,9 @@ void pvESSI::Get_Node_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh){
 
 		connectivity_index = Element_Index_to_Connectivity[element_no];
 		No_of_Element_Nodes = Element_Number_of_Nodes[element_no];
+
+		// if(connectivity_index< 0)
+		// 	cout << "ELEMENT----ERROR:::::" <<endl;
 
 		vtkIdType Vertices[No_of_Element_Nodes];
 		Cell_Type = ESSI_to_VTK_Element.find(No_of_Element_Nodes)->second;
@@ -813,381 +737,6 @@ void pvESSI::Build_Delaunay3D_Gauss_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Ga
 
   return;
 
-}
-
-/*****************************************************************************
-* This Function creates stress field at nodes by interpolating from 
-* gauss points to nodes and then stores it in the field data at nodes folder
-*****************************************************************************/
-void pvESSI::Build_Stress_Field_At_Nodes_v2(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh, int Node_Mesh_Current_Time){
-
-	// First Check whether Stresses has been calculated or not.
-	// If Not Calculated : Calculate it and store it.
-	// if Calculated: Visualize it
-
-	Elastic_Strain = vtkSmartPointer<vtkFloatArray> ::New();
-	this->Set_Meta_Array (Meta_Array_Map["Elastic_Strain"]);
-
-	Plastic_Strain = vtkSmartPointer<vtkFloatArray> ::New();
-	this->Set_Meta_Array (Meta_Array_Map["Plastic_Strain"]);
-
-	Stress = vtkSmartPointer<vtkFloatArray> ::New();
-	this->Set_Meta_Array (Meta_Array_Map["Stress"]);
-
-	count1[0]   =1;
-	dims1_out[0]=1;
-	index_i = (hsize_t)Node_Mesh_Current_Time;
-
-    HDF5_Read_INT_Array_Data(id_Whether_Stress_Strain_Build,
-	                          1,
-	                         dims1_out,
-	                         &index_i,
-	                         NULL,
-	                         count1,
-	                         NULL,
-	                         &Int_Variable_1); // Whether_Stress_Strain_Build
-
-
-	if(Int_Variable_1==-1){
-
-		cout << "<<<<pvESSI>>>> Stress-Strains are not interpolated for this time_step " << Node_Mesh_Current_Time <<endl;
-		cout << "<<<<pvESSI>>>> I will calculate and store it for future \n" << endl;
-
-		DataSpace = H5Dget_space (id_Stress_and_Strain);
-	    H5Sget_simple_extent_dims (DataSpace, dims3, NULL);
-	    H5Sclose(DataSpace);
-			
-	    dims3[0] = this->Number_of_Nodes;
-	    dims3[1] = dims3[1]<Number_Of_Time_Steps?(dims3[1]+1):dims3[1];
-	    dims3[2] = 18;
-	    status = H5Dset_extent (id_Stress_and_Strain, dims3);
-
-		index_i = -1;
-		while(++index_i < Number_of_Elements){
-
-			count1[0]   =1;
-			dims1_out[0]=1;
-
-		    HDF5_Read_INT_Array_Data(id_Element_Map,
-			                          1,
-			                         dims1_out,
-			                         &index_i,
-			                         NULL,
-			                         count1,
-			                         NULL,
-			                         &Int_Variable_1); // Element_Map
-
-		    index_j = (hsize_t) Int_Variable_1;
-
-		    HDF5_Read_INT_Array_Data(id_Number_of_Gauss_Points,
-			                          1,
-			                         dims1_out,
-			                         &index_j,
-			                         NULL,
-			                         count1,
-			                         NULL,
-			                         &Int_Variable_1); // Element_Number_of_Gauss_Nodes
-
-		    HDF5_Read_INT_Array_Data(id_Class_Tags,
-			                          1,
-			                         dims1_out,
-			                         &index_j,
-			                         NULL,
-			                         count1,
-			                         NULL,
-			                         &Int_Variable_2); // Element_Class_Tags
-
-			std::map<int,double**>::iterator it;
-			it = Gauss_To_Node_Interpolation_Map.find(Int_Variable_2);
-			double Stress_Strain_Outputs [18]; 
-
-			if(Int_Variable_1>0){
-
-				if(it != Gauss_To_Node_Interpolation_Map.end()){
-
-				    HDF5_Read_INT_Array_Data(id_Index_to_Outputs,
-					                          1,
-					                         dims1_out,
-					                         &index_j,
-					                         NULL,
-					                         count1,
-					                         NULL,
-					                         &Int_Variable_2); // Element_Index_to_Output
-
-				    HDF5_Read_INT_Array_Data(id_Element_Number_of_Nodes,
-					                          1,
-					                         dims1_out,
-					                         &index_j,
-					                         NULL,
-					                         count1,
-					                         NULL,
-					                         &Int_Variable_3); // Element_Number_of_Nodes	
-
-
-				    double **Stress_Strain_At_Nodes = new double*[Int_Variable_3];
-				    double **Stress_Strain_At_Gauss_Points = new double*[Int_Variable_3];
-
-				    index_k = -1;
-					while(++index_k < Int_Variable_3){
-						Stress_Strain_At_Nodes[(int) index_k] = new double[18];
-						Stress_Strain_At_Gauss_Points[(int) index_k] = new double[18];
-					}
-
-				    index_k = -1;
-					while(++index_k < Int_Variable_3){
-
-						offset2[0] = (hsize_t)(Int_Variable_2) + (18*index_k);  offset2[1] = Node_Mesh_Current_Time;
-					    count2 [0] = 18;  count2 [1] = 1; 
-					    dims1_out[0] =18;
-
-
-					    HDF5_Read_DOUBLE_Array_Data(id_Outputs,
-						                          1,
-						                         dims1_out,
-						                         offset2,
-						                         NULL,
-						                         count2,
-						                         NULL,
-						                         Stress_Strain_Outputs); // Element_Stress_Strain_Outputs_at_Gauss-points
-
-						index = 18;
-						while(index--){
-							Stress_Strain_At_Gauss_Points[(int) index_k][index]= Stress_Strain_Outputs[index];
-						}
-					}
-
-					vtkMath::MultiplyMatrix	(it->second,Stress_Strain_At_Gauss_Points,Int_Variable_3,Int_Variable_3,Int_Variable_3,18,Stress_Strain_At_Nodes);
-
-					// for(int i =0; i<Int_Variable_3 ; i++ ){
-					// 	for(int j=0; j<18; j++)
-					// 		cout << Stress_Strain_At_Nodes[i][j] << " ";
-					// 	cout << endl;
-					// }
-					// cout << endl;
-					
-					count1[0]   =1;
-					dims1_out[0]=1;
-
-				    HDF5_Read_INT_Array_Data(id_Index_to_Connectivity,
-					                          1,
-					                         dims1_out,
-					                         &index_j,
-					                         NULL,
-					                         count1,
-					                         NULL,
-					                         &Int_Variable_2); // Element_Index_to_Connectivity
-
-					index = -1;
-					while(++index < Int_Variable_3){
-
-						index_k = (hsize_t)(Int_Variable_2) + (hsize_t)index;
-
-						count1[0]   =1;
-						dims1_out[0]=1;
-
-					    HDF5_Read_INT_Array_Data(id_Connectivity,
-						                          1,
-						                         dims1_out,
-						                         &index_k,
-						                         NULL,
-						                         count1,
-						                         NULL,
-						                         &Int_Variable_4); // Element_Connectivity_Node_No
-
-						index_k = (hsize_t)(Int_Variable_4);
-
-					    HDF5_Read_INT_Array_Data(id_Inverse_Node_Map,
-						                          1,
-						                         dims1_out,
-						                         &index_k,
-						                         NULL,
-						                         count1,
-						                         NULL,
-						                         &Int_Variable_4); // Node_Map_Node_No
-
-					    offset3[0] = (hsize_t)(Int_Variable_4);  offset3[1]=dims3[1]-1;    offset3[2] = 0;
-					    count3 [0] = 1;							 count3 [1] = 1;		   count3 [2] = 18;
-					    dims1_out[0] =18;
-
-					    HDF5_Read_DOUBLE_Array_Data(id_Stress_and_Strain,
-						                          3,
-						                         dims1_out,
-						                         offset3,
-						                         NULL,
-						                         count3,
-						                         NULL,
-						                         Stress_Strain_Outputs); // Stress_and_Strain-Prevous_Outputs_Reading
-
-					    for(int i=0; i<18;i++){
-					    	Stress_Strain_Outputs[i]=Stress_Strain_Outputs[i]+Stress_Strain_At_Nodes[index][i];
-					    }
-
-					    HDF5_Write_DOUBLE_Array_Data(id_Stress_and_Strain,
-						                          3,
-						                         dims1_out,
-						                         offset3,
-						                         NULL,
-						                         count3,
-						                         NULL,
-						                         Stress_Strain_Outputs); // Stress_and_Strain-After_Appending__Outputs_Writing_Back
-
-						// for(int j=0; j<18; j++)
-						// 	cout << Stress_Strain_Outputs[j] << " ";
-						// cout << endl;
-
-					}
-
-
-				}
-				else{
-
-					cout << "<<<<pvESSI>>>> Build_Stress_Field_At_Nodes:: Warning!! Gauss_Interpolation to nodes not implemented for element of Class_Tag " << Int_Variable_2 << endl;
-
-				}
-
-			}
-
-		}
-
-		/********************* Iterate over all nodes and take the average of the stress_strains *******************************************/
-
-		Float_Variable_1 = 1e-5; 					// epsilon
-
-		index_i = -1;
-		while(++index_i < Number_of_Nodes){
-
-			double Node_Stress_Strain_Outputs [18];
-
-			count1[0]   =1;
-			dims1_out[0]=1;		    
-		    HDF5_Read_INT_Array_Data(id_Number_of_Gauss_Elements_Shared,
-			                          1,
-			                         dims1_out,
-			                         &index_i,
-			                         NULL,
-			                         count1,
-			                         NULL,
-			                         &Int_Variable_1); // Number_of-Gauss_Elements_Shared	
-
-			offset3[0] = index_i;  					 offset3[1] =dims3[1]-1;    offset3[2] = 0;
-		    count3 [0] = 1;							 count3 [1] = 1;		    count3 [2] = 18;
-		    dims1_out[0] =18;
-
-		    HDF5_Read_DOUBLE_Array_Data(id_Stress_and_Strain,
-			                          3,
-			                         dims1_out,
-			                         offset3,
-			                         NULL,
-			                         count3,
-			                         NULL,
-			                         Node_Stress_Strain_Outputs); // Stress_and_Strain-Prevous_Outputs_Reading	
-
-		    // cout << " Number_of_gauss_Elemnts_Shared by node " << index_i << "is " << Int_Variable_1 <<endl;;
-
-		    // for ( int i=0; i< 18 ; i++){
-		    // 	cout << Node_Stress_Strain_Outputs[i] << "  ";
-		    // }
-		    // cout << endl;
-
-		    index_j=18;
-		    while(index_j--){
-			    Node_Stress_Strain_Outputs[index_j]=Node_Stress_Strain_Outputs[index_j]/((float)Int_Variable_1 +(float)Float_Variable_1);
-		    }
-
-		    // for ( int i=0; i< 18 ; i++){
-		    // 	cout << Node_Stress_Strain_Outputs[i] << "  ";
-		    // }
-		    // cout << endl;
-
-		    HDF5_Write_DOUBLE_Array_Data(id_Stress_and_Strain,
-			                          3,
-			                         dims1_out,
-			                         offset3,
-			                         NULL,
-			                         count3,
-			                         NULL,
-			                         Node_Stress_Strain_Outputs); // Stress_and_Strain-Prevous_Outputs_Reading	    
-
-		}
-
-		// Writing back to whether stress starin build
-		// the index number of the where the stress_strain if for current time step
-
-		Int_Variable_1 = dims3[1]-1;
-		count1[0]   =1;
-		dims1_out[0]=1;
-		index_i = (hsize_t)Node_Mesh_Current_Time;
-
-	    HDF5_Write_INT_Array_Data(id_Whether_Stress_Strain_Build,
-		                          1,
-		                         dims1_out,
-		                         &index_i,
-		                         NULL,
-		                         count1,
-		                         NULL,
-		                         &Int_Variable_1); // Whether_Stress_Strain_Build_Index 
-
-	}
-
-	offset3[0] = index_i;  					 offset3[1] = (hsize_t)Int_Variable_1;    offset3[2] = 0;
-    count3 [0] = 1;							 count3 [1] = 1;		    			  count3 [2] = 18;
-    dims1_out[0] =18;
-
-
-	index_i = -1;
-	while(++index_i < Number_of_Nodes){
-
-		double Node_Stress_Strain_Outputs [18];
-
-		offset3[0] = index_i;  					 
-
-	    HDF5_Read_DOUBLE_Array_Data(id_Stress_and_Strain,
-		                          3,
-		                         dims1_out,
-		                         offset3,
-		                         NULL,
-		                         count3,
-		                         NULL,
-		                         Node_Stress_Strain_Outputs); // Stress_and_Strains_Outputs_Reading	
-
-			float El_Strain_Tuple[6] ={
-				Node_Stress_Strain_Outputs[0],
-				Node_Stress_Strain_Outputs[3],
-				Node_Stress_Strain_Outputs[4],
-				Node_Stress_Strain_Outputs[1],
-				Node_Stress_Strain_Outputs[5],
-				Node_Stress_Strain_Outputs[2]
-			};
-
-			float Pl_Strain_Tuple[6] ={
-				Node_Stress_Strain_Outputs[6],
-				Node_Stress_Strain_Outputs[9],
-				Node_Stress_Strain_Outputs[10],
-				Node_Stress_Strain_Outputs[7],
-				Node_Stress_Strain_Outputs[11],
-				Node_Stress_Strain_Outputs[8]
-			};
-
-			float Stress_Tuple[6] ={
-				Node_Stress_Strain_Outputs[12],
-				Node_Stress_Strain_Outputs[15],
-				Node_Stress_Strain_Outputs[16],
-				Node_Stress_Strain_Outputs[13],
-				Node_Stress_Strain_Outputs[17],
-				Node_Stress_Strain_Outputs[14]
-			};
-
-			Elastic_Strain->InsertTypedTuple ((int)index_i,El_Strain_Tuple);
-			Plastic_Strain->InsertTypedTuple ((int)index_i,Pl_Strain_Tuple);
-			Stress->InsertTypedTuple ((int)index_i,Stress_Tuple);
-
-	}
-
-	Node_Mesh->GetPointData()->AddArray(Elastic_Strain);
-	Node_Mesh->GetPointData()->AddArray(Plastic_Strain);
-	Node_Mesh->GetPointData()->AddArray(Stress);
-
-	return;
 }
 
 
@@ -1298,24 +847,92 @@ void pvESSI::Set_Meta_Array( int Meta_Array_Id ){
 * Initializes some variables to default values
 *****************************************************************************/
 
-void pvESSI::initialize(){
+void pvESSI::Initialize(){
 
-	Node_Mesh_Current_Time=0;
-	Gauss_Mesh_Current_Time=0; 
-	Display_Node_Mesh=1;
-	Display_Gauss_Mesh=0;
-	Display_All_Mesh=0;
-	Whether_Node_Mesh_Build=0;
-	Whether_Gauss_Mesh_Build=0;
-	Whether_All_Mesh_Build=0;
-	Build_Map_Status = 1;
+	/************************* To make Debug on *******************/
 	// this->DebugOn();
-	// cout << "xascaS" << endl;
 
-	//////////////////////////////////////////////////////// Reading Hdf5 File ///////////////////////////////////////////////////////////////////////////////////////
+	/*************************************************************/
+	/*********Initializing some parameters of visualization ******/
+	this->Whether_Node_Mesh_Build=0;
+	this->Whether_Gauss_Mesh_Build=0;
+	this->Build_Map_Status = 0;
+
+    /***************** File_id **********************************/
+    this->id_File = H5Fopen(this->FileName, H5F_ACC_RDWR, H5P_DEFAULT);;  
+
+    /***************** Time Steps *******************************/
+    this->id_time = H5Dopen(id_File, "/time", H5P_DEFAULT); 
+    this->id_Number_of_Time_Steps = H5Dopen(id_File, "/Number_of_Time_Steps", H5P_DEFAULT);   
+
+    /***************** Model Info *******************************/
+    this->id_Model_Bounds = H5Dopen(id_File, "/Model/Model_Bounds", H5P_DEFAULT); 
+    this->id_Number_of_Elements = H5Dopen(id_File, "/Number_of_Elements", H5P_DEFAULT); 
+    this->id_Number_of_Nodes    = H5Dopen(id_File, "/Number_of_Nodes", H5P_DEFAULT);
+    this->id_Number_of_Processes_Used = H5Dopen(id_File, "/Number_of_Processes_Used", H5P_DEFAULT);
+
+    this->id_Index_to_Coordinates = H5Dopen(id_File, "Model/Nodes/Index_to_Coordinates", H5P_DEFAULT);
+    DataSpace = H5Dget_space(id_Index_to_Coordinates);
+	H5Sget_simple_extent_dims(DataSpace, dims1_out, NULL);
+	this->Pseudo_Number_of_Nodes = dims1_out[0];
+	H5Sclose(DataSpace);
+	H5Dclose(id_Index_to_Coordinates);
+
+	cout << " Pseudo_Number_of_Nodes " << Pseudo_Number_of_Nodes << endl;
+
+	this->id_Index_to_Connectivity = H5Dopen(id_File, "Model/Elements/Index_to_Connectivity", H5P_DEFAULT);
+	DataSpace = H5Dget_space(id_Index_to_Connectivity);
+	H5Sget_simple_extent_dims(DataSpace, dims1_out, NULL);
+	this->Pseudo_Number_of_Elements = dims1_out[0];
+	H5Sclose(DataSpace);
+	H5Dclose(id_Index_to_Connectivity);
+
+	cout << " Pseudo_Number_of_Elements " << Pseudo_Number_of_Elements << endl;
+
+	/******************** Time Step Data **************************/
+
+	H5Dread(id_Number_of_Time_Steps, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,&Number_Of_Time_Steps);
+	H5Dclose(id_Number_of_Time_Steps);
+
+	H5Dread(id_Number_of_Elements, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,&Number_of_Elements);
+	H5Dclose(id_Number_of_Elements);
+
+	H5Dread(id_Number_of_Nodes, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,&Number_of_Nodes);
+	H5Dclose(id_Number_of_Nodes);
+
+	H5Dread(id_Number_of_Processes_Used, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,&Number_of_Processes_Used);
+	H5Dclose(id_Number_of_Processes_Used);
+
+	this->Time = new double[Number_Of_Time_Steps]; 
+	H5Dread(id_time, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT,Time);  
+	H5Dclose(id_time);
+
+	Build_Time_Map(); 
+
+	count1[0]   =6;	dims1_out[0]=6;	index_i=0;
+    HDF5_Read_FLOAT_Array_Data(id_Model_Bounds,1,dims1_out,&index_i,NULL,count1,NULL,Model_Bounds); // Model_Bounds
+    H5Dclose(id_Model_Bounds);
+
+    EXTENT[0] = Model_Bounds[0] +0.5;
+    EXTENT[1] = Model_Bounds[1] -0.5;    
+    EXTENT[2] = Model_Bounds[2] +0.5;
+    EXTENT[3] = Model_Bounds[3] -0.5;
+    EXTENT[4] = Model_Bounds[4] +0.5;
+    EXTENT[5] = Model_Bounds[5] -0.5;
+
+    H5Fclose(id_File);
+
+}
+
+void pvESSI::Step_Initializer(int Piece_No){
+
+	/****************************************************************************************
+	* We want to open the file and keep it open until we have read all the data what we want
+	* So lets go wohoo!!!
+	****************************************************************************************/
 
 	  /***************** File_id **********************************/
-	  this->id_File = H5Fopen(this->FileName, H5F_ACC_RDWR, H5P_DEFAULT);;
+	  this->id_File = H5Fopen(this->FileName, H5F_ACC_RDWR, H5P_DEFAULT);
 
 	  /***************** Time Steps *******************************/
 	  this->id_time = H5Dopen(id_File, "/time", H5P_DEFAULT); 
@@ -1375,6 +992,99 @@ void pvESSI::initialize(){
 	  
 	  }
 
+	if(id_Whether_Maps_Build < 0){
+
+		cout << "<<<<pvESSI>>>> Whether_Maps_Build Dataset Not Build, So lets go and build it first \n " << endl;
+
+		dims1_out[0]=1; DataSpace = H5Screate_simple(1, dims1_out, NULL);
+		id_Whether_Maps_Build = H5Dcreate(id_File,"Whether_Maps_Build",H5T_NATIVE_INT,DataSpace,H5P_DEFAULT,H5P_DEFAULT, H5P_DEFAULT);	
+		H5Sclose(DataSpace); 
+
+		cout << "<<<<pvESSI>>>> Whether_Maps_Build are now built \n " << endl;
+
+		this->Build_Map_Status = -1;
+	}
+	else{
+
+		H5Dread(id_Whether_Maps_Build, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,&Build_Map_Status);
+	}
+
+   	if(this->Build_Map_Status != 1){
+   		
+   		cout << "<<<<pvESSI>>>> Maps Not Built So Lets Go and Create the Maps \n" << endl;
+
+   		Build_Maps();
+
+		this->Build_Map_Status =1;
+
+		H5Dwrite(id_Whether_Maps_Build, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,&Build_Map_Status);
+   	}
+
+
+   	cout << "<<<<pvESSI>>>> Maps are build HURRAY!!! \n" << endl;
+}
+
+
+void pvESSI::Close_File(){
+
+	  /***************** File_id **********************************/
+	  H5Fclose(this->id_File);
+
+	  /***************** Time Steps *******************************/
+	  H5Dclose(this->id_time); 
+	  H5Dclose(this->id_Number_of_Time_Steps); 
+
+	  /***************** Model Info *******************************/
+	  H5Gclose(this->id_Model_group); 
+	  H5Dclose(this->id_Model_Bounds);
+	  H5Dclose(this->id_Number_of_Elements);
+	  H5Dclose(this->id_Number_of_Nodes);
+	  H5Dclose(this->id_Number_of_Processes_Used);
+	  H5Dclose(this->id_Process_Number);
+	  H5Dclose(this->id_Whether_Maps_Build);
+
+	  /**************** Element Info ******************************/
+	  H5Gclose(this->id_Elements_group); 
+	  H5Dclose(this->id_Class_Tags);
+	  H5Dclose(this->id_Connectivity);
+	  H5Dclose(this->id_Element_types);
+	  H5Dclose(this->id_Gauss_Point_Coordinates);
+	  H5Dclose(this->id_Index_to_Connectivity);
+	  H5Dclose(this->id_Index_to_Gauss_Point_Coordinates);
+	  H5Dclose(this->id_Index_to_Outputs);
+	  H5Dclose(this->id_Material_tags);
+	  H5Dclose(this->id_Number_of_Gauss_Points);
+	  H5Dclose(this->id_Element_Number_of_Nodes);
+	  H5Dclose(this->id_Number_of_Output_Fields);
+	  H5Dclose(this->id_Outputs);
+	  // H5Dclose(this->id_Substep_Output);
+
+	  /**************** Node Info ******************************/
+	  H5Gclose(this->id_Nodes_group); 
+	  H5Dclose(this->id_Constrained_DOFs);
+	  H5Dclose(this->id_Constarined_Nodes);
+	  H5Dclose(this->id_Coordinates);
+	  H5Dclose(this->id_Generalized_Displacements);
+	  H5Dclose(this->id_Index_to_Coordinates);
+	  H5Dclose(this->id_Index_to_Generalized_Displacements);
+	  H5Dclose(this->id_Number_of_DOFs);
+
+	  /**************** Maps ***********************************/
+	  H5Gclose(this->id_Maps_group); 
+	  H5Dclose(this->id_Element_Map);
+	  H5Dclose(this->id_Node_Map);
+	  H5Dclose(this->id_Inverse_Node_Map);
+	  H5Dclose(this->id_Inverse_Element_Map);
+	  H5Dclose(this->id_Number_of_Elements_Shared);
+	  H5Dclose(this->id_Number_of_Gauss_Elements_Shared);
+
+	  /*************** Field at Nodes ***************************/
+	  H5Gclose(this->id_Field_at_Nodes_group);
+	  H5Dclose(this->id_Stress_and_Strain);
+	  H5Dclose(this->id_Whether_Stress_Strain_Build);
+	  // H5Dclose(this->id_Energy);                           // Not implemented
+	  // H5Dclose(this->id_Whether_Energy_Build);             // Not implemented
+	  
 }
 
 
@@ -1393,7 +1103,7 @@ void pvESSI::Build_Maps(){
 
 	id_Maps_group = H5Gcreate(id_File, "/Maps", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT); 
 	H5Gclose(id_Maps_group); 
-
+ 
 	id_Field_at_Nodes_group = H5Gcreate(id_File, "/Field_at_Nodes", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT); 
 	H5Gclose(id_Field_at_Nodes_group); 
 
@@ -1442,17 +1152,9 @@ void pvESSI::Build_Maps(){
 	dims1_out[0]=Number_Of_Time_Steps;
 	index_i     =0;
 
-    HDF5_Write_INT_Array_Data(id_Whether_Stress_Strain_Build,
-	                          1,
-	                         dims1_out,
-	                         &index_i,
-	                         NULL,
-	                         count1,
-	                         NULL,
-	                         Whether_Stress_Strain_Build); // Whether_Stress_Strain_Build
+    HDF5_Write_INT_Array_Data(id_Whether_Stress_Strain_Build, 1, dims1_out, &index_i, NULL, count1, NULL, Whether_Stress_Strain_Build); // Whether_Stress_Strain_Build
 
-
-	/****************************************************************************************************************************************/
+	// *********************************************************** Creating Strain Dataset ****************************************************
 	dims3[0]=this->Number_of_Nodes;       dims3[1]= 0;                               dims3[2]= 18; 
 	maxdims3[0]=this->Number_of_Nodes; maxdims3[1]= this->Number_Of_Time_Steps;   maxdims3[2]= 18;
 	DataSpace = H5Screate_simple(3, dims3, maxdims3);
@@ -1463,248 +1165,135 @@ void pvESSI::Build_Maps(){
 	id_Stress_and_Strain = H5Dcreate(id_File,"Field_at_Nodes/Stress_And_Strain",H5T_NATIVE_DOUBLE,DataSpace,H5P_DEFAULT,prop, H5P_DEFAULT); 
 	status = H5Sclose(DataSpace);
 
-	count1[0]   =1;
-	dims1_out[0]=1;
 
-	index_i=-1;
-	index  = 0;
+	/****** Building Node Map *******/
 
-	while(++index_i < this->Pseudo_Number_of_Nodes){
+	int Node_Map[Number_of_Nodes];
+	int Inverse_Node_Map[Pseudo_Number_of_Nodes];
 
-	     HDF5_Read_INT_Array_Data(id_Index_to_Coordinates,
-			                        1,
-			                       dims1_out,
-			                       &index_i,
-			                       NULL,
-			                       count1,
-			                       NULL,
-			                       &Int_Variable_1); // Index_to_coordinates
+	int Index_to_Coordinates[Pseudo_Number_of_Nodes];
+	H5Dread(id_Index_to_Coordinates, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Index_to_Coordinates);
 
-		if(Int_Variable_1 !=-1){
+	index   = -1;
+	node_no = 0;
+	while(++index < this->Pseudo_Number_of_Nodes){
 
-			index_j=(hsize_t) index;
+	     if(Index_to_Coordinates[index]!=-1){
 
-		     HDF5_Write_INT_Array_Data(id_Node_Map,
-				                        1,
-				                       dims1_out,
-				                       &index_j,
-				                       NULL,
-				                       count1,
-				                       NULL,
-				                       (int*) &index_i); // Node_Number_from_PARAVIEW_to__ESSI
+	     	Node_Map[node_no] = index;
+	     	Inverse_Node_Map[index] = node_no++; 
 
-		     HDF5_Write_INT_Array_Data(id_Inverse_Node_Map,
-				                        1,
-				                       dims1_out,
-				                       &index_i,
-				                       NULL,
-				                       count1,
-				                       NULL,
-				                       &index);			// Node_Number_from_ESSI_to_PARAVIEW
+	     }
+	     else{
 
-			index = index+1;
-		}
-		else{
-		     HDF5_Write_INT_Array_Data(id_Inverse_Node_Map,
-				                        1,
-				                       dims1_out,
-				                       &index_i,
-				                       NULL,
-				                       count1,
-				                       NULL,
-				                       &Int_Variable_1); // Node_Number_from_ESSI_to_PARAVIEW
-		}
+	     	Inverse_Node_Map[index]=-1;
+	     }
 	}
 
-	index_i=-1;
-	index =0;
+	H5Dwrite(id_Node_Map, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Node_Map);
+	H5Dwrite(id_Inverse_Node_Map, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Inverse_Node_Map);
+
+
+	/****** Building Element Map ******/
+
+	int Element_Map[Number_of_Elements];
+	int Inverse_Element_Map[Pseudo_Number_of_Elements];
+
+	int Element_Index_to_Connectivity[Pseudo_Number_of_Elements];
+	H5Dread(id_Index_to_Connectivity, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Element_Index_to_Connectivity);
+
+	int Element_Number_of_Gauss_Points[Pseudo_Number_of_Elements];
+	H5Dread(id_Number_of_Gauss_Points, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Element_Number_of_Gauss_Points);
+
+	int Element_Class_Tags[Pseudo_Number_of_Elements];
+	H5Dread(id_Class_Tags, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Element_Class_Tags);
+
+	int Element_Number_of_Nodes[Pseudo_Number_of_Elements];
+	H5Dread(id_Element_Number_of_Nodes, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Element_Number_of_Nodes);
+
+	int Number_of_Elements_Shared[Number_of_Nodes];
+	H5Dread(id_Number_of_Elements_Shared, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Number_of_Elements_Shared);
+
+	int Number_of_gauss_Elemnts_Shared[Number_of_Nodes];
+	H5Dread(id_Number_of_Gauss_Elements_Shared, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Number_of_gauss_Elemnts_Shared);
+
+
+	DataSpace = H5Dget_space(id_Connectivity);
+	H5Sget_simple_extent_dims(DataSpace, dims1_out, NULL);	
+	int Element_Connectivity[dims1_out[0]];
+	H5Sclose(DataSpace); 
+	H5Dread(id_Connectivity, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Element_Connectivity); 
 
 	std::map<int,double**>::iterator it;
 
-	while(++index_i < this->Pseudo_Number_of_Elements){
+	int index_2;
+	index   = -1;
+	element_no = 0;
+	while(++index < this->Pseudo_Number_of_Elements){
 
-	     HDF5_Read_INT_Array_Data(id_Index_to_Connectivity,
-			                        1,
-			                       dims1_out,
-			                       &index_i,
-			                       NULL,
-			                       count1,
-			                       NULL,
-			                       &Int_Variable_1); // Index_to_connectivity
+     	Int_Variable_2 = Element_Number_of_Nodes[index];       // Number of element nodes
+     	Int_Variable_1 = Element_Index_to_Connectivity[index]; // Index to connectivity
 
-		if(Int_Variable_1 !=-1){
+	     if(Int_Variable_1!=-1){
 
-			// cout << " Pseudo Element_Number " << Int_Variable_1 <<endl;
+	     	Element_Map[element_no] = index;
+	     	Inverse_Element_Map[index] = element_no++; 
 
-			index_j=(hsize_t) index;
+	     	// cout << " Class_Tag[index] " << Element_Class_Tags[index] <<endl; 
+	     	// cout << " Number of elemnts " << Int_Variable_2 << endl;
+	     	// cout << " Index to connectivity " << Int_Variable_1 << endl;
 
-		     HDF5_Write_INT_Array_Data(id_Element_Map,
-				                        1,
-				                       dims1_out,
-				                       &index_j,
-				                       NULL,
-				                       count1,
-				                       NULL,
-				                       (int*) &index_i); // Element_Number_from_PARAVIEW_to__ESSI
+	     	if(Element_Number_of_Gauss_Points[index]>0){
 
-		     HDF5_Write_INT_Array_Data(id_Inverse_Element_Map,
-				                        1,
-				                       dims1_out,
-				                       &index_i,
-				                       NULL,
-				                       count1,
-				                       NULL,
-				                       &index); //Element_Number_from_ESSI_to_PARAVIEW
-
-		     HDF5_Read_INT_Array_Data(id_Number_of_Gauss_Points,
-				                        1,
-				                       dims1_out,
-				                       &index_i,
-				                       NULL,
-				                       count1,
-				                       NULL,
-				                       &Int_Variable_2); // Element_Number_of_Gauss_Points
-
-		     if(Int_Variable_2>0){
-
- 				   HDF5_Read_INT_Array_Data(id_Class_Tags,
-						                    1,
-						                   dims1_out,
-						                   &index_i,
-						                   NULL,
-						                   count1,
-						                   NULL,
-						                   &Int_Variable_2); // Element_Class_Tags
-		     		
-				   it = Gauss_To_Node_Interpolation_Map.find(Int_Variable_2);
+	     		it = Gauss_To_Node_Interpolation_Map.find(Element_Class_Tags[index]);
 
 				   if(it != Gauss_To_Node_Interpolation_Map.end()){
 
-				   		this->Append_Number_of_Elements_Shared(1);
-
+				   		index_2= -1;
+						while(++index_2 <Int_Variable_2){
+							node_no = Inverse_Node_Map[Element_Connectivity[index_2+Int_Variable_1]];
+							Number_of_gauss_Elemnts_Shared[node_no] = Number_of_gauss_Elemnts_Shared[node_no]+1;
+							Number_of_Elements_Shared[node_no]      = Number_of_Elements_Shared[node_no]+1;
+						}
 				   }
 				   else{
-				   	   cout << "<<<<[pvESSI]>>>> Build_Maps:: Warning!! Gauss to Node Interpolation not implemented for element of Class_Tag  " << Int_Variable_2 << endl;
-				   	   this->Append_Number_of_Elements_Shared(0);
+				   	   	
+				   	   	index_2= -1;
+						while(++index_2 <Int_Variable_2){
+							node_no = Inverse_Node_Map[Element_Connectivity[index_2+Int_Variable_1]];
+							Number_of_Elements_Shared[node_no]      = Number_of_Elements_Shared[node_no]+1;
+						}
+
+				   	   cout << "<<<<[pvESSI]>>>> Build_Maps:: Warning!! Gauss to Node Interpolation not implemented for element of Class_Tag  " << Element_Class_Tags[index] << endl;
+
 				   }
 
-
-
-		     }
+	     	}
 		     else{
 
-		     	this->Append_Number_of_Elements_Shared(0);
+			   	   	index_2= -1;
+					while(++index_2 <Int_Variable_2){
+						node_no = Inverse_Node_Map[Element_Connectivity[index_2+Int_Variable_1]];
+						Number_of_Elements_Shared[node_no]      = Number_of_Elements_Shared[node_no]+1;
+					}
 
 		     }
 
-			index = index+1;
-		}
-		else{
 
-		     HDF5_Write_INT_Array_Data(id_Inverse_Element_Map,
-		                        1,
-		                       dims1_out,
-		                       &index_i,
-		                       NULL,
-		                       count1,
-		                       NULL,
-		                       &Int_Variable_1);//Element_Number_from_ESSI_to_PARAVIEW
-		}
+	     }
+	     else{
+
+	     	Inverse_Element_Map[index]=-1;
+	     }
 	}
 
-}
-
-void pvESSI::Append_Number_of_Elements_Shared(int message)  {
-
-
-	//index_i -> ESSI_Element_Number from Build_Maps
-
-	HDF5_Read_INT_Array_Data(id_Element_Number_of_Nodes,
-			                    1,
-			                   dims1_out,
-			                   &index_i,
-			                   NULL,
-			                   count1,
-			                   NULL,
-			                   &Int_Variable_2); // Element_Number_of_Nodes
-
-	index_j= -1;
-	while(++index_j <Int_Variable_2){
-
-		index_k = (hsize_t) Int_Variable_1 + index_j;
-
-	    HDF5_Read_INT_Array_Data(id_Connectivity,
-                    1,
-                   dims1_out,
-                   &index_k,
-                   NULL,
-                   count1,
-                   NULL,
-                   &Int_Variable_3); // Element_Connectivty_Node
-
-	    index_k = (hsize_t) Int_Variable_3;
-
-	    HDF5_Read_INT_Array_Data(id_Inverse_Node_Map,
-                    1,
-                   dims1_out,
-                   &index_k,
-                   NULL,
-                   count1,
-                   NULL,
-                   &Int_Variable_3); // Inverse_Node_Map
-
-		index_k = (hsize_t) Int_Variable_3;
-
-	    HDF5_Read_INT_Array_Data(id_Number_of_Elements_Shared,
-	                        1,
-	                       dims1_out,
-	                       &index_k,
-	                       NULL,
-	                       count1,
-	                       NULL,
-	                       &Int_Variable_3); // Number_of_Elements_Shared_Per_Node
-
-	    Int_Variable_3 = Int_Variable_3 +1;
-
-   	    HDF5_Write_INT_Array_Data(id_Number_of_Elements_Shared,
-                        1,
-                       dims1_out,
-                       &index_k,
-                       NULL,
-                       count1,
-                       NULL,
-                       &Int_Variable_3); // Number_of_Elements_Shared_Per_Node 
-
-   	    if(message==1){
-
-		    HDF5_Read_INT_Array_Data(id_Number_of_Gauss_Elements_Shared,
-		                        1,
-		                       dims1_out,
-		                       &index_k,
-		                       NULL,
-		                       count1,
-		                       NULL,
-		                       &Int_Variable_3); // Number_of_Gauss_Elements_Shared_Per_Node
-
-		    Int_Variable_3 = Int_Variable_3 +1;
-
-	   	    HDF5_Write_INT_Array_Data(id_Number_of_Gauss_Elements_Shared,
-	                        1,
-	                       dims1_out,
-	                       &index_k,
-	                       NULL,
-	                       count1,
-	                       NULL,
-	                       &Int_Variable_3); // Number_of_Gauss_Elements_Shared_Per_Node 
-   	    }
-
-	}
-
-	return;
+	H5Dwrite(id_Element_Map, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Element_Map);
+	H5Dwrite(id_Inverse_Element_Map, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Inverse_Element_Map);
+	H5Dwrite(id_Number_of_Elements_Shared, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Number_of_Elements_Shared);
+	H5Dwrite(id_Number_of_Gauss_Elements_Shared, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Number_of_gauss_Elemnts_Shared);
 
 
 }
-
 
 /*****************************************************************************
 * Builds time map i.e. a way to get the index number from a given non-interger
@@ -2017,15 +1606,7 @@ void pvESSI::Build_Gauss_To_Node_Interpolation_Map(){
 	// Gauss_To_Node_Interpolation_Map[8002] = this->Twenty_Seven_Node_Brick_Inverse;
 }
 
-void pvESSI::HDF5_Read_INT_Array_Data(hid_t id_DataSet,
-				                       int rank,
-				                       hsize_t *data_dims,
-				                       hsize_t *offset,
-				                       hsize_t *stride,
-				                       hsize_t *count,
-				                       hsize_t *block,
-				                       int* data)
-{
+void pvESSI::HDF5_Read_INT_Array_Data(hid_t id_DataSet, int rank, hsize_t *data_dims, hsize_t *offset, hsize_t *stride, hsize_t *count, hsize_t *block, int* data){
 
   //Get pointer to the dataspace and create the memory space
   DataSpace = H5Dget_space(id_DataSet);
@@ -2055,15 +1636,7 @@ void pvESSI::HDF5_Read_INT_Array_Data(hid_t id_DataSet,
 }
 
 
-void pvESSI::HDF5_Write_INT_Array_Data(hid_t id_DataSet,
-				                       int rank,
-				                       hsize_t *data_dims,
-				                       hsize_t *offset,
-				                       hsize_t *stride,
-				                       hsize_t *count,
-				                       hsize_t *block,
-				                       int* data)
-{
+void pvESSI::HDF5_Write_INT_Array_Data(hid_t id_DataSet, int rank, hsize_t *data_dims, hsize_t *offset, hsize_t *stride, hsize_t *count, hsize_t *block, int* data){
 
   //Get pointer to the dataspace and create the memory space
   DataSpace = H5Dget_space(id_DataSet);
@@ -2093,15 +1666,7 @@ void pvESSI::HDF5_Write_INT_Array_Data(hid_t id_DataSet,
 }
 
 
-void pvESSI::HDF5_Read_FLOAT_Array_Data(hid_t id_DataSet,
-				                       int rank,
-				                       hsize_t *data_dims,
-				                       hsize_t *offset,
-				                       hsize_t *stride,
-				                       hsize_t *count,
-				                       hsize_t *block,
-				                       float* data)
-{
+void pvESSI::HDF5_Read_FLOAT_Array_Data(hid_t id_DataSet, int rank, hsize_t *data_dims, hsize_t *offset, hsize_t *stride, hsize_t *count, hsize_t *block, float* data){
 
   //Get pointer to the dataspace and create the memory space
   DataSpace = H5Dget_space(id_DataSet);
@@ -2130,15 +1695,7 @@ void pvESSI::HDF5_Read_FLOAT_Array_Data(hid_t id_DataSet,
   H5Sclose(MemSpace);
 }
 
-void pvESSI::HDF5_Write_FLOAT_Array_Data(hid_t id_DataSet,
-				                       int rank,
-				                       hsize_t *data_dims,
-				                       hsize_t *offset,
-				                       hsize_t *stride,
-				                       hsize_t *count,
-				                       hsize_t *block,
-				                       float* data)
-{
+void pvESSI::HDF5_Write_FLOAT_Array_Data(hid_t id_DataSet, int rank, hsize_t *data_dims, hsize_t *offset, hsize_t *stride, hsize_t *count, hsize_t *block, float* data){
 
   //Get pointer to the dataspace and create the memory space
   DataSpace = H5Dget_space(id_DataSet);
@@ -2168,15 +1725,7 @@ void pvESSI::HDF5_Write_FLOAT_Array_Data(hid_t id_DataSet,
 }
 
 
-void pvESSI::HDF5_Read_DOUBLE_Array_Data(hid_t id_DataSet,
-				                       int rank,
-				                       hsize_t *data_dims,
-				                       hsize_t *offset,
-				                       hsize_t *stride,
-				                       hsize_t *count,
-				                       hsize_t *block,
-				                       double* data)
-{
+void pvESSI::HDF5_Read_DOUBLE_Array_Data(hid_t id_DataSet, int rank, hsize_t *data_dims, hsize_t *offset, hsize_t *stride, hsize_t *count, hsize_t *block, double* data){
 
   //Get pointer to the dataspace and create the memory space
   DataSpace = H5Dget_space(id_DataSet);
@@ -2206,15 +1755,7 @@ void pvESSI::HDF5_Read_DOUBLE_Array_Data(hid_t id_DataSet,
 }
 
 
-void pvESSI::HDF5_Write_DOUBLE_Array_Data(hid_t id_DataSet,
-				                       int rank,
-				                       hsize_t *data_dims,
-				                       hsize_t *offset,
-				                       hsize_t *stride,
-				                       hsize_t *count,
-				                       hsize_t *block,
-				                       double* data)
-{
+void pvESSI::HDF5_Write_DOUBLE_Array_Data(hid_t id_DataSet, int rank, hsize_t *data_dims, hsize_t *offset, hsize_t *stride, hsize_t *count, hsize_t *block, double* data){
 
   //Get pointer to the dataspace and create the memory space
   DataSpace = H5Dget_space(id_DataSet);

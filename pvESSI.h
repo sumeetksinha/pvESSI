@@ -55,9 +55,9 @@ class pvESSI : public vtkUnstructuredGridAlgorithm{
 public:
   vtkTypeMacro(pvESSI,vtkUnstructuredGridAlgorithm);
   void PrintSelf(ostream& os, vtkIndent indent);
-  void Plot_Node_Mesh(int x){ if(x) Display_Node_Mesh=1;	else Display_Node_Mesh =0; }
-  void Plot_Gauss_Mesh(int x){ if(x){/**this->Get_Gauss_Mesh(UGrid_Gauss_Mesh);**/ Display_Gauss_Mesh=1;}  else Display_Gauss_Mesh =0; }
-  void Plot_All_Mesh(int x){ if(x) Display_All_Mesh=1;  else Display_All_Mesh =0; }
+  void Plot_Node_Mesh(int x){ /*if(x) cout >>;	else Display_Node_Mesh =0;*/ }
+  void Plot_Gauss_Mesh(int x){ /*if(x){/**this->Get_Gauss_Mesh(UGrid_Gauss_Mesh);**//* Display_Gauss_Mesh=1;}  else Display_Gauss_Mesh =0;*/ }
+  void Plot_All_Mesh(int x){/* if(x) Display_All_Mesh=1;  else Display_All_Mesh =0; */}
   void PrintX(int x){}
 
   // static vtkInformationQuadratureSchemeDefinitionVectorKey* DICTIONARY();
@@ -106,15 +106,17 @@ protected:
 
   /********************************** Model Info *************************************************/
   int Number_of_Processes_Used;       // Number of Processes used
+  int Process_Number;
   
   /*************************** Visualization Parameters *****************************************/
   int Display_Node_Mesh;              // Whether One Wants to display Node Mesh
   int Display_Gauss_Mesh;             // Whether one wants to display gauss mesh
-  int Display_All_Mesh;               // Whether one wants to display all mesh
   int Whether_Node_Mesh_Build;        // Whether node_mesh_build
   int Whether_Gauss_Mesh_Build;       // Whether gauss mesh build
-  int Whether_All_Mesh_Build;         // Whether all mesh build
   int Build_Map_Status;               // Whether Map is Build
+  bool Enable_Gauss_Mesh=false;       // Enable Gauss Mesh  
+  int EXTENT[6];                      // Extent in int
+  float Model_Bounds[6];              // Model Bound in float
 
   ///////////////////////////// HDF5 ID /////////////////////////////////////////////////////// 
 
@@ -292,14 +294,15 @@ private:
   pvESSI(const pvESSI&);  // Not implemented.
   void operator=(const pvESSI&);  // Not implemented.
   void set_VTK_To_ESSI_Elements_Connectivity();
-  void initialize();
-  void Build_Maps();
+  void Initialize();
   void Build_Time_Map();
+  void Step_Initializer(int Piece_No); 
+  void Close_File();
+  void Build_Maps();
   void Build_Meta_Array_Map();
   void Build_Gauss_To_Node_Interpolation_Map();
   void Build_Gauss_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Gauss_Mesh, int Node_Mesh_Current_Time);
   void Build_Node_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh, int Gauss_Mesh_Current_Time);
-  void Build_All_Attributes(vtkSmartPointer<vtkUnstructuredGrid> All_Mesh, int All_Mesh_Current_Time);  // need to implement
   void Build_Delaunay3D_Gauss_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Mesh);
   void Build_ProbeFilter_Gauss_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Probe_Input, int probe_type);  // Probing variables at gauss nodes from node mesh
   void Build_Stress_Field_At_Nodes_v2(vtkSmartPointer<vtkUnstructuredGrid> Gauss_Mesh, int Node_Mesh_Current_Time);
@@ -311,7 +314,6 @@ private:
   /******************************************* Mesh ******************************************/
   vtkSmartPointer<vtkUnstructuredGrid> UGrid_Node_Mesh;          // Mesh with nodes
   vtkSmartPointer<vtkUnstructuredGrid> UGrid_Gauss_Mesh;         // Mesh with only gauss points
-  vtkSmartPointer<vtkUnstructuredGrid> UGrid_All_Mesh;           // Mesh with both gauss points and nodes  // Not implemented
   vtkSmartPointer<vtkUnstructuredGrid> UGrid_Current_Node_Mesh;  // Contains mesh with data attributes 
   vtkSmartPointer<vtkUnstructuredGrid> UGrid_Current_Gauss_Mesh; // Contains mesh with data attributes   
   // vtkSmartPointer<vtkUnstructure
@@ -334,7 +336,6 @@ private:
 
   void Get_Node_Mesh(vtkSmartPointer<vtkUnstructuredGrid> UGrid_Node_Mesh); 	  // Building the node mesh skeleton
   void Get_Gauss_Mesh(vtkSmartPointer<vtkUnstructuredGrid> UGrid_Gauss_Mesh); 	// Building the gauss mesh skeleton
-  void Get_All_Mesh(vtkSmartPointer<vtkUnstructuredGrid> All_Mesh);             // Building the node as well as gauss mesh skeleton // still to implement
   void Set_Meta_Array(int Meta_Data_Id );
 
   void Build_Inverse_Matrices();
