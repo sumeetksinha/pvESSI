@@ -62,19 +62,23 @@ pvESSI::pvESSI(){
 *****************************************************************************/
 int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector **vtkNotUsed(inputVector),	vtkInformationVector *outputVector){
 
-	cout << "this->id_Number_of_Elements " << this->Number_of_Elements  <<endl;
-	cout << "this->id_Number_of_Nodes    " << this->Number_of_Nodes     <<endl;
+	// cout << "this->id_Number_of_Elements " << this->Number_of_Elements  <<endl;
+	// cout << "this->id_Number_of_Nodes    " << this->Number_of_Nodes     <<endl;
 
-	cout << "this->id_Number_of_Elements " << this->Pseudo_Number_of_Elements  <<endl;
-	cout << "this->id_Number_of_Nodes    " << this->Pseudo_Number_of_Nodes     <<endl;
-	cout << "this->id_Number_of_Processes" << this->Number_of_Processes_Used <<endl;
+	// cout << "this->id_Number_of_Elements " << this->Pseudo_Number_of_Elements  <<endl;
+	// cout << "this->id_Number_of_Nodes    " << this->Pseudo_Number_of_Nodes     <<endl;
+	// cout << "this->id_Number_of_Processes" << this->Number_of_Processes_Used <<endl;
 
 	Step_Initializer(1);
  
  	vtkInformation *Node_Mesh = outputVector->GetInformationObject(0);
 	// outInfo->Print(std::cout);
 
-	// /************************************** Setting th extent of the domian [mesh] ****************************************************/
+	piece_no = Node_Mesh->Get(vtkStreamingDemandDrivenPipeline::UPDATE_PIECE_NUMBER());
+	num_of_pieces = Node_Mesh->Get(vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_PIECES());
+	// cout << "Piece_No " << piece_no << endl;
+	// cout << "Number_of_Pieces " << piece_no << endl;
+	/************************************** Setting th extent of the domian [mesh] ****************************************************/
 	// count1[0]   =6;	dims1_out[0]=6;	index_i=0;
  //    HDF5_Read_FLOAT_Array_Data(id_Model_Bounds,1,dims1_out,&index_i,NULL,count1,NULL,Model_Bounds); // Model_Bounds
 
@@ -92,7 +96,13 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
  //    EXTENT[4] = Model_Bounds[4] +0.5;
  //    EXTENT[5] = Model_Bounds[5] -0.5;
 
-	// Node_Mesh->Set(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT(),EXTENT,6);
+	Node_Mesh->Get(vtkStreamingDemandDrivenPipeline::UPDATE_EXTENT(),EXTENT);
+	 cout << EXTENT[0] << endl;;
+	 cout << EXTENT[1] << endl;;    
+	 cout << EXTENT[2] << endl;;
+	 cout << EXTENT[3] << endl;;
+	 cout << EXTENT[4] << endl;;
+	 cout << EXTENT[5] << endl;;
 	// // int extent[6] = {0,-1,0,-1,0,-1};
 	// // outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_EXTENT(), extent);
 	// /**********************************************************************************************************************************/
@@ -128,6 +138,7 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 	vtkUnstructuredGrid *Output_Node_Mesh = vtkUnstructuredGrid::SafeDownCast(Node_Mesh->Get(vtkDataObject::DATA_OBJECT()));
 
 	Output_Node_Mesh->ShallowCopy(UGrid_Current_Node_Mesh);
+	// Output_Node_Mesh->SetExtent(EXTENT);
 
 	/*************************************************************************************************************************************/
 	/****************************************************** if Gauss Mesh is Enabled *****************************************************/
@@ -152,6 +163,7 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 	  	Build_Gauss_Attributes(UGrid_Current_Gauss_Mesh, this->Gauss_Mesh_Current_Time );
 	  	vtkUnstructuredGrid *Output_Gauss_Mesh = vtkUnstructuredGrid::SafeDownCast(Gauss_Mesh->Get(vtkDataObject::DATA_OBJECT()));
 	  	Output_Gauss_Mesh->ShallowCopy(UGrid_Current_Gauss_Mesh);
+	  	// Output_Gauss_Mesh->SetExtent(EXTENT);
 	}
 	/***************************************************************************************************************************************/
 	/***************************************************************************************************************************************/
@@ -177,7 +189,8 @@ int pvESSI::RequestInformation( vtkInformation *request, vtkInformationVector **
 	Node_Mesh->Set(vtkStreamingDemandDrivenPipeline::TIME_RANGE(),Time_range,2);
 
 	Node_Mesh->Set(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT(),EXTENT,6);
-	Node_Mesh->Set(CAN_HANDLE_PIECE_REQUEST(), Number_of_Processes_Used);
+	// Node_Mesh->Set(vtkStreamingDemandDrivenPipeline::MAXIMUM_NUMBER_OF_PIECES(), 10);
+	// Node_Mesh->Set(CAN_HANDLE_PIECE_REQUEST(), Number_of_Processes_Used);
 	// outInfo->Set(vtkAlgorithm::CAN_PRODUCE_SUB_EXTENT(),1);
 
 	/*************************************************************************************************************************************/
@@ -291,8 +304,8 @@ void pvESSI::Build_Node_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Node_Mes
  	Generalized_Displacements = vtkSmartPointer<vtkFloatArray>::New(); 
 	this->Set_Meta_Array (Meta_Array_Map["Generalized_Displacements"]);
 
-	Material_Tag = vtkSmartPointer<vtkIntArray> ::New();
-	this->Set_Meta_Array (Meta_Array_Map["Material_Tag"]);
+	// Material_Tag = vtkSmartPointer<vtkIntArray> ::New();
+	// this->Set_Meta_Array (Meta_Array_Map["Material_Tag"]);
 
 	Node_Tag = vtkSmartPointer<vtkIntArray> ::New();
 	this->Set_Meta_Array (Meta_Array_Map["Node_Tag"]);
@@ -1320,18 +1333,20 @@ void pvESSI::Build_Meta_Array_Map(){
 
 	int key = 0;
 
-	Meta_Array_Map["Generalized_Displacements"] = key; key=key+1;
-	Meta_Array_Map["Generalized_Velocity"] = key; key=key+1;
-	Meta_Array_Map["Generalized_Acceleration"] = key; key=key+1;
-	Meta_Array_Map["Elastic_Strain"] = key; key=key+1;
-	Meta_Array_Map["Plastic_Strain"] = key; key=key+1;
-	Meta_Array_Map["Stress"] = key; key=key+1;
-	Meta_Array_Map["Material_Tag"] = key; key=key+1;
-	Meta_Array_Map["Total_Energy"] = key; key=key+1;
-	Meta_Array_Map["Incremental_Energy"] = key; key=key+1;
-	Meta_Array_Map["Node_Tag"] = key; key=key+1;
-	Meta_Array_Map["Element_Tag"] = key; key=key+1;
-
+	/*0  */ Meta_Array_Map["Generalized_Displacements"] = key; key=key+1;
+	/*1  */ Meta_Array_Map["Generalized_Velocity"] = key; key=key+1;
+	/*2  */ Meta_Array_Map["Generalized_Acceleration"] = key; key=key+1;
+	/*3  */ Meta_Array_Map["Elastic_Strain"] = key; key=key+1;
+	/*4  */ Meta_Array_Map["Plastic_Strain"] = key; key=key+1;
+	/*5  */ Meta_Array_Map["Stress"] = key; key=key+1;
+	/*6  */ Meta_Array_Map["Material_Tag"] = key; key=key+1;
+	/*7  */ Meta_Array_Map["Total_Energy"] = key; key=key+1;
+	/*8  */ Meta_Array_Map["Incremental_Energy"] = key; key=key+1;
+	/*9  */ Meta_Array_Map["Node_Tag"] = key; key=key+1;
+	/*10 */ Meta_Array_Map["Element_Tag"] = key; key=key+1;
+	/*11 */ Meta_Array_Map["Von_Mises_Elasstic_Strain"] = key; key=key+1;
+	/*12 */ Meta_Array_Map["Von_Mises_Stress"] = key; key=key+1;
+	/*13 */ Meta_Array_Map["Von_Mises_Plastic_Strain"] = key; key=key+1;		
 }
 
 void pvESSI::Build_Inverse_Matrices(){
@@ -1925,14 +1940,47 @@ void pvESSI::Build_Stress_Field_At_Nodes(vtkSmartPointer<vtkUnstructuredGrid> No
 				    	Stress_Strain_At_Gauss_Points[j] = new double[18];
 					}
 
-					///////////////////// Calculating Stresses at Nodes /////////////////////////////////
+					///////////////////// Calculating Stresses at gauss Points /////////////////////////////////
 
 					int output_index = Element_Index_to_Outputs[element_no];
+					// double sigma_v, sigma_dev, elastic_strain_v, elastic_strain_dev, plastic_strain_v, plastic_strain_dev;
 
 					for(int j=0; j< number_of_element_nodes ; j++){
+
+						int index_2=output_index+j*18;
 						for(int k=0; k< 18 ; k++){
-							Stress_Strain_At_Gauss_Points[j][k] = Element_Outputs[output_index+j*18+k];
+							Stress_Strain_At_Gauss_Points[j][k] = Element_Outputs[index_2+k];
 						}
+						// elastic_strain_v   = 1/3*(Element_Outputs[index_2+0]+Element_Outputs[index_2+1]+Element_Outputs[index_2+2]);
+						// elastic_strain_dev = sqrt(3/2* (pow(Element_Outputs[index_2+0]-Element_Outputs[index_2+1],2) +
+						// 						   		pow(Element_Outputs[index_2+1]-Element_Outputs[index_2+2],2) +
+						// 						   		pow(Element_Outputs[index_2+2]-Element_Outputs[index_2+1],2) + 6*
+						// 						   		(	pow(Element_Outputs[index_2+3],2)+
+						// 						   			pow(Element_Outputs[index_2+4],2)+
+						// 						   			pow(Element_Outputs[index_2+5],2))
+						// 						  		)
+						// 						 );
+
+						// plastic_strain_v   = 1/3*(Element_Outputs[index_2+6]+Element_Outputs[index_2+7]+Element_Outputs[index_2+8]);
+						// plastic_strain_dev = sqrt(3/2* (pow(Element_Outputs[index_2+6]-Element_Outputs[index_2+1],7) +
+						// 						   		pow(Element_Outputs[index_2+7]-Element_Outputs[index_2+2],8) +
+						// 						   		pow(Element_Outputs[index_2+8]-Element_Outputs[index_2+1],6) + 6*
+						// 						   		(	pow(Element_Outputs[index_2+9],2)+
+						// 						   			pow(Element_Outputs[index_2+10],2)+
+						// 						   			pow(Element_Outputs[index_2+11],2))
+						// 						  		)
+						// 						 );
+
+						// sigma_v   		   = 1/3*(Element_Outputs[index_2+12]+Element_Outputs[index_2+13]+Element_Outputs[index_2+14]);
+						// sigma_dev 		   = sqrt(3/2* (pow(Element_Outputs[index_2+12]-Element_Outputs[index_2+13],2) +
+						// 						   		pow(Element_Outputs[index_2+13]-Element_Outputs[index_2+14],2) +
+						// 						   		pow(Element_Outputs[index_2+14]-Element_Outputs[index_2+13],2) + 6*
+						// 						   		(	pow(Element_Outputs[index_2+15],2)+
+						// 						   			pow(Element_Outputs[index_2+16],2)+
+						// 						   			pow(Element_Outputs[index_2+17],2))
+						// 						  		)
+						// 						 );
+
 					}
 
 					/*******************************************************************************************/

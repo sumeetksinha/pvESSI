@@ -6,6 +6,7 @@
 #include "vtkUnstructuredGridAlgorithm.h"
 #include "vtkQuadratureSchemeDictionaryGenerator.h"
 #include "vtkInformationQuadratureSchemeDefinitionVectorKey.h"
+#include "vtkInformationIntegerKey.h"
 #include "vtkInformationStringKey.h"
 #include "vtkFloatArray.h"
 #include "vtkSmartPointer.h"
@@ -117,6 +118,8 @@ protected:
   bool Enable_Gauss_Mesh=false;       // Enable Gauss Mesh  
   int EXTENT[6];                      // Extent in int
   float Model_Bounds[6];              // Model Bound in float
+  int piece_no;                       // Piece no or Processor no
+  int num_of_pieces;                  // total number of pieces or processors
 
   ///////////////////////////// HDF5 ID /////////////////////////////////////////////////////// 
 
