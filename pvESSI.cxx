@@ -891,7 +891,7 @@ void pvESSI::Initialize(){
 	H5Sclose(DataSpace);
 	H5Dclose(id_Index_to_Coordinates);
 
-	cout << " Pseudo_Number_of_Nodes " << Pseudo_Number_of_Nodes << endl;
+	// cout << " Pseudo_Number_of_Nodes " << Pseudo_Number_of_Nodes << endl;
 
 	this->id_Index_to_Connectivity = H5Dopen(id_File, "Model/Elements/Index_to_Connectivity", H5P_DEFAULT);
 	DataSpace = H5Dget_space(id_Index_to_Connectivity);
@@ -900,7 +900,7 @@ void pvESSI::Initialize(){
 	H5Sclose(DataSpace);
 	H5Dclose(id_Index_to_Connectivity);
 
-	cout << " Pseudo_Number_of_Elements " << Pseudo_Number_of_Elements << endl;
+	// cout << " Pseudo_Number_of_Elements " << Pseudo_Number_of_Elements << endl;
 
 	/******************** Time Step Data **************************/
 
