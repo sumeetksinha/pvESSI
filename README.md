@@ -74,7 +74,7 @@ Currently, the plugin is not distributable type. One needs to build the paraview
 4. Close paraview and then agin open. Now, you should be able to load and visualize ESSI (HDF5) ``` .h5.feioutput``` file.
 
 
- ---
+----
 [UCD CompGeoMech](http://sokocalo.engr.ucdavis.edu/~jeremic/)
 
 Created by: [Sumeet Kumar Sinha](http://www.sumeetsinha.in)
