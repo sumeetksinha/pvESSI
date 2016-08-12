@@ -79,7 +79,7 @@ Currently, the plugin is not distributable type. One needs to build the paraview
 
 Created by: [Sumeet Kumar Sinha](http://www.sumeetsinha.in)
 
-Request for adding features on sumeet.kumar507@gmail.com
+Request for features at sumeet.kumar507@gmail.com
    
 
 
