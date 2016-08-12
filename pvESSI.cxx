@@ -96,7 +96,7 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
  //    EXTENT[4] = Model_Bounds[4] +0.5;
  //    EXTENT[5] = Model_Bounds[5] -0.5;
 
-	Node_Mesh->Get(vtkStreamingDemandDrivenPipeline::UPDATE_EXTENT(),EXTENT);
+	// Node_Mesh->Get(vtkStreamingDemandDrivenPipeline::UPDATE_EXTENT(),EXTENT);
 	 // cout << EXTENT[0] << endl;;
 	 // cout << EXTENT[1] << endl;;    
 	 // cout << EXTENT[2] << endl;;
@@ -109,6 +109,7 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 
   	this->Node_Mesh_Current_Time = Time_Map.find( Node_Mesh->Get(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP()))->second;
 
+  	// cout << " Time " << Node_Mesh->Get(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP()) << endl;
 
 	if (!Whether_Node_Mesh_Build){
 		this->Get_Node_Mesh(UGrid_Node_Mesh);
@@ -891,16 +892,12 @@ void pvESSI::Initialize(){
 	H5Sclose(DataSpace);
 	H5Dclose(id_Index_to_Coordinates);
 
-	cout << " Pseudo_Number_of_Nodes " << Pseudo_Number_of_Nodes << endl;
-
 	this->id_Index_to_Connectivity = H5Dopen(id_File, "Model/Elements/Index_to_Connectivity", H5P_DEFAULT);
 	DataSpace = H5Dget_space(id_Index_to_Connectivity);
 	H5Sget_simple_extent_dims(DataSpace, dims1_out, NULL);
 	this->Pseudo_Number_of_Elements = dims1_out[0];
 	H5Sclose(DataSpace);
 	H5Dclose(id_Index_to_Connectivity);
-
-	cout << " Pseudo_Number_of_Elements " << Pseudo_Number_of_Elements << endl;
 
 	/******************** Time Step Data **************************/
 
@@ -917,8 +914,11 @@ void pvESSI::Initialize(){
 	H5Dclose(id_Number_of_Processes_Used);
 
 	this->Time = new double[Number_Of_Time_Steps]; 
-	H5Dread(id_time, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT,Time);  
-	H5Dclose(id_time);
+	// H5Dread(id_time, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Time);  
+	// H5Dclose(id_time);
+
+	for(int p=0; p<Number_Of_Time_Steps;p++)
+		this->Time[p]=p;
 
 	Build_Time_Map(); 
 
@@ -935,6 +935,11 @@ void pvESSI::Initialize(){
 
     H5Fclose(id_File);
 
+	cout << " \n Pseudo_Number_of_Nodes " << Pseudo_Number_of_Nodes << endl;
+	cout << " Pseudo_Number_of_Elements " << Pseudo_Number_of_Elements << endl;
+	cout << " Number of time Step " << Number_Of_Time_Steps << endl;
+	cout << " Number_of_Nodes " << Number_of_Nodes << endl;
+	cout << " Number_of_Elements " << Number_of_Elements << endl << endl;;
 }
 
 void pvESSI::Step_Initializer(int Piece_No){
@@ -1031,10 +1036,10 @@ void pvESSI::Step_Initializer(int Piece_No){
 		this->Build_Map_Status =1;
 
 		H5Dwrite(id_Whether_Maps_Build, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,&Build_Map_Status);
+
+		cout << "<<<<pvESSI>>>> Maps are build HURRAY!!! \n" << endl;
    	}
 
-
-   	cout << "<<<<pvESSI>>>> Maps are build HURRAY!!! \n" << endl;
 }
 
 
@@ -1317,8 +1322,9 @@ void pvESSI::Build_Maps(){
 *****************************************************************************/
 void pvESSI::Build_Time_Map(){
 
-	for (int i = 0;i<Number_Of_Time_Steps ; i++)
+	for (int i = 0;i<Number_Of_Time_Steps ; i++){
 		Time_Map[Time[i]] = i;
+	}
 
 	return;
 }
