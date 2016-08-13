@@ -12,7 +12,8 @@ Currently, the plugin is not distributable type. One needs to build the paraview
 #### Building Paraview from Source
 
 1. Download [ParaView source](http://www.paraview.org/download/) from its website and extract the folder.
-2. Check or install these dependencies 
+2. Check or install these dependencies
+
 	```bash
 	sudo apt-get install libphonon-dev libphonon4 qt4-dev-tools 
 	sudo apt-get install libqt4-core libqt4-gui qt4-qmake libxt-dev 
