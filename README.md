@@ -30,7 +30,17 @@ Currently, the plugin is not distributable type. One needs to build the paraview
 	cmake version 3.5.1
 	```
 
-  If you have an older version, then get and install a newer version from [CMake](https://cmake.org/download/)
+  If you have an older version, then get and install a newer version from [CMake](https://cmake.org/download/). You can also follow these steps at your desired directory.
+  
+  	```bash
+  	git clone https://github.com/Kitware/CMake.git
+	cd CMake 
+	mkdir build 
+	cd build
+	cmake ..
+	make -j 8
+	sudo make install
+	```
 
 4. Assuming, all the dependencies are satisfied, proceed with the installation in any directory  [${ParaView_Build_Directory}] outside ParaView source directory [${ParaView_Source_Directory}].
 
