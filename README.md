@@ -19,6 +19,7 @@ Currently, the plugin is not distributable type. One needs to build the paraview
 	sudo apt-get install libqt4-core libqt4-gui qt4-qmake libxt-dev 
 	sudo apt-get install g++ gcc cmake-curses-gui libqt4-opengl-dev 
 	sudo apt-get install mesa-common-dev python-dev
+	sudo apt-get install libvtk6
 	```
 3. Check if you have the required cmake version for paraview source. Look in file **/Paraview/CMakeLists.txt** and also check your version. An example is shown for ParaView5.1.2
 
