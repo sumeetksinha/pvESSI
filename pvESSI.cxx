@@ -74,10 +74,10 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
  	vtkInformation *Node_Mesh = outputVector->GetInformationObject(0);
 	// outInfo->Print(std::cout);
 
-	// piece_no = Node_Mesh->Get(vtkStreamingDemandDrivenPipeline::UPDATE_PIECE_NUMBER());
-	// num_of_pieces = Node_Mesh->Get(vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_PIECES());
-	// cout << "Piece_No " << piece_no << endl;
-	// cout << "Number_of_Pieces " << piece_no << endl;
+	piece_no = Node_Mesh->Get(vtkStreamingDemandDrivenPipeline::UPDATE_PIECE_NUMBER());
+	num_of_pieces = Node_Mesh->Get(vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_GHOST_LEVELS());
+	cout << "Piece_No " << piece_no << endl;
+	cout << "Number_of_Pieces " << piece_no << endl;
 	/************************************** Setting th extent of the domian [mesh] ****************************************************/
 	// count1[0]   =6;	dims1_out[0]=6;	index_i=0;
  //    HDF5_Read_FLOAT_Array_Data(id_Model_Bounds,1,dims1_out,&index_i,NULL,count1,NULL,Model_Bounds); // Model_Bounds
@@ -181,6 +181,8 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 int pvESSI::RequestInformation( vtkInformation *request, vtkInformationVector **vtkNotUsed(inVec), vtkInformationVector* outVec){
 
 	this->Initialize();
+		cout << "this->id_Number_of_Processes" << this->Number_of_Processes_Used <<endl;
+
 
 	vtkInformation* Node_Mesh = outVec->GetInformationObject(0);
 
@@ -192,9 +194,11 @@ int pvESSI::RequestInformation( vtkInformation *request, vtkInformationVector **
 	Node_Mesh->Set(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT(),EXTENT,6);
 
 	int num_of_piec = 10;
-	Node_Mesh->Set(vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_PIECES(),-1);
-	// Node_Mesh->Set(CAN_HANDLE_PIECE_REQUEST(), Number_of_Processes_Used);
-	// outInfo->Set(vtkAlgorithm::CAN_PRODUCE_SUB_EXTENT(),1);
+	Node_Mesh->Set(CAN_HANDLE_PIECE_REQUEST(), 1);
+	Node_Mesh->Set(vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_PIECES(),this->Number_of_Processes_Used);
+	Node_Mesh->Set(vtkStreamingDemandDrivenPipeline::UPDATE_PIECE_NUMBER(),this->Process_Number);
+	Node_Mesh->Set(vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_GHOST_LEVELS(), 0);
+	Node_Mesh->Set(vtkAlgorithm::CAN_PRODUCE_SUB_EXTENT(),1);
 
 	/*************************************************************************************************************************************/
 	/****************************************************** if Gauss Mesh is Enabled *****************************************************/
