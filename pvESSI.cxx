@@ -992,7 +992,7 @@ void pvESSI::Step_Initializer(int Piece_No){
 	  this->id_Number_of_Nodes    = H5Dopen(id_File, "/Number_of_Nodes", H5P_DEFAULT);
 	  this->id_Number_of_Processes_Used = H5Dopen(id_File, "/Number_of_Processes_Used", H5P_DEFAULT);
 	  this->id_Process_Number     = H5Dopen(id_File, "/Process_Number", H5P_DEFAULT);
-	  H5Eset_auto (NULL, NULL, NULL);
+	  H5Eset_auto (NULL, NULL, NULL);  // To stop HDF% from printing error message
 	  this->id_Whether_Maps_Build = H5Dopen(id_File, "/Whether_Maps_Build", H5P_DEFAULT);
 
 	  /**************** Element Info ******************************/
