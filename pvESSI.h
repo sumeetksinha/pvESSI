@@ -115,11 +115,12 @@ protected:
   int Whether_Node_Mesh_Build;        // Whether node_mesh_build
   int Whether_Gauss_Mesh_Build;       // Whether gauss mesh build
   int Build_Map_Status;               // Whether Map is Build
-  bool Enable_Gauss_Mesh=false;       // Enable Gauss Mesh  
+  bool Enable_Gauss_Mesh;             // Enable Gauss Mesh  
   int EXTENT[6];                      // Extent in int
   float Model_Bounds[6];              // Model Bound in float
   int piece_no;                       // Piece no or Processor no
   int num_of_pieces;                  // total number of pieces or processors
+  int Number_of_Strain_Strain_Info;   // Total Number_of_Stress_Strain_Data_at_Nodes
 
   ///////////////////////////// HDF5 ID /////////////////////////////////////////////////////// 
 
@@ -319,23 +320,35 @@ private:
   vtkSmartPointer<vtkUnstructuredGrid> UGrid_Gauss_Mesh;         // Mesh with only gauss points
   vtkSmartPointer<vtkUnstructuredGrid> UGrid_Current_Node_Mesh;  // Contains mesh with data attributes 
   vtkSmartPointer<vtkUnstructuredGrid> UGrid_Current_Gauss_Mesh; // Contains mesh with data attributes   
-  // vtkSmartPointer<vtkUnstructure
 
-  ///////////////////////////// HDF5 ID /////////////////////////////////////////////////////// dGrid> UGrid_Current_All_Mesh;   // Contains mesh with data attributes     // Not implemented
+  /******************************* Meta Data Arrays ********************************************/
 
-  // Meta Da
+  // Meta Data Arrays
   vtkSmartPointer<vtkFloatArray> Generalized_Displacements;
   vtkSmartPointer<vtkFloatArray> Generalized_Velocity;
   vtkSmartPointer<vtkFloatArray> Generalized_Acceleration;
+
+  // Stress-Strain 
   vtkSmartPointer<vtkFloatArray> Elastic_Strain;
   vtkSmartPointer<vtkFloatArray> Plastic_Strain;
   vtkSmartPointer<vtkFloatArray> Stress;
-  vtkSmartPointer<vtkIntArray> Material_Tag;
-  vtkSmartPointer<vtkIntArray> Total_Energy;
-  vtkSmartPointer<vtkIntArray> Incremental_Energy;
-  vtkSmartPointer<vtkIntArray> Node_Tag;
-  vtkSmartPointer<vtkIntArray> Element_Tag;
 
+  // Stress-Strain Invariants
+  vtkSmartPointer<vtkFloatArray> Von_Mises_Stress;
+  vtkSmartPointer<vtkFloatArray> Confining_Stress;
+  vtkSmartPointer<vtkFloatArray> Plastic_Equivalent_Strain;
+  vtkSmartPointer<vtkFloatArray> Plastic_Volumetric_Strain;
+
+  // Tags
+  vtkSmartPointer<vtkIntArray>   Material_Tag;
+  vtkSmartPointer<vtkIntArray>   Node_Tag;
+  vtkSmartPointer<vtkIntArray>   Element_Tag;
+
+  // Energy 
+  vtkSmartPointer<vtkIntArray>   Total_Energy;
+  vtkSmartPointer<vtkIntArray>   Incremental_Energy;
+
+  /***************************** Mesh Building Functions ******************************************/
 
   void Get_Node_Mesh(vtkSmartPointer<vtkUnstructuredGrid> UGrid_Node_Mesh); 	  // Building the node mesh skeleton
   void Get_Gauss_Mesh(vtkSmartPointer<vtkUnstructuredGrid> UGrid_Gauss_Mesh); 	// Building the gauss mesh skeleton
