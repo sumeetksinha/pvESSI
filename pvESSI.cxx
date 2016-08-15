@@ -75,7 +75,7 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 	// outInfo->Print(std::cout);
 
 	piece_no = Node_Mesh->Get(vtkStreamingDemandDrivenPipeline::UPDATE_PIECE_NUMBER());
-	num_of_pieces = Node_Mesh->Get(vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_GHOST_LEVELS());
+	num_of_pieces = Node_Mesh->Get(vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_PIECES());
 	cout << "Piece_No " << piece_no << endl;
 	cout << "Number_of_Pieces " << piece_no << endl;
 	/************************************** Setting th extent of the domian [mesh] ****************************************************/
@@ -195,10 +195,10 @@ int pvESSI::RequestInformation( vtkInformation *request, vtkInformationVector **
 
 	int num_of_piec = 10;
 	Node_Mesh->Set(CAN_HANDLE_PIECE_REQUEST(), 1);
-	Node_Mesh->Set(vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_PIECES(),this->Number_of_Processes_Used);
-	Node_Mesh->Set(vtkStreamingDemandDrivenPipeline::UPDATE_PIECE_NUMBER(),this->Process_Number);
-	Node_Mesh->Set(vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_GHOST_LEVELS(), 0);
-	Node_Mesh->Set(vtkAlgorithm::CAN_PRODUCE_SUB_EXTENT(),1);
+	// Node_Mesh->Set(vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_PIECES(),this->Number_of_Processes_Used);
+	// Node_Mesh->Set(vtkStreamingDemandDrivenPipeline::UPDATE_PIECE_NUMBER(),this->Process_Number);
+	// Node_Mesh->Set(vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_GHOST_LEVELS(), 0);
+	// Node_Mesh->Set(vtkAlgorithm::CAN_PRODUCE_SUB_EXTENT(),1);
 
 	/*************************************************************************************************************************************/
 	/****************************************************** if Gauss Mesh is Enabled *****************************************************/
