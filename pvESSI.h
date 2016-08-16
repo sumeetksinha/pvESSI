@@ -40,7 +40,7 @@
 #include <sstream>
 #include <vtkPointSet.h>
 #include "hdf5.h"
-
+#include <boost/regex.hpp>
 
 #include <QApplication>
 #include <QStyle>
@@ -108,6 +108,7 @@ protected:
   /********************************** Model Info *************************************************/
   int Number_of_Processes_Used;       // Number of Processes used
   int Process_Number;
+  bool single_file_visualization_mode; 
   
   /*************************** Visualization Parameters *****************************************/
   int Display_Node_Mesh;              // Whether One Wants to display Node Mesh
@@ -311,8 +312,10 @@ private:
   void Build_ProbeFilter_Gauss_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Probe_Input, int probe_type);  // Probing variables at gauss nodes from node mesh
   void Build_Stress_Field_At_Nodes_v2(vtkSmartPointer<vtkUnstructuredGrid> Gauss_Mesh, int Node_Mesh_Current_Time);
   void Build_Stress_Field_At_Nodes(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh, int Node_Mesh_Current_Time);
+  std::string GetSourceFile(std::string filename);
+
+
   double *Time; 
- 
   char* FileName;
 
   /******************************************* Mesh ******************************************/

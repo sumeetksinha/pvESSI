@@ -62,54 +62,23 @@ pvESSI::pvESSI(){
 *****************************************************************************/
 int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector **vtkNotUsed(inputVector),	vtkInformationVector *outputVector){
 
-	// cout << "this->id_Number_of_Elements " << this->Number_of_Elements  <<endl;
-	// cout << "this->id_Number_of_Nodes    " << this->Number_of_Nodes     <<endl;
-
-	// cout << "this->id_Number_of_Elements " << this->Pseudo_Number_of_Elements  <<endl;
-	// cout << "this->id_Number_of_Nodes    " << this->Pseudo_Number_of_Nodes     <<endl;
-	// cout << "this->id_Number_of_Processes" << this->Number_of_Processes_Used <<endl;
-
-	Step_Initializer(1);
- 
- 	vtkInformation *Node_Mesh = outputVector->GetInformationObject(0);
+	vtkInformation *Node_Mesh = outputVector->GetInformationObject(0);
 	// outInfo->Print(std::cout);
 
 	piece_no = Node_Mesh->Get(vtkStreamingDemandDrivenPipeline::UPDATE_PIECE_NUMBER());
 	num_of_pieces = Node_Mesh->Get(vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_PIECES());
 	cout << "Piece_No " << piece_no << endl;
-	cout << "Number_of_Pieces " << piece_no << endl;
-	/************************************** Setting th extent of the domian [mesh] ****************************************************/
-	// count1[0]   =6;	dims1_out[0]=6;	index_i=0;
- //    HDF5_Read_FLOAT_Array_Data(id_Model_Bounds,1,dims1_out,&index_i,NULL,count1,NULL,Model_Bounds); // Model_Bounds
+	cout << "Number_of_Pieces " << num_of_pieces << endl;
 
-	// count1[0]   =1;
-	// dims1_out[0]=1;
-
-	// H5Dread(id_Process_Number, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,&Process_Number);
-	// H5Dclose(id_Number_of_Time_Steps);
-
-
- //    EXTENT[0] = Model_Bounds[0] +0.5;
- //    EXTENT[1] = Model_Bounds[1] -0.5;    
- //    EXTENT[2] = Model_Bounds[2] +0.5;
- //    EXTENT[3] = Model_Bounds[3] -0.5;
- //    EXTENT[4] = Model_Bounds[4] +0.5;
- //    EXTENT[5] = Model_Bounds[5] -0.5;
-
-	// Node_Mesh->Get(vtkStreamingDemandDrivenPipeline::UPDATE_EXTENT(),EXTENT);
-	 // cout << EXTENT[0] << endl;;
-	 // cout << EXTENT[1] << endl;;    
-	 // cout << EXTENT[2] << endl;;
-	 // cout << EXTENT[3] << endl;;
-	 // cout << EXTENT[4] << endl;;
-	 // cout << EXTENT[5] << endl;;
-	// // int extent[6] = {0,-1,0,-1,0,-1};
-	// // outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_EXTENT(), extent);
-	// /**********************************************************************************************************************************/
+	if(single_file_visualization_mode){
+		Step_Initializer(-1);
+	}
+	else{
+		Step_Initializer(piece_no);
+	}
+	
 
   	this->Node_Mesh_Current_Time = Time_Map.find( Node_Mesh->Get(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP()))->second;
-
-  	// cout << " Time " << Node_Mesh->Get(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP()) << endl;
 
 	if (!Whether_Node_Mesh_Build){
 		this->Get_Node_Mesh(UGrid_Node_Mesh);
@@ -127,11 +96,6 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 	// cout << "Pseudo_Number_of_Elements"  << " " << Pseudo_Number_of_Elements << endl;
 	/////////////////////////////////////////////////////////////////////////////////////////
 
-	// return outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP())
-	// int piece, numPieces;
-	// piece = outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_PIECE_NUMBER());
-	// numPieces = outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_PIECES());
-
 	Build_Node_Attributes(UGrid_Current_Node_Mesh, this->Node_Mesh_Current_Time );
 	Build_Stress_Field_At_Nodes(UGrid_Current_Node_Mesh, this->Node_Mesh_Current_Time);
 	
@@ -139,7 +103,6 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 	vtkUnstructuredGrid *Output_Node_Mesh = vtkUnstructuredGrid::SafeDownCast(Node_Mesh->Get(vtkDataObject::DATA_OBJECT()));
 
 	Output_Node_Mesh->ShallowCopy(UGrid_Current_Node_Mesh);
-	// Output_Node_Mesh->SetExtent(EXTENT);
 
 	/*************************************************************************************************************************************/
 	/****************************************************** if Gauss Mesh is Enabled *****************************************************/
@@ -155,16 +118,9 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 	  		Gauss_Mesh_Current_Time =0;
 	  	}
 
-	 	// cout<< "Gauss_Mesh_Current_Time " << Gauss_Mesh_Current_Time<< endl;
-		// cout<< "Clength " << "  " << vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP() << endl;
-		// for (int i =0 ; i< Clength ; i++){
-		// 	cout << Csteps[i] << "  " << endl;
-		// }
-
 	  	Build_Gauss_Attributes(UGrid_Current_Gauss_Mesh, this->Gauss_Mesh_Current_Time );
 	  	vtkUnstructuredGrid *Output_Gauss_Mesh = vtkUnstructuredGrid::SafeDownCast(Gauss_Mesh->Get(vtkDataObject::DATA_OBJECT()));
 	  	Output_Gauss_Mesh->ShallowCopy(UGrid_Current_Gauss_Mesh);
-	  	// Output_Gauss_Mesh->SetExtent(EXTENT);
 	}
 	/***************************************************************************************************************************************/
 	/***************************************************************************************************************************************/
@@ -181,8 +137,9 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 int pvESSI::RequestInformation( vtkInformation *request, vtkInformationVector **vtkNotUsed(inVec), vtkInformationVector* outVec){
 
 	this->Initialize();
-		cout << "this->id_Number_of_Processes" << this->Number_of_Processes_Used <<endl;
 
+	if(Number_of_Processes_Used==1 || Process_Number>0)
+		this->single_file_visualization_mode = true;
 
 	vtkInformation* Node_Mesh = outVec->GetInformationObject(0);
 
@@ -190,15 +147,7 @@ int pvESSI::RequestInformation( vtkInformation *request, vtkInformationVector **
 
 	Node_Mesh->Set(vtkStreamingDemandDrivenPipeline::TIME_STEPS(),Time, this->Number_Of_Time_Steps);
 	Node_Mesh->Set(vtkStreamingDemandDrivenPipeline::TIME_RANGE(),Time_range,2);
-
-	Node_Mesh->Set(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT(),EXTENT,6);
-
-	int num_of_piec = 10;
 	Node_Mesh->Set(CAN_HANDLE_PIECE_REQUEST(), 1);
-	// Node_Mesh->Set(vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_PIECES(),this->Number_of_Processes_Used);
-	// Node_Mesh->Set(vtkStreamingDemandDrivenPipeline::UPDATE_PIECE_NUMBER(),this->Process_Number);
-	// Node_Mesh->Set(vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_GHOST_LEVELS(), 0);
-	// Node_Mesh->Set(vtkAlgorithm::CAN_PRODUCE_SUB_EXTENT(),1);
 
 	/*************************************************************************************************************************************/
 	/****************************************************** if Gauss Mesh is Enabled *****************************************************/
@@ -209,9 +158,7 @@ int pvESSI::RequestInformation( vtkInformation *request, vtkInformationVector **
 		Gauss_Mesh->Set(vtkStreamingDemandDrivenPipeline::TIME_STEPS(),Time, this->Number_Of_Time_Steps);
 		Gauss_Mesh->Set(vtkStreamingDemandDrivenPipeline::TIME_RANGE(),Time_range,2);
 
-		Gauss_Mesh->Set(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT(),EXTENT,6);
-		Gauss_Mesh->Set(CAN_HANDLE_PIECE_REQUEST(), Number_of_Processes_Used);
-		// outInfo->Set(vtkAlgorithm::CAN_PRODUCE_SUB_EXTENT(),1);
+		Gauss_Mesh->Set(CAN_HANDLE_PIECE_REQUEST(), 1);
 	}
 
 	/************************************************************************************************************************************/
@@ -904,6 +851,7 @@ void pvESSI::Initialize(){
 	this->Build_Map_Status = 0;
 	this->Enable_Gauss_Mesh = false;
 	this->Number_of_Strain_Strain_Info = 22;
+	this->single_file_visualization_mode = false;
 
     /***************** File_id **********************************/
     this->id_File = H5Fopen(this->FileName, H5F_ACC_RDWR, H5P_DEFAULT);;  
@@ -914,68 +862,49 @@ void pvESSI::Initialize(){
 
     /***************** Model Info *******************************/
     this->id_Model_Bounds = H5Dopen(id_File, "/Model/Model_Bounds", H5P_DEFAULT); 
-    this->id_Number_of_Elements = H5Dopen(id_File, "/Number_of_Elements", H5P_DEFAULT); 
-    this->id_Number_of_Nodes    = H5Dopen(id_File, "/Number_of_Nodes", H5P_DEFAULT);
     this->id_Number_of_Processes_Used = H5Dopen(id_File, "/Number_of_Processes_Used", H5P_DEFAULT);
 
-    this->id_Index_to_Coordinates = H5Dopen(id_File, "Model/Nodes/Index_to_Coordinates", H5P_DEFAULT);
-    DataSpace = H5Dget_space(id_Index_to_Coordinates);
-	H5Sget_simple_extent_dims(DataSpace, dims1_out, NULL);
-	this->Pseudo_Number_of_Nodes = dims1_out[0];
-	H5Sclose(DataSpace);
-	H5Dclose(id_Index_to_Coordinates);
-
-	this->id_Index_to_Connectivity = H5Dopen(id_File, "Model/Elements/Index_to_Connectivity", H5P_DEFAULT);
-	DataSpace = H5Dget_space(id_Index_to_Connectivity);
-	H5Sget_simple_extent_dims(DataSpace, dims1_out, NULL);
-	this->Pseudo_Number_of_Elements = dims1_out[0];
-	H5Sclose(DataSpace);
-	H5Dclose(id_Index_to_Connectivity);
+    this->id_Process_Number = H5Dopen(id_File, "/Process_Number", H5P_DEFAULT);
 
 	/******************** Time Step Data **************************/
 
 	H5Dread(id_Number_of_Time_Steps, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,&Number_Of_Time_Steps);
 	H5Dclose(id_Number_of_Time_Steps);
 
-	H5Dread(id_Number_of_Elements, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,&Number_of_Elements);
-	H5Dclose(id_Number_of_Elements);
-
-	H5Dread(id_Number_of_Nodes, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,&Number_of_Nodes);
-	H5Dclose(id_Number_of_Nodes);
-
 	H5Dread(id_Number_of_Processes_Used, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,&Number_of_Processes_Used);
 	H5Dclose(id_Number_of_Processes_Used);
 
+	H5Dread(id_Process_Number, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,&Process_Number);
+	H5Dclose(id_Process_Number);
+
 	this->Time = new double[Number_Of_Time_Steps]; 
 	// H5Dread(id_time, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Time);  
-	// H5Dclose(id_time);
+	H5Dclose(id_time);
 
 	for(int p=0; p<Number_Of_Time_Steps;p++)
 		this->Time[p]=p;
 
 	Build_Time_Map(); 
 
-	count1[0]   =6;	dims1_out[0]=6;	index_i=0;
-    HDF5_Read_FLOAT_Array_Data(id_Model_Bounds,1,dims1_out,&index_i,NULL,count1,NULL,Model_Bounds); // Model_Bounds
-    H5Dclose(id_Model_Bounds);
-
-    EXTENT[0] = Model_Bounds[0] +0.5;
-    EXTENT[1] = Model_Bounds[1] -0.5;    
-    EXTENT[2] = Model_Bounds[2] +0.5;
-    EXTENT[3] = Model_Bounds[3] -0.5;
-    EXTENT[4] = Model_Bounds[4] +0.5;
-    EXTENT[5] = Model_Bounds[5] -0.5;
-
     H5Fclose(id_File);
-
-	cout << " \n Pseudo_Number_of_Nodes " << Pseudo_Number_of_Nodes << endl;
-	cout << " Pseudo_Number_of_Elements " << Pseudo_Number_of_Elements << endl;
-	cout << " Number of time Step " << Number_Of_Time_Steps << endl;
-	cout << " Number_of_Nodes " << Number_of_Nodes << endl;
-	cout << " Number_of_Elements " << Number_of_Elements << endl << endl;;
 }
 
 void pvESSI::Step_Initializer(int Piece_No){
+
+	std::string filename;
+
+	if(Piece_No>=0){
+		std::string Source_File = GetSourceFile(this->FileName);
+		std::stringstream ss;
+		int digits = Number_of_Processes_Used > 0 ? (int) log10 ((double) Number_of_Processes_Used) + 1 : 1;
+		ss << setfill('0') << setw(digits) << Piece_No+1;
+		filename = Source_File + ss.str()+".feioutput";
+	}
+	else{
+		filename = this->FileName; 
+	}
+
+	cout << "File_name " << filename << endl;
 
 	/****************************************************************************************
 	* We want to open the file and keep it open until we have read all the data what we want
@@ -983,7 +912,7 @@ void pvESSI::Step_Initializer(int Piece_No){
 	****************************************************************************************/
 
 	  /***************** File_id **********************************/
-	  this->id_File = H5Fopen(this->FileName, H5F_ACC_RDWR, H5P_DEFAULT);
+	  this->id_File = H5Fopen(filename.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
 
 	  /***************** Time Steps *******************************/
 	  this->id_time = H5Dopen(id_File, "/time", H5P_DEFAULT); 
@@ -1043,6 +972,29 @@ void pvESSI::Step_Initializer(int Piece_No){
 	  // this->id_Whether_Energy_Build = H5Dopen(id_File, "/Field_at_Nodes/Whether_Energy_Build", H5P_DEFAULT);             // Not implemented
 	  
 	  }
+
+	/******************** Number_of_Nodes_and_Element_Data **************************/
+
+    this->id_Index_to_Coordinates = H5Dopen(id_File, "Model/Nodes/Index_to_Coordinates", H5P_DEFAULT);
+    DataSpace = H5Dget_space(id_Index_to_Coordinates);
+	H5Sget_simple_extent_dims(DataSpace, dims1_out, NULL);
+	this->Pseudo_Number_of_Nodes = dims1_out[0];
+	H5Sclose(DataSpace);
+
+	this->id_Index_to_Connectivity = H5Dopen(id_File, "Model/Elements/Index_to_Connectivity", H5P_DEFAULT);
+	DataSpace = H5Dget_space(id_Index_to_Connectivity);
+	H5Sget_simple_extent_dims(DataSpace, dims1_out, NULL);
+	this->Pseudo_Number_of_Elements = dims1_out[0];
+	H5Sclose(DataSpace);
+
+	H5Dread(id_Number_of_Elements, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,&Number_of_Elements);
+	H5Dclose(id_Number_of_Elements);
+
+	H5Dread(id_Number_of_Nodes, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,&Number_of_Nodes);
+	H5Dclose(id_Number_of_Nodes);
+
+	/*********************************************************************************/
+
 
 	if(id_Whether_Maps_Build < 0){
 
@@ -2187,4 +2139,29 @@ void pvESSI::Build_Stress_Field_At_Nodes(vtkSmartPointer<vtkUnstructuredGrid> No
 
 	return;
 }
+
+
+std::string pvESSI::GetSourceFile(std::string filename) {
+
+  std::string Source_File="";
+
+  char str[filename.size()+1];//as 1 char space for null is also required
+  strcpy(str, filename.c_str());
+
+  char * pch;
+  // printf ("Splitting string \"%s\" into tokens:\n",str);
+  pch = strtok (str,".");
+  while (pch != NULL)
+  {
+    // printf ("%s\n",pch);
+    Source_File = Source_File +std::string(pch)+".";
+    if(strcmp(pch, "h5") == 0)
+		break;
+	pch = strtok (NULL, " ,.-");
+  }
+ 
+ cout << "Source_File " <<  Source_File << endl;
+  return Source_File;
+}
+
 
