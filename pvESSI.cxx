@@ -68,15 +68,18 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 	piece_no = Node_Mesh->Get(vtkStreamingDemandDrivenPipeline::UPDATE_PIECE_NUMBER());
 	num_of_pieces = Node_Mesh->Get(vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_PIECES());
 	cout << "Piece_No " << piece_no << endl;
-	cout << "Number_of_Pieces " << num_of_pieces << endl;
+	// cout << "Number_of_Pieces " << num_of_pieces << endl;
 
 	if(single_file_visualization_mode){
+		if(piece_no>0)
+			return 1;
 		Step_Initializer(-1);
 	}
 	else{
+		if(piece_no>Number_of_Processes_Used-1)
+			return 1;
 		Step_Initializer(piece_no);
 	}
-	
 
   	this->Node_Mesh_Current_Time = Time_Map.find( Node_Mesh->Get(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP()))->second;
 
@@ -123,7 +126,7 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 	  	Output_Gauss_Mesh->ShallowCopy(UGrid_Current_Gauss_Mesh);
 	}
 	/***************************************************************************************************************************************/
-	/***************************************************************************************************************************************/
+	/***************************************************************************************************************************************/	
 
 	return 1;
 }
