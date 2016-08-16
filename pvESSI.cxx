@@ -76,7 +76,7 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 		Step_Initializer(-1);
 	}
 	else{
-		if(piece_no>Number_of_Processes_Used-1)
+		if(piece_no>Number_of_Processes_Used-2)
 			return 1;
 		Step_Initializer(piece_no);
 	}
