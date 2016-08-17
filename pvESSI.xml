@@ -80,7 +80,7 @@
       </DoubleVectorProperty>
 
       <Hints>
-        <ReaderFactory extensions="feioutput" file_description="Example File Format" />
+        <ReaderFactory extensions="feioutput" file_description="pvESSI" />
         <OutputPort index="1" visible="0" />
       </Hints>
 

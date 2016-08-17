@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8)
 
 include_directories(/usr/lib/)
 FIND_PACKAGE(ParaView REQUIRED)
-LINK_LIBRARIES(hdf5 hdf5_cpp )
+LINK_LIBRARIES(hdf5 hdf5_cpp boost_regex  boost_system)
 INCLUDE(${PARAVIEW_USE_FILE})
  ADD_PARAVIEW_PLUGIN(pvESSI "1.0"
    SERVER_MANAGER_XML pvESSI.xml

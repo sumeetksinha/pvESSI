@@ -40,8 +40,8 @@
 #include <sstream>
 #include <vtkPointSet.h>
 #include "hdf5.h"
-
-
+#include <boost/regex.hpp>
+#include <vtkAppendFilter.h>
 #include <QApplication>
 #include <QStyle>
 
@@ -108,19 +108,21 @@ protected:
   /********************************** Model Info *************************************************/
   int Number_of_Processes_Used;       // Number of Processes used
   int Process_Number;
+  bool single_file_visualization_mode; 
   
   /*************************** Visualization Parameters *****************************************/
   int Display_Node_Mesh;              // Whether One Wants to display Node Mesh
   int Display_Gauss_Mesh;             // Whether one wants to display gauss mesh
-  int Whether_Node_Mesh_Build;        // Whether node_mesh_build
-  int Whether_Gauss_Mesh_Build;       // Whether gauss mesh build
   int Build_Map_Status;               // Whether Map is Build
+  bool *Whether_Node_Mesh_build;      // Whether Node Mesh Build For Domains
+  bool *Whether_Gauss_Mesh_build;     // Whether Node Mesh Build For Domains
   bool Enable_Gauss_Mesh;             // Enable Gauss Mesh  
   int EXTENT[6];                      // Extent in int
   float Model_Bounds[6];              // Model Bound in float
   int piece_no;                       // Piece no or Processor no
   int num_of_pieces;                  // total number of pieces or processors
   int Number_of_Strain_Strain_Info;   // Total Number_of_Stress_Strain_Data_at_Nodes
+  int domain_no                   ;   // domain no of the mesh
 
   ///////////////////////////// HDF5 ID /////////////////////////////////////////////////////// 
 
@@ -300,7 +302,7 @@ private:
   void set_VTK_To_ESSI_Elements_Connectivity();
   void Initialize();
   void Build_Time_Map();
-  void Step_Initializer(int Piece_No); 
+  void Domain_Initializer(int Piece_No); 
   void Close_File();
   void Build_Maps();
   void Build_Meta_Array_Map();
@@ -311,15 +313,17 @@ private:
   void Build_ProbeFilter_Gauss_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Probe_Input, int probe_type);  // Probing variables at gauss nodes from node mesh
   void Build_Stress_Field_At_Nodes_v2(vtkSmartPointer<vtkUnstructuredGrid> Gauss_Mesh, int Node_Mesh_Current_Time);
   void Build_Stress_Field_At_Nodes(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh, int Node_Mesh_Current_Time);
+  std::string GetSourceFile(std::string filename);
+
+
   double *Time; 
- 
   char* FileName;
 
-  /******************************************* Mesh ******************************************/
-  vtkSmartPointer<vtkUnstructuredGrid> UGrid_Node_Mesh;          // Mesh with nodes
-  vtkSmartPointer<vtkUnstructuredGrid> UGrid_Gauss_Mesh;         // Mesh with only gauss points
-  vtkSmartPointer<vtkUnstructuredGrid> UGrid_Current_Node_Mesh;  // Contains mesh with data attributes 
-  vtkSmartPointer<vtkUnstructuredGrid> UGrid_Current_Gauss_Mesh; // Contains mesh with data attributes   
+  /******************************************* Mesh ******************************************/  
+  vtkSmartPointer<vtkUnstructuredGrid> *UGrid_Node_Mesh;                 // Contains the mesh of all domains
+  vtkSmartPointer<vtkUnstructuredGrid> *UGrid_Gauss_Mesh;                // Contains the mesh of all domains
+  vtkSmartPointer<vtkUnstructuredGrid> *UGrid_Current_Node_Mesh;         // Contains mesh with data attributes 
+  vtkSmartPointer<vtkUnstructuredGrid> *UGrid_Current_Gauss_Mesh;        // Contains mesh with data attributes   
 
   /******************************* Meta Data Arrays ********************************************/
 
@@ -350,8 +354,9 @@ private:
 
   /***************************** Mesh Building Functions ******************************************/
 
-  void Get_Node_Mesh(vtkSmartPointer<vtkUnstructuredGrid> UGrid_Node_Mesh); 	  // Building the node mesh skeleton
-  void Get_Gauss_Mesh(vtkSmartPointer<vtkUnstructuredGrid> UGrid_Gauss_Mesh); 	// Building the gauss mesh skeleton
+  void Get_Node_Mesh(vtkSmartPointer<vtkUnstructuredGrid> UGrid_Node_Mesh); 	    // Building the node mesh skeleton
+  void Get_Gauss_Mesh(vtkSmartPointer<vtkUnstructuredGrid> UGrid_Gauss_Mesh); 	  // Building the gauss mesh skeleton
+  void Merge_Mesh(int start, int end, vtkSmartPointer<vtkUnstructuredGrid> Mesh); // Merge domain mesh  
   void Set_Meta_Array(int Meta_Data_Id );
 
   void Build_Inverse_Matrices();
