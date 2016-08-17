@@ -46,10 +46,6 @@ pvESSI::pvESSI(){
 	this->FileName = NULL;
 	this->SetNumberOfInputPorts(0);
 	this->SetNumberOfOutputPorts(1);
-	UGrid_Gauss_Mesh          = vtkSmartPointer<vtkUnstructuredGrid>::New();
-	UGrid_Node_Mesh           = vtkSmartPointer<vtkUnstructuredGrid>::New();
-	UGrid_Current_Node_Mesh   = vtkSmartPointer<vtkUnstructuredGrid>::New();
-	UGrid_Current_Gauss_Mesh  = vtkSmartPointer<vtkUnstructuredGrid>::New();
 	this->set_VTK_To_ESSI_Elements_Connectivity();
 	this->Build_Meta_Array_Map();
 	Build_Inverse_Matrices();
@@ -65,68 +61,102 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 	vtkInformation *Node_Mesh = outputVector->GetInformationObject(0);
 	// outInfo->Print(std::cout);
 
+	// Get Current Time;
+  	this->Node_Mesh_Current_Time = Time_Map.find( Node_Mesh->Get(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP()))->second;
+
 	piece_no = Node_Mesh->Get(vtkStreamingDemandDrivenPipeline::UPDATE_PIECE_NUMBER());
 	num_of_pieces = Node_Mesh->Get(vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_PIECES());
-	cout << "Piece_No " << piece_no << endl;
-	// cout << "Number_of_Pieces " << num_of_pieces << endl;
 
+	// cout << "piece_no " << piece_no <<endl;
+	// cout << "num_of_pieces " << num_of_pieces << endl;
+	// cout << "Node_Mesh_Current_Time " << Node_Mesh_Current_Time <<endl;
+
+	int start =-1;
+	int end   =0;
 	if(single_file_visualization_mode){
 		if(piece_no>0)
 			return 1;
-		Step_Initializer(-1);
 	}
 	else{
-		if(piece_no>Number_of_Processes_Used-2)
-			return 1;
-		Step_Initializer(piece_no);
+		start = piece_no*ceil(((double)Number_of_Processes_Used)/((double)num_of_pieces));
+		end   = start +ceil(((double)Number_of_Processes_Used)/((double)num_of_pieces));
+		end = end > (Number_of_Processes_Used-1) ? Number_of_Processes_Used-1:end; 
 	}
 
-  	this->Node_Mesh_Current_Time = Time_Map.find( Node_Mesh->Get(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP()))->second;
+	// cout << "Start " << start <<endl;
+	// cout << "End "   << end << endl;
 
-	if (!Whether_Node_Mesh_Build){
-		this->Get_Node_Mesh(UGrid_Node_Mesh);
-		UGrid_Current_Node_Mesh->ShallowCopy(UGrid_Node_Mesh);
-	} 
+	for (int i = start; i<end; i++){
 
-  	// int Clength = outInfo->Length(vtkStreamingDemandDrivenPipeline::TIME_STEPS());
-  	// double* Csteps = outInfo->Get(vtkStreamingDemandDrivenPipeline::TIME_STEPS());
+		this->domain_no = i;
+		Domain_Initializer(domain_no);
 
- 	/////////////////////////////////  Printing For Debugging ////////////////////////////////
- 	// cout << "Number of Nodes "   << " " << Number_of_Nodes << endl;
-	// cout << "Pseudo_Number_of_Nodes "  << " " << Pseudo_Number_of_Nodes << endl;
-	// cout << "Number of Gauss Points " << Number_of_Gauss_Nodes << endl;
- 	// cout << "Number of Elements "   << " " << Number_of_Elements << endl;
-	// cout << "Pseudo_Number_of_Elements"  << " " << Pseudo_Number_of_Elements << endl;
-	/////////////////////////////////////////////////////////////////////////////////////////
+		// cout << "domain " << domain_no << endl;;
 
-	Build_Node_Attributes(UGrid_Current_Node_Mesh, this->Node_Mesh_Current_Time );
-	Build_Stress_Field_At_Nodes(UGrid_Current_Node_Mesh, this->Node_Mesh_Current_Time);
-	
+		if (!Whether_Node_Mesh_build[domain_no]){
+
+			UGrid_Node_Mesh[domain_no]         = vtkSmartPointer<vtkUnstructuredGrid>::New();
+			UGrid_Current_Node_Mesh[domain_no] = vtkSmartPointer<vtkUnstructuredGrid>::New();
+
+			this->Get_Node_Mesh(UGrid_Node_Mesh[domain_no]);
+
+			UGrid_Current_Node_Mesh[domain_no]->ShallowCopy(UGrid_Node_Mesh[domain_no]);
+		} 
+
+	  	// int Clength = outInfo->Length(vtkStreamingDemandDrivenPipeline::TIME_STEPS());
+	  	// double* Csteps = outInfo->Get(vtkStreamingDemandDrivenPipeline::TIME_STEPS());
+
+	 	/////////////////////////////////  Printing For Debugging ////////////////////////////////
+	 	// cout << "Number of Nodes "   << " " << Number_of_Nodes << endl;
+		// cout << "Pseudo_Number_of_Nodes "  << " " << Pseudo_Number_of_Nodes << endl;
+		// cout << "Number of Gauss Points " << Number_of_Gauss_Nodes << endl;
+	 	// cout << "Number of Elements "   << " " << Number_of_Elements << endl;
+		// cout << "Pseudo_Number_of_Elements"  << " " << Pseudo_Number_of_Elements << endl;
+		/////////////////////////////////////////////////////////////////////////////////////////
+
+		Build_Node_Attributes(UGrid_Current_Node_Mesh[domain_no], this->Node_Mesh_Current_Time );
+		Build_Stress_Field_At_Nodes(UGrid_Current_Node_Mesh[domain_no], this->Node_Mesh_Current_Time);
+		
+
+		// /*************************************************************************************************************************************/
+		// /****************************************************** if Gauss Mesh is Enabled *****************************************************/
+		// if(Enable_Gauss_Mesh){
+
+		// 	vtkInformation *Gauss_Mesh = outputVector->GetInformationObject(1);
+
+		// 	if (!Whether_Gauss_Mesh_build[domain_no] ){ 
+		// 		UGrid_Gauss_Mesh[domain_no] = vtkSmartPointer<vtkUnstructuredGrid>::New();
+		// 		this->Get_Gauss_Mesh(UGrid_Gauss_Mesh[domain_no]);
+		// 		UGrid_Current_Gauss_Mesh->ShallowCopy(UGrid_Gauss_Mesh[domain_no]);
+		// 	} 
+
+		// 	this->Gauss_Mesh_Current_Time = Time_Map.find( Gauss_Mesh->Get(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP()))->second;
+		//   	if(Gauss_Mesh_Current_Time > Number_Of_Time_Steps){
+		//   		Gauss_Mesh_Current_Time =0;
+		//   	}
+
+		//   	Build_Gauss_Attributes(UGrid_Current_Gauss_Mesh, this->Gauss_Mesh_Current_Time );
+		//   	vtkUnstructuredGrid *Output_Gauss_Mesh = vtkUnstructuredGrid::SafeDownCast(Gauss_Mesh->Get(vtkDataObject::DATA_OBJECT()));
+		//   	Output_Gauss_Mesh->ShallowCopy(UGrid_Current_Gauss_Mesh);
+		// }
+		// /***************************************************************************************************************************************/
+		// /***************************************************************************************************************************************/	
+	}
+
+	vtkSmartPointer<vtkUnstructuredGrid>  Chunk_Node_mesh =  vtkSmartPointer<vtkUnstructuredGrid>::New();;
+
+	if(single_file_visualization_mode){
+		Chunk_Node_mesh->ShallowCopy(UGrid_Current_Node_Mesh[0]);
+	}
+	else{
+		Merge_Mesh(start,end, Chunk_Node_mesh);
+	}
+
 	// get the ouptut pointer to paraview 
 	vtkUnstructuredGrid *Output_Node_Mesh = vtkUnstructuredGrid::SafeDownCast(Node_Mesh->Get(vtkDataObject::DATA_OBJECT()));
 
-	Output_Node_Mesh->ShallowCopy(UGrid_Current_Node_Mesh);
+	Output_Node_Mesh->ShallowCopy(Chunk_Node_mesh);
 
-	/*************************************************************************************************************************************/
-	/****************************************************** if Gauss Mesh is Enabled *****************************************************/
-	if(Enable_Gauss_Mesh){
-		vtkInformation *Gauss_Mesh = outputVector->GetInformationObject(1);
-		if (!Whether_Gauss_Mesh_Build ){ 
-			this->Get_Gauss_Mesh(UGrid_Gauss_Mesh);
-			UGrid_Current_Gauss_Mesh->ShallowCopy(UGrid_Gauss_Mesh);
-		} 
-
-		this->Gauss_Mesh_Current_Time = Time_Map.find( Gauss_Mesh->Get(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP()))->second;
-	  	if(Gauss_Mesh_Current_Time > Number_Of_Time_Steps){
-	  		Gauss_Mesh_Current_Time =0;
-	  	}
-
-	  	Build_Gauss_Attributes(UGrid_Current_Gauss_Mesh, this->Gauss_Mesh_Current_Time );
-	  	vtkUnstructuredGrid *Output_Gauss_Mesh = vtkUnstructuredGrid::SafeDownCast(Gauss_Mesh->Get(vtkDataObject::DATA_OBJECT()));
-	  	Output_Gauss_Mesh->ShallowCopy(UGrid_Current_Gauss_Mesh);
-	}
-	/***************************************************************************************************************************************/
-	/***************************************************************************************************************************************/	
 
 	return 1;
 }
@@ -140,9 +170,6 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 int pvESSI::RequestInformation( vtkInformation *request, vtkInformationVector **vtkNotUsed(inVec), vtkInformationVector* outVec){
 
 	this->Initialize();
-
-	if(Number_of_Processes_Used==1 || Process_Number>0)
-		this->single_file_visualization_mode = true;
 
 	vtkInformation* Node_Mesh = outVec->GetInformationObject(0);
 
@@ -170,10 +197,29 @@ int pvESSI::RequestInformation( vtkInformation *request, vtkInformationVector **
 }
 
 
+void pvESSI::Merge_Mesh(int start, int end, vtkSmartPointer<vtkUnstructuredGrid> Mesh){
+
+  vtkSmartPointer<vtkAppendFilter> AppendFilter =  vtkSmartPointer<vtkAppendFilter>::New();
+
+  vtkAppendFilter::GlobalWarningDisplayOff();
+
+  for (int i = start; i<end; i++){
+	  AppendFilter->AddInputData(UGrid_Current_Node_Mesh[i]);
+	 // vtkIndent indent;
+	 // delaunay3D->PrintSelf(std::cout, indent); 
+  }
+
+  AppendFilter->Update();
+  Mesh->ShallowCopy( AppendFilter->GetOutput());
+
+  return;
+
+}
+
+
 /*****************************************************************************
 * This method creates and process the request from vtk Pipeleine
 *****************************************************************************/
-
 int pvESSI::ProcessRequest(vtkInformation  *request_type, vtkInformationVector  **inInfo, vtkInformationVector *outInfo){
 
 	//////////////////////////////////// Printing for Debugging /////////////////////////////////////////
@@ -445,7 +491,7 @@ void pvESSI::Build_Gauss_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Gauss_M
 void pvESSI::Build_ProbeFilter_Gauss_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Probe_Input, int probe_type){
 
 	vtkSmartPointer<vtkUnstructuredGrid> Probe_Source = vtkSmartPointer<vtkUnstructuredGrid>::New();
-	Probe_Source->ShallowCopy(this->UGrid_Node_Mesh);
+	Probe_Source->ShallowCopy(this->UGrid_Node_Mesh[domain_no]);
 
 	if (probe_type){
 		Build_Node_Attributes(Probe_Source, this->Gauss_Mesh_Current_Time);
@@ -517,9 +563,9 @@ void pvESSI::Build_ProbeFilter_Gauss_Mesh(vtkSmartPointer<vtkUnstructuredGrid> P
 	Probe_Input->ShallowCopy( ProbeFilter->GetOutput());
 
 	////////////////////////////////////// For Debugging ////////////////////////////////
-	UGrid_Gauss_Mesh->GetPointData()->RemoveArray("Material_Tag");
-	// UGrid_Gauss_Mesh->GetPointData()->RemoveArray("Node_No");
-	UGrid_Gauss_Mesh->GetPointData()->RemoveArray("Element_No");
+	UGrid_Gauss_Mesh[domain_no]->GetPointData()->RemoveArray("Material_Tag");
+	// UGrid_Gauss_Mesh[domain_no]->GetPointData()->RemoveArray("Node_No");
+	UGrid_Gauss_Mesh[domain_no]->GetPointData()->RemoveArray("Element_No");
 	/////////////////////////////////////////////////////////////////////////////////////
 
   	return;
@@ -532,7 +578,6 @@ void pvESSI::Build_ProbeFilter_Gauss_Mesh(vtkSmartPointer<vtkUnstructuredGrid> P
 * and element data from hdf5 file. The function stores the mesh in the 
 * given input <vtkUnstructuredGrid> input object.
 *****************************************************************************/
-
 void pvESSI::Get_Node_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh){
 
 
@@ -621,7 +666,7 @@ void pvESSI::Get_Node_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh){
 
 	}
 
-	Whether_Node_Mesh_Build=1;
+	Whether_Node_Mesh_build[domain_no] = true;
 
 	return;
 	
@@ -631,7 +676,6 @@ void pvESSI::Get_Node_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh){
 * This Function builds a gauss mesh from the given gauss mesh coordinates  
 * Uses Delaunay3D filter to generate the mesh 
 *****************************************************************************/
-
 void pvESSI::Get_Gauss_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Gauss_Mesh){
 
 	//////////////////////////////////////////////////// Reading Map Data ///////////////////////////////////////////////////////////////////////////////////////////
@@ -684,7 +728,7 @@ void pvESSI::Get_Gauss_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Gauss_Mesh){
 
 	this->Build_Delaunay3D_Gauss_Mesh(Gauss_Mesh);
 
-	Whether_Gauss_Mesh_Build=1;
+	Whether_Gauss_Mesh_build[domain_no]=true;
 
 	return;
 	
@@ -694,7 +738,6 @@ void pvESSI::Get_Gauss_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Gauss_Mesh){
 * Generate a tetrahedral mesh from the given input points, and stores the 
 * newly generated mesh in the same input vtkUnstructuredGrid object.  
 *****************************************************************************/
-
 void pvESSI::Build_Delaunay3D_Gauss_Mesh(vtkSmartPointer<vtkUnstructuredGrid> GaussMesh){
 
   vtkSmartPointer<vtkDelaunay3D> delaunay3D = vtkSmartPointer<vtkDelaunay3D>::New();
@@ -719,7 +762,6 @@ void pvESSI::Build_Delaunay3D_Gauss_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Ga
 * I am thinking it to remove it. Was meant to be public accessibe to all but
 * currently takes lot of parameters. 
 *****************************************************************************/
-
 void pvESSI::Set_Meta_Array( int Meta_Array_Id ){
 
 	switch (Meta_Array_Id){
@@ -849,8 +891,6 @@ void pvESSI::Initialize(){
 
 	/*************************************************************/
 	/*********Initializing some parameters of visualization ******/
-	this->Whether_Node_Mesh_Build=0;
-	this->Whether_Gauss_Mesh_Build=0;
 	this->Build_Map_Status = 0;
 	this->Enable_Gauss_Mesh = false;
 	this->Number_of_Strain_Strain_Info = 22;
@@ -884,30 +924,49 @@ void pvESSI::Initialize(){
 	// H5Dread(id_time, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Time);  
 	H5Dclose(id_time);
 
+	H5Fclose(id_File);		// close the file
+
 	for(int p=0; p<Number_Of_Time_Steps;p++)
 		this->Time[p]=p;
 
 	Build_Time_Map(); 
 
-    H5Fclose(id_File);
+	if(Number_of_Processes_Used==1 || Process_Number>0){
+		this->single_file_visualization_mode = true;
+		this->Number_of_Processes_Used =1;
+	}
+
+	UGrid_Current_Node_Mesh   = new vtkSmartPointer<vtkUnstructuredGrid>[Number_of_Processes_Used];		   // Holds the current combination of node mesh
+	// UGrid_Current_Gauss_Mesh  = new vtkSmartPointer<vtkUnstructuredGrid>[Number_of_Processes_Used];		   // Hold the current combination of gauss mesh
+	UGrid_Node_Mesh = new vtkSmartPointer<vtkUnstructuredGrid>[Number_of_Processes_Used];
+	Whether_Node_Mesh_build = new bool[Number_of_Processes_Used];
+	Whether_Gauss_Mesh_build = new bool[Number_of_Processes_Used];
+
+	for(int i=0; i<Number_of_Processes_Used; i++ ){
+		Whether_Node_Mesh_build[i] = false;
+		Whether_Gauss_Mesh_build[i]= false;
+	}
+
+
 }
 
-void pvESSI::Step_Initializer(int Piece_No){
+void pvESSI::Domain_Initializer(int Domain_Number){
 
 	std::string filename;
 
-	if(Piece_No>=0){
+	if(Domain_Number>=0){
 		std::string Source_File = GetSourceFile(this->FileName);
 		std::stringstream ss;
 		int digits = Number_of_Processes_Used > 0 ? (int) log10 ((double) Number_of_Processes_Used) + 1 : 1;
-		ss << setfill('0') << setw(digits) << Piece_No+1;
+		ss << setfill('0') << setw(digits) << Domain_Number+1;
 		filename = Source_File + ss.str()+".feioutput";
 	}
 	else{
 		filename = this->FileName; 
+		domain_no =0;               // setting the index to be zero for Single_Domain_Visualization_Mode
 	}
 
-	cout << "File_name " << filename << endl;
+	// cout << "File_name " << filename << endl;
 
 	/****************************************************************************************
 	* We want to open the file and keep it open until we have read all the data what we want
@@ -1802,6 +1861,9 @@ void pvESSI::HDF5_Write_DOUBLE_Array_Data(hid_t id_DataSet, int rank, hsize_t *d
   H5Sclose(MemSpace);
 }
 
+/*******************************************************************************
+* Interpolating Stress-Strain at Nodes from gauss Points 
+********************************************************************************/
 void pvESSI::Build_Stress_Field_At_Nodes(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh, int Node_Mesh_Current_Time){
 
 	// First Check whether Stresses has been calculated or not.
@@ -2138,12 +2200,14 @@ void pvESSI::Build_Stress_Field_At_Nodes(vtkSmartPointer<vtkUnstructuredGrid> No
 	Node_Mesh->GetPointData()->AddArray(Confining_Stress);
 	Node_Mesh->GetPointData()->AddArray(Plastic_Equivalent_Strain);
 	Node_Mesh->GetPointData()->AddArray(Plastic_Volumetric_Strain);
-	// cout << "<<<<pvESSI>>>> Build_Stress_Field_At_Nodes:: Calculation done for this step  " << Node_Mesh_Current_Time << endl;
+	cout << "<<<<pvESSI>>>> Build_Stress_Field_At_Nodes:: Calculation done for the step no  " << Node_Mesh_Current_Time << endl;
 
 	return;
 }
 
-
+/**********************************************************************
+* Gets the source filename 
+**********************************************************************/
 std::string pvESSI::GetSourceFile(std::string filename) {
 
   std::string Source_File="";
@@ -2163,7 +2227,7 @@ std::string pvESSI::GetSourceFile(std::string filename) {
 	pch = strtok (NULL, " ,.-");
   }
  
- cout << "Source_File " <<  Source_File << endl;
+ // cout << "Source_File " <<  Source_File << endl;
   return Source_File;
 }
 
