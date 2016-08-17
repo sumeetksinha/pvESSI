@@ -31,6 +31,7 @@ Currently, the plugin is not distributable type. One needs to build the paraview
 	```
 
   If you have an older version, then get and install a newer version from [CMake](https://cmake.org/download/). You can also follow these steps at your desired directory.
+  To use paraview in parallel build with ```PARAVIEW_USE_MPI=true``` option
   
   	```bash
   	git clone https://github.com/Kitware/CMake.git
