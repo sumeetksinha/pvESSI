@@ -301,11 +301,28 @@ void pvESSI::Build_Node_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Node_Mes
 	H5Sclose(MemSpace);
 	H5Sclose(DataSpace); 
 
+	DataSpace = H5Dget_space(id_Generalized_Forces);
+	H5Sget_simple_extent_dims(DataSpace, dims2_out, NULL);	
+
+	float Node_Generalized_Forces[dims2_out[0]];
+	offset2[0]=0; 					  count2[0] = dims2_out[0];		dims1_out[0]=dims2_out[0];
+	offset2[1]=Current_Time; 		  count2[1] = 1;				MemSpace = H5Screate_simple(1,dims1_out,NULL);
+	H5Sselect_hyperslab(DataSpace,H5S_SELECT_SET,offset2,NULL,count2,NULL);
+	H5Dread(id_Generalized_Forces, H5T_NATIVE_FLOAT, MemSpace, DataSpace, H5P_DEFAULT, Node_Generalized_Forces); 
+	H5Sclose(MemSpace);
+	H5Sclose(DataSpace); 
+
+	// for(int i = 0; i<dims2_out[0]; i++)
+	// 	cout << Node_Generalized_Forces[i] << " "  << Node_Generalized_Displacements[i] <<  endl;
+
  	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
  	/////////////////////////////////////////////////////////////// DataSets Visulization at Nodes //////////////////////////////////////////////////////////////////////////////////////
  	
  	Generalized_Displacements = vtkSmartPointer<vtkFloatArray>::New(); 
 	this->Set_Meta_Array (Meta_Array_Map["Generalized_Displacements"]);
+
+ 	Generalized_Forces = vtkSmartPointer<vtkFloatArray>::New(); 
+	this->Set_Meta_Array (Meta_Array_Map["Generalized_Forces"]);
 
 	// Material_Tag = vtkSmartPointer<vtkIntArray> ::New();
 	// this->Set_Meta_Array (Meta_Array_Map["Material_Tag"]);
@@ -320,13 +337,23 @@ void pvESSI::Build_Node_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Node_Mes
 
 				node_no = Node_Map[i]; Node_Tag -> InsertValue(i,node_no);
 
-				float tuple[3]={
+				float disp[3]={
 					Node_Generalized_Displacements[Node_Index_to_Generalized_Displacements[node_no]  ],
 					Node_Generalized_Displacements[Node_Index_to_Generalized_Displacements[node_no]+1],
 					Node_Generalized_Displacements[Node_Index_to_Generalized_Displacements[node_no]+2]
-				};	
+				};
 
-				Generalized_Displacements->InsertTypedTuple(i,tuple);
+				float force[3]={
+					Node_Generalized_Forces[Node_Index_to_Generalized_Displacements[node_no]  ],
+					Node_Generalized_Forces[Node_Index_to_Generalized_Displacements[node_no]+1],
+					Node_Generalized_Forces[Node_Index_to_Generalized_Displacements[node_no]+2]
+				};		
+
+				// cout << force [0] << "  " << force[1] << "  " << force[2] <<endl;
+ 
+				Generalized_Displacements->InsertTypedTuple(i,disp);
+				Generalized_Forces->InsertTypedTuple(i,force);
+
 
 
 				// ************************************************************** Displacement, Acceleration and Velocity -> Calculation Formulae *********************************************************
@@ -342,6 +369,7 @@ void pvESSI::Build_Node_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Node_Mes
 	}
 
 	Node_Mesh->GetPointData()->AddArray(Generalized_Displacements);
+	Node_Mesh->GetPointData()->AddArray(Generalized_Forces);
 	Node_Mesh->GetPointData()->AddArray(Node_Tag);
 
 	// /////////////////////////////////////////////////////////////////////// DataSet Visualization in Cell   ///////////////////////////////////////////////////////////////
@@ -874,6 +902,13 @@ void pvESSI::Set_Meta_Array( int Meta_Array_Id ){
 			Plastic_Volumetric_Strain->SetNumberOfComponents(1);
 			break;
 
+		case 15:
+			Generalized_Forces->SetName("Generalized_Forces");
+			Generalized_Forces->SetNumberOfComponents(3);
+			Generalized_Forces->SetComponentName(0,"FX");
+			Generalized_Forces->SetComponentName(1,"FY");
+			Generalized_Forces->SetComponentName(2,"FZ");
+			break;
 	}
 
 	return;
@@ -1012,6 +1047,8 @@ void pvESSI::Domain_Initializer(int Domain_Number){
 	  this->id_Constarined_Nodes = H5Dopen(id_File, "Model/Nodes/Constrained_Nodes", H5P_DEFAULT);
 	  this->id_Coordinates = H5Dopen(id_File, "Model/Nodes/Coordinates", H5P_DEFAULT);
 	  this->id_Generalized_Displacements = H5Dopen(id_File, "Model/Nodes/Generalized_Displacements", H5P_DEFAULT);
+	  // H5Eset_auto (NULL, NULL, NULL);
+	  this->id_Generalized_Forces = H5Dopen(id_File,"/Model/Nodes/Generalized_Forces", H5P_DEFAULT);
 	  this->id_Index_to_Coordinates = H5Dopen(id_File, "Model/Nodes/Index_to_Coordinates", H5P_DEFAULT);
 	  this->id_Index_to_Generalized_Displacements = H5Dopen(id_File, "Model/Nodes/Index_to_Generalized_Displacements", H5P_DEFAULT);
 	  this->id_Number_of_DOFs= H5Dopen(id_File, "Model/Nodes/Number_of_DOFs", H5P_DEFAULT);
@@ -1401,7 +1438,8 @@ void pvESSI::Build_Meta_Array_Map(){
 	/*11 */ Meta_Array_Map["Von_Mises_Stress"] = key; key=key+1;
 	/*12 */ Meta_Array_Map["Confining_Stress"] = key; key=key+1;
 	/*13 */ Meta_Array_Map["Plastic_Equivalent_Strain"] = key; key=key+1;
-	/*14 */ Meta_Array_Map["Plastic_Volumetric_Strain"] = key; key=key+1;		
+	/*14 */ Meta_Array_Map["Plastic_Volumetric_Strain"] = key; key=key+1;
+	/*15 */ Meta_Array_Map["Generalized_Forces"] = key; key=key+1;		
 }
 
 void pvESSI::Build_Inverse_Matrices(){

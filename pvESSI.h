@@ -166,6 +166,7 @@ protected:
   hid_t id_Generalized_Displacements;
   hid_t id_Index_to_Coordinates;
   hid_t id_Index_to_Generalized_Displacements;
+  hid_t id_Generalized_Forces;
   hid_t id_Number_of_DOFs;
 
   /**************** Maps ***********************************/
@@ -329,6 +330,7 @@ private:
 
   // Meta Data Arrays
   vtkSmartPointer<vtkFloatArray> Generalized_Displacements;
+  vtkSmartPointer<vtkFloatArray> Generalized_Forces;
   vtkSmartPointer<vtkFloatArray> Generalized_Velocity;
   vtkSmartPointer<vtkFloatArray> Generalized_Acceleration;
 
