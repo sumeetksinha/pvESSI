@@ -1954,6 +1954,11 @@ void pvESSI::Build_Stress_Field_At_Nodes(vtkSmartPointer<vtkUnstructuredGrid> No
 		DataSpace = H5Dget_space (id_Stress_and_Strain);
 	    H5Sget_simple_extent_dims (DataSpace, dims3, NULL);
 		H5Sclose(DataSpace);
+
+		// initializing the Node_Stress_And_Strain_Field matrix to zero
+		for(int i =0; i<this->Number_of_Nodes;i++)
+			for(int j =0; j<Number_of_Strain_Strain_Info; j++)
+				Node_Stress_And_Strain_Field[i][j]=0.0;
 		
 	    dims3[0] = this->Number_of_Nodes;
 	    dims3[1] = dims3[1]<Number_Of_Time_Steps?(dims3[1]+1):dims3[1];
@@ -1967,7 +1972,7 @@ void pvESSI::Build_Stress_Field_At_Nodes(vtkSmartPointer<vtkUnstructuredGrid> No
 	    DataSpace = H5Dget_space(id_Stress_and_Strain);
 	    MemSpace = H5Screate_simple(2,dims2_out,NULL);
 	    H5Sselect_hyperslab(DataSpace,H5S_SELECT_SET,offset3,NULL,count3,NULL);
-	    H5Dread(id_Stress_and_Strain, H5T_NATIVE_DOUBLE, MemSpace, DataSpace, H5P_DEFAULT, Node_Stress_And_Strain_Field); 
+	    H5Dwrite(id_Stress_and_Strain, H5T_NATIVE_DOUBLE, MemSpace, DataSpace, H5P_DEFAULT, Node_Stress_And_Strain_Field); 
 	    H5Sclose(MemSpace); status=H5Sclose(DataSpace);
 		
 		//////////////////////////////////////////////////// Reading Map Data ///////////////////////////////////////////////////////////////////////////////////////////
