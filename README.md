@@ -77,10 +77,10 @@ Currently, the plugin is not distributable type. One needs to build the paraview
    Now, Open ParaView.
 
 	```bash
-	${ParaView_Build_Directory}/paraview
+	${ParaView_Build_Directory}/bin/paraview
 	```
 
-	a) Click on ***Tools*** and then on ***Manage Plugins ***
+	a) Click on ***Tools*** and then on ***Manage Plugins***
 	b) Click on ***Load New***. Navigate to the ***libpvESSI.so*** library and add it. 
 	c) Check on the ***Auto Load*** option.
 
