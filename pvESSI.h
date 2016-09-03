@@ -75,7 +75,7 @@ public:
   vtkSetMacro(TimeStep, int);
   vtkGetMacro(TimeStep, int);
   int GetNumberOfTimeSteps(){
-    return this->Number_Of_Time_Steps;
+    return this->Number_of_Time_Steps;
   }
  
 protected:
@@ -92,18 +92,20 @@ protected:
   /************************************** Time parameters ***************************************/
   int TimeStep;                 
   int Time_Step_Range[2];             // Range of Time Steps
-  int Number_Of_Time_Steps;           // Stores the Number of TimeSteps in the analysis
+  int Number_of_Time_Steps;           // Stores the Number of TimeSteps in the analysis
+  int Number_of_Sub_Steps;            // Stores the Number of Substeps in the analysis
   int Node_Mesh_Current_Time;         // Stores the currengt time step of Node Mesh
   int Gauss_Mesh_Current_Time;        // Stores the currengt time step of Gauss Mesh
 
   /************************************ Element Info Parameters *********************************/
-  int Number_of_Gauss_Nodes;          // Stores the Number of Gauss Nodes in Model
-  int Pseudo_Number_of_Elements;      // Stores the Number of Elements in ESSI ( max_ESSI_Element_Tag )
-  int Number_of_Elements;             // Stores the Number of Elements in the model
+  int Pseudo_Number_of_Elements;      // Stores the max node tag in each domain
+  int Number_of_Elements;             // Stores the Number of Elements in each domain
+  int Number_of_Gauss_Points;         // Stores the Number of gauss points in each domain
+  int Number_of_Connectivity_Nodes;   // Stores the Number of connectivity nodes in reach domain
 
   /********************************** Node Info parameters **************************************/
-  int Number_of_Nodes;                // Stores the Number of Nodes in Model
-  int Pseudo_Number_of_Nodes;         // Stores the Number of Nodes in ESSI ( max_ESSI_Node_Tag ) 
+  int Number_of_Nodes;                // Stores the numbr of nodes in each domain
+  int Pseudo_Number_of_Nodes;         // Stores the max Node Tag in each demain 
 
   /********************************** Model Info *************************************************/
   int Number_of_Processes_Used;       // Number of Processes used
@@ -117,8 +119,6 @@ protected:
   bool *Whether_Node_Mesh_build;      // Whether Node Mesh Build For Domains
   bool *Whether_Gauss_Mesh_build;     // Whether Node Mesh Build For Domains
   bool Enable_Gauss_Mesh;             // Enable Gauss Mesh  
-  int EXTENT[6];                      // Extent in int
-  float Model_Bounds[6];              // Model Bound in float
   int piece_no;                       // Piece no or Processor no
   int num_of_pieces;                  // total number of pieces or processors
   int Number_of_Strain_Strain_Info;   // Total Number_of_Stress_Strain_Data_at_Nodes
@@ -135,33 +135,29 @@ protected:
 
   /***************** Model Info *******************************/
   hid_t id_Model_group; 
-  hid_t id_Model_Bounds;
-  hid_t id_Whether_Maps_Build; 
   hid_t id_Number_of_Elements;
   hid_t id_Number_of_Nodes;
+  hid_t id_Number_of_Gauss_Points;
   hid_t id_Number_of_Processes_Used;
   hid_t id_Process_Number;
 
   /**************** Element Info ******************************/
   hid_t id_Elements_group;
   hid_t id_Class_Tags;
+  hid_t id_Element_Class_Desc;
   hid_t id_Connectivity;
-  hid_t id_Element_types;
   hid_t id_Gauss_Point_Coordinates;
   hid_t id_Index_to_Connectivity;
   hid_t id_Index_to_Gauss_Point_Coordinates;
   hid_t id_Index_to_Outputs;
-  hid_t id_Material_tags;
-  hid_t id_Number_of_Gauss_Points;
-  hid_t id_Element_Number_of_Nodes;
-  hid_t id_Number_of_Output_Fields;
-  hid_t id_Outputs;
-  hid_t id_Substep_Outputs;
+  hid_t id_Material_Tags;
+  hid_t id_Element_Outputs;
+  hid_t id_Gauss_Outputs;
 
   /**************** Node Info ******************************/
   hid_t id_Nodes_group;
   hid_t id_Constrained_DOFs;
-  hid_t id_Constarined_Nodes;
+  hid_t id_Constrained_Nodes;
   hid_t id_Coordinates;
   hid_t id_Generalized_Displacements;
   hid_t id_Index_to_Coordinates;
@@ -170,7 +166,7 @@ protected:
   hid_t id_Number_of_DOFs;
 
   /**************** Maps ***********************************/
-  hid_t id_Maps_group;
+  hid_t id_pvESSI; 
   hid_t id_Element_Map;
   hid_t id_Node_Map;
   hid_t id_Inverse_Node_Map;
@@ -185,6 +181,11 @@ protected:
   hid_t id_Energy;                            // Not implemented
   hid_t id_Whether_Energy_Build;              // Not implemented
 
+  /************** Substep Outputs ***************************/
+  hid_t id_Number_of_Sub_Steps;
+  hid_t id_Substep_Generalized_Displacements;
+  hid_t id_Substep_Element_Outputs;
+  hid_t id_Substep_Gauss_Outputs;
 
   /************** General Variable **************************/
   hid_t DataSpace;
@@ -205,9 +206,7 @@ protected:
 
   hsize_t index_i,index_j,index_k;
 
-  int Int_Variable_1, Int_Variable_2, Int_Variable_3, Int_Variable_4, index;
   int node_no, element_no;
-  float Float_Variable_1, Float_Variable_2;
 
   /************* Hdf5 function ******************************/
   void HDF5_Read_INT_Array_Data(hid_t id_DataSet,
@@ -317,8 +316,9 @@ private:
   std::string GetSourceFile(std::string filename);
 
 
-  double *Time; 
-  char* FileName;
+  double *Time;            // Holds the time vector for the domain
+  char* FileName;          // Holds the filename
+  int* Element_Desc_Array; // Holds the element decription array 
 
   /******************************************* Mesh ******************************************/  
   vtkSmartPointer<vtkUnstructuredGrid> *UGrid_Node_Mesh;                 // Contains the mesh of all domains
@@ -358,7 +358,7 @@ private:
 
   void Get_Node_Mesh(vtkSmartPointer<vtkUnstructuredGrid> UGrid_Node_Mesh); 	    // Building the node mesh skeleton
   void Get_Gauss_Mesh(vtkSmartPointer<vtkUnstructuredGrid> UGrid_Gauss_Mesh); 	  // Building the gauss mesh skeleton
-  void Merge_Mesh(int start, int end, vtkSmartPointer<vtkUnstructuredGrid> Mesh); // Merge domain mesh  
+  void Merge_Mesh(int start, int end, vtkSmartPointer<vtkUnstructuredGrid> Mesh); // Merge domain mesh  when necessary
   void Set_Meta_Array(int Meta_Data_Id );
 
   void Build_Inverse_Matrices();
