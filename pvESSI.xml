@@ -18,26 +18,19 @@
         </Documentation>
       </StringVectorProperty>
 
-      <IntVectorProperty command="Plot_Node_Mesh" default_values="1" number_of_elements="1" name="ShowNodeMesh">
+<!--       <IntVectorProperty command="Plot_Node_Mesh" default_values="1" number_of_elements="1" name="ShowNodeMesh">
         <BooleanDomain name="bool"/>
         <Documentation>
           This property specifies specifies whether to plot the gaussian coordinates or general coordinates.
         </Documentation>        
-      </IntVectorProperty>
+      </IntVectorProperty> -->
 
-      <IntVectorProperty command="Plot_Gauss_Mesh" default_values="0" number_of_elements="1" name="ShowGaussMesh">
+<!--       <IntVectorProperty command="Plot_Gauss_Mesh" default_values="0" number_of_elements="1" name="ShowGaussMesh">
         <BooleanDomain name="bool"/>
         <Documentation>
           This property specifies specifies whether to show the general coordinates.
         </Documentation>        
-      </IntVectorProperty>
-
-      <IntVectorProperty command="Plot_All_Mesh" default_values="0" number_of_elements="1" name="ShowGeneralMesh--currently not available">
-        <BooleanDomain name="bool"/>
-        <Documentation>
-          This property specifies specifies whether to show the general coordinates.
-        </Documentation>        
-      </IntVectorProperty>
+      </IntVectorProperty> -->
 
 <!--       <StringVectorProperty name="CellArrayInfo" information_only="1">
          <ArraySelectionInformationHelper attribute_name="Cell"/>
@@ -53,10 +46,10 @@
       </StringVectorProperty>
  -->
       <!-- Display the number of Particles -->
-      <IntVectorProperty command="PrintX" default_values="1" number_of_elements="1" name="NumParticles"> 
-      </IntVectorProperty>
+<!--       <IntVectorProperty command="PrintX" default_values="1" number_of_elements="1" name="NumParticles"> 
+      </IntVectorProperty> -->
      
-      <IntVectorProperty name="TransformMode" number_of_elements="1" default_values="1">
+<!--       <IntVectorProperty name="TransformMode" number_of_elements="1" default_values="1">
         <EnumerationDomain name="enum">
           <Entry value="6" text="RigidBody"/>
           <Entry value="7" text="Similarity"/>
@@ -65,7 +58,7 @@
         <Documentation>
           This property indicates which transform mode will be used.
         </Documentation>
-      </IntVectorProperty>
+      </IntVectorProperty> -->
 
       <!--  For Time Step  -->
       <DoubleVectorProperty name="TimestepValues" repeatable="1" information_only="1">
@@ -76,8 +69,8 @@
      </DoubleVectorProperty>
      <!--  For Time Step  -->
 
-      <DoubleVectorProperty name="YourDoubleVectorVariable"  number_of_elements="3"  default_values="1.0 0.0 0.0">
-      </DoubleVectorProperty>
+<!--       <DoubleVectorProperty name="YourDoubleVectorVariable"  number_of_elements="3"  default_values="1.0 0.0 0.0">
+      </DoubleVectorProperty> -->
 
       <Hints>
         <ReaderFactory extensions="feioutput" file_description="pvESSI" />
@@ -94,8 +87,8 @@
   </ProxyGroup>
   <!-- End Filters Group -->
 
-    <ProxyGroup name="filters">
-   <SourceProxy name="Gauuss"  label="Gau5ss">
+  <ProxyGroup name="filters">
+<!--    <SourceProxy name="Gauuss"  label="Gau5ss">
      <Documentation
         long_help="Create point attribute array by projecting points onto an elevation vector."
         short_help="Create a point array representing elevation.">
@@ -110,7 +103,7 @@
 
           The line can be specified interactively using the 3D line widget. See
           section 7.4 for more information about this widget.
-     </Documentation>
+     </Documentation> -->
 <!--      <InputProperty  name="Input"   command="SetInputConnection">
            <ProxyGroupDomain name="groups">
              <Group name="sources"/>
@@ -148,7 +141,7 @@
         <ShowInMenu icon=":pvESSI_Icons/Icons/Solid.png" />
       </Hints>
  -->
-   </SourceProxy>
+   <!-- </SourceProxy> -->
  </ProxyGroup>
 
 

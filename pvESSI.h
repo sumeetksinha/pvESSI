@@ -58,7 +58,6 @@ public:
   void PrintSelf(ostream& os, vtkIndent indent);
   void Plot_Node_Mesh(int x){ /*if(x) cout >>;	else Display_Node_Mesh =0;*/ }
   void Plot_Gauss_Mesh(int x){ /*if(x){/**this->Get_Gauss_Mesh(UGrid_Gauss_Mesh);**//* Display_Gauss_Mesh=1;}  else Display_Gauss_Mesh =0;*/ }
-  void Plot_All_Mesh(int x){/* if(x) Display_All_Mesh=1;  else Display_All_Mesh =0; */}
   void PrintX(int x){}
 
   // static vtkInformationQuadratureSchemeDefinitionVectorKey* DICTIONARY();
@@ -106,6 +105,7 @@ protected:
   /********************************** Node Info parameters **************************************/
   int Number_of_Nodes;                // Stores the numbr of nodes in each domain
   int Pseudo_Number_of_Nodes;         // Stores the max Node Tag in each demain 
+  int Number_of_Constrained_Dofs;     // Number of constrained dofs
 
   /********************************** Model Info *************************************************/
   int Number_of_Processes_Used;       // Number of Processes used
@@ -123,6 +123,8 @@ protected:
   int num_of_pieces;                  // total number of pieces or processors
   int Number_of_Strain_Strain_Info;   // Total Number_of_Stress_Strain_Data_at_Nodes
   int domain_no                   ;   // domain no of the mesh
+  bool enable_support_reactions;
+  bool eigen_mode_on;                 // enable eigen analysis mode
 
   ///////////////////////////// HDF5 ID /////////////////////////////////////////////////////// 
 
@@ -148,8 +150,6 @@ protected:
   hid_t id_Connectivity;
   hid_t id_Gauss_Point_Coordinates;
   hid_t id_Index_to_Connectivity;
-  hid_t id_Index_to_Gauss_Point_Coordinates;
-  hid_t id_Index_to_Outputs;
   hid_t id_Material_Tags;
   hid_t id_Element_Outputs;
   hid_t id_Gauss_Outputs;
@@ -160,9 +160,7 @@ protected:
   hid_t id_Constrained_Nodes;
   hid_t id_Coordinates;
   hid_t id_Generalized_Displacements;
-  hid_t id_Index_to_Coordinates;
-  hid_t id_Index_to_Generalized_Displacements;
-  hid_t id_Generalized_Forces;
+  hid_t id_Support_Reactions;
   hid_t id_Number_of_DOFs;
 
   /**************** Maps ***********************************/
@@ -186,6 +184,14 @@ protected:
   hid_t id_Substep_Generalized_Displacements;
   hid_t id_Substep_Element_Outputs;
   hid_t id_Substep_Gauss_Outputs;
+
+  /************* Eigen Mode Analysis ***********************/
+  hid_t id_Eigen_Mode_Analysis;
+  hid_t id_frequencies;
+  hid_t id_modes;
+  hid_t id_number_of_modes;
+  hid_t id_periods;
+  hid_t id_values;
 
   /************** General Variable **************************/
   hid_t DataSpace;
@@ -309,6 +315,7 @@ private:
   void Build_Gauss_To_Node_Interpolation_Map();
   void Build_Gauss_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Gauss_Mesh, int Node_Mesh_Current_Time);
   void Build_Node_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh, int Gauss_Mesh_Current_Time);
+  void Build_Eigen_Modes_Node_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh, int Current_Time);
   void Build_Delaunay3D_Gauss_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Mesh);
   void Build_ProbeFilter_Gauss_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Probe_Input, int probe_type);  // Probing variables at gauss nodes from node mesh
   void Build_Stress_Field_At_Nodes_v2(vtkSmartPointer<vtkUnstructuredGrid> Gauss_Mesh, int Node_Mesh_Current_Time);
@@ -330,6 +337,8 @@ private:
 
   // Meta Data Arrays
   vtkSmartPointer<vtkFloatArray> Generalized_Displacements;
+  vtkSmartPointer<vtkIntArray>   Boundary_Conditions;
+  vtkSmartPointer<vtkFloatArray> Support_Reactions;
   vtkSmartPointer<vtkFloatArray> Generalized_Forces;
   vtkSmartPointer<vtkFloatArray> Generalized_Velocity;
   vtkSmartPointer<vtkFloatArray> Generalized_Acceleration;
