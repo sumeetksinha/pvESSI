@@ -90,7 +90,7 @@ Currently, the plugin is not distributable type. One needs to build the paraview
 ----
 [UCD CompGeoMech](http://sokocalo.engr.ucdavis.edu/~jeremic/)
 
-Created by: [Sumeet Kumar Sinha](http://www.sumeetsinha.in)
+Created by: [Sumeet Kumar Sinha](http://www.sumeetksinha.com)
 
 Request for features at sumeet.kumar507@gmail.com
    
