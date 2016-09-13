@@ -180,10 +180,10 @@ protected:
   hid_t id_Whether_Energy_Build;              // Not implemented
 
   /************** Substep Outputs ***************************/
-  hid_t id_Number_of_Sub_Steps;
-  hid_t id_Substep_Generalized_Displacements;
-  hid_t id_Substep_Element_Outputs;
-  hid_t id_Substep_Gauss_Outputs;
+  hid_t id_Number_of_Iterations;
+  hid_t id_Iterative_Generalized_Displacements;
+  hid_t id_Iterative_Element_Outputs;
+  hid_t id_Iterative_Gauss_Outputs;
 
   /************* Eigen Mode Analysis ***********************/
   hid_t id_Eigen_Mode_Analysis;

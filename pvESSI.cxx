@@ -477,7 +477,7 @@ void pvESSI::Build_Gauss_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Gauss_M
 
 	for (int i = 0; i < this->Number_of_Elements; i++){
 
-    	ngauss = (Element_Desc_Array[Element_Class_Tags[i]]%100000)/1000;
+    	ngauss = (Element_Desc_Array[Element_Class_Tags[i]]%100000)/100;
 		Output_Index = index_to_gauss_output*18;
 
 		for(int j=0; j< No_of_Element_Gauss_Nodes ; j++){
@@ -778,7 +778,7 @@ void pvESSI::Get_Gauss_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Gauss_Mesh){
 
 	for (int i=0; i < Number_of_Elements; i++){
 
-		ngauss     = (Element_Desc_Array[Element_Class_Tags[i]]%100000)/1000;  // Number of element nodes
+		ngauss     = (Element_Desc_Array[Element_Class_Tags[i]]%100000)/100;  // Number of element nodes
 
 		for(int j=0; j<ngauss ; j++){
 			points->InsertPoint(gauss_point_no, 
@@ -1009,9 +1009,9 @@ void pvESSI::Initialize(){
 	// H5Dclose(id_time);
 
     /***************** Model Info *******************************/
-	this->id_Number_of_Sub_Steps      = H5Dopen(id_File, "/Number_of_Sub_Steps", H5P_DEFAULT);
-	H5Dread(id_Number_of_Sub_Steps, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,&Number_of_Sub_Steps );
-	H5Dclose(id_Number_of_Sub_Steps);
+	this->id_Number_of_Iterations      = H5Dopen(id_File, "/Number_of_Iterations", H5P_DEFAULT);
+	H5Dread(id_Number_of_Iterations, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,&Number_of_Sub_Steps );
+	H5Dclose(id_Number_of_Iterations);
 
     this->id_Number_of_Processes_Used = H5Dopen(id_File, "/Number_of_Processes_Used", H5P_DEFAULT);
 	H5Dread(id_Number_of_Processes_Used, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,&Number_of_Processes_Used);
@@ -1431,7 +1431,7 @@ void pvESSI::Build_Maps(){
 		class_tag  = Element_Class_Tags[index];
 		class_desc = Element_Desc_Array[class_tag];
         nnodes     = (class_desc/1000000)%100;  // Number of element nodes
-        ngauss     = (class_desc%100000)/1000;  // Number of gauss nodes
+        ngauss     = (class_desc%100000)/100;  // Number of gauss nodes
 
 	     if(class_tag!=-1){
 
@@ -2128,7 +2128,7 @@ void pvESSI::Build_Stress_Field_At_Nodes(vtkSmartPointer<vtkUnstructuredGrid> No
 
 			class_tag  = Element_Class_Tags[i];
 			nnodes     = (Element_Desc_Array[class_tag]/1000000)%100;  // Number of element nodes
-			ngauss     = (Element_Desc_Array[class_tag]%100000)/1000;  // Number of element gauss nodes
+			ngauss     = (Element_Desc_Array[class_tag]%100000)/100;  // Number of element gauss nodes
 
 			std::map<int,double**>::iterator it;
 			it = Gauss_To_Node_Interpolation_Map.find(class_tag);
