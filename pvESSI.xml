@@ -18,19 +18,19 @@
         </Documentation>
       </StringVectorProperty>
 
-<!--       <IntVectorProperty command="Plot_Node_Mesh" default_values="1" number_of_elements="1" name="ShowNodeMesh">
+      <IntVectorProperty command="Enable_Gauss_To_Node_Interpolation" default_values="0" number_of_elements="1" name="EnableGaussToNodeInterpolation">
         <BooleanDomain name="bool"/>
         <Documentation>
-          This property specifies specifies whether to plot the gaussian coordinates or general coordinates.
+          This property specifies specifies whether to perform gauss to node interpolation or not.
         </Documentation>        
-      </IntVectorProperty> -->
+      </IntVectorProperty>
 
-<!--       <IntVectorProperty command="Plot_Gauss_Mesh" default_values="0" number_of_elements="1" name="ShowGaussMesh">
+      <IntVectorProperty command="Build_pvESSI_Folder" default_values="0" number_of_elements="1" name="Build pvESSI Folder">
         <BooleanDomain name="bool"/>
         <Documentation>
-          This property specifies specifies whether to show the general coordinates.
+          This property specifies specifies whether to regenerate pvESSI folder.
         </Documentation>        
-      </IntVectorProperty> -->
+      </IntVectorProperty>
 
 <!--       <StringVectorProperty name="CellArrayInfo" information_only="1">
          <ArraySelectionInformationHelper attribute_name="Cell"/>

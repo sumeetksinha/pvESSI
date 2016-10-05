@@ -56,8 +56,8 @@ class pvESSI : public vtkUnstructuredGridAlgorithm{
 public:
   vtkTypeMacro(pvESSI,vtkUnstructuredGridAlgorithm);
   void PrintSelf(ostream& os, vtkIndent indent);
-  void Plot_Node_Mesh(int x){ /*if(x) cout >>;	else Display_Node_Mesh =0;*/ }
-  void Plot_Gauss_Mesh(int x){ /*if(x){/**this->Get_Gauss_Mesh(UGrid_Gauss_Mesh);**//* Display_Gauss_Mesh=1;}  else Display_Gauss_Mesh =0;*/ }
+  void Enable_Gauss_To_Node_Interpolation(int x){ Enable_Gauss_To_Node_Interpolation_Flag=false; if(x) Enable_Gauss_To_Node_Interpolation_Flag=true; }
+  void Build_pvESSI_Folder(int x){ Enable_Building_of_Maps_Flag=true; if(x) Enable_Building_of_Maps_Flag=false; }
   void PrintX(int x){}
 
   // static vtkInformationQuadratureSchemeDefinitionVectorKey* DICTIONARY();
@@ -198,6 +198,11 @@ protected:
   hid_t DataSet;
   hid_t Group; 
   hid_t MemSpace;
+
+  /************** Visualization Control Variables **********/
+  bool Enable_Gauss_To_Node_Interpolation_Flag;
+  bool Enable_Building_of_Maps_Flag;
+
 
   hsize_t  dims1_out[1], dims2_out[2];
   hsize_t  dims3[3],     dims2[2];

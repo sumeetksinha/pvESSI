@@ -121,7 +121,7 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 
 		else{
 			Build_Node_Attributes(UGrid_Current_Node_Mesh[domain_no], this->Node_Mesh_Current_Time );
-			Build_Stress_Field_At_Nodes(UGrid_Current_Node_Mesh[domain_no], this->Node_Mesh_Current_Time);
+			if(Enable_Gauss_To_Node_Interpolation_Flag) Build_Stress_Field_At_Nodes(UGrid_Current_Node_Mesh[domain_no], this->Node_Mesh_Current_Time);
 		}
 		
 
@@ -1102,12 +1102,20 @@ void pvESSI::Domain_Initializer(int Domain_Number){
 
 	  /****************** Check if pvESSI build *******************/
 	  H5Eset_auto (NULL, NULL, NULL);  // To stop HDF% from printing error message
-	  this->id_pvESSI = H5Dopen(id_File, "/pvESSI", H5P_DEFAULT);  
+	  this->id_pvESSI = H5Gopen(id_File, "/pvESSI", H5P_DEFAULT);  
 
-	  if(id_pvESSI>0) { // Every thing is ready to go
+	  if(id_pvESSI>0 and Enable_Building_of_Maps_Flag) { // Every thing is ready to go
 
-         cout << "<<<<pvESSI>>>> Maps are build HURRAY!!! \n" << endl;
+        cout << "<<<<pvESSI>>>> Maps are build HURRAY!!! \n" << endl;
 
+		// Finding Number of Constrained nodes
+		this->id_Constrained_Nodes = H5Dopen(id_File, "Model/Nodes/Constrained_Nodes", H5P_DEFAULT);
+		DataSpace = H5Dget_space(id_Constrained_Nodes);
+		H5Sget_simple_extent_dims(DataSpace, dims1_out, NULL);
+		this->Number_of_Constrained_Dofs = dims1_out[0];
+		H5Sclose(DataSpace);
+		H5Dclose(id_Constrained_Nodes);
+	  
 	  }
 	  else{ // We need to build the pvESSI folder
 
@@ -1156,7 +1164,7 @@ void pvESSI::Domain_Initializer(int Domain_Number){
 	  this->id_Coordinates = H5Dopen(id_File, "Model/Nodes/Coordinates", H5P_DEFAULT);
 	  this->id_Generalized_Displacements = H5Dopen(id_File, "Model/Nodes/Generalized_Displacements", H5P_DEFAULT);
 	  this->id_Support_Reactions = H5Dopen(id_File,"/Model/Nodes/Support_Reactions", H5P_DEFAULT);
-	  if(id_Support_Reactions) enable_support_reactions=true; else enable_support_reactions=false;
+	  if(id_Support_Reactions>0) enable_support_reactions=true; else enable_support_reactions=false;
 
 }
 
@@ -1826,9 +1834,15 @@ void pvESSI::Build_Brick_Coordinates(){
 
 void pvESSI::Build_Gauss_To_Node_Interpolation_Map(){
 
-	Gauss_To_Node_Interpolation_Map[6] = this->Eight_Node_Brick_Inverse;
-	Gauss_To_Node_Interpolation_Map[10] = this->Twenty_Node_Brick_Inverse;
-	Gauss_To_Node_Interpolation_Map[7] = this->Twenty_Seven_Node_Brick_Inverse;
+	Gauss_To_Node_Interpolation_Map[2]  = this->Eight_Node_Brick_Inverse;
+	Gauss_To_Node_Interpolation_Map[3]  = this->Eight_Node_Brick_Inverse;
+	Gauss_To_Node_Interpolation_Map[4]  = this->Eight_Node_Brick_Inverse;
+	Gauss_To_Node_Interpolation_Map[5]  = this->Twenty_Node_Brick_Inverse;
+	Gauss_To_Node_Interpolation_Map[6]  = this->Twenty_Node_Brick_Inverse;
+	Gauss_To_Node_Interpolation_Map[7]  = this->Twenty_Node_Brick_Inverse;
+	Gauss_To_Node_Interpolation_Map[8]  = this->Twenty_Seven_Node_Brick_Inverse;
+	Gauss_To_Node_Interpolation_Map[9]  = this->Twenty_Seven_Node_Brick_Inverse;
+	Gauss_To_Node_Interpolation_Map[10] = this->Twenty_Seven_Node_Brick_Inverse;
 }
 
 void pvESSI::HDF5_Read_INT_Array_Data(hid_t id_DataSet, int rank, hsize_t *data_dims, hsize_t *offset, hsize_t *stride, hsize_t *count, hsize_t *block, int* data){
@@ -2086,7 +2100,7 @@ void pvESSI::Build_Stress_Field_At_Nodes(vtkSmartPointer<vtkUnstructuredGrid> No
 	    H5Dwrite(id_Stress_and_Strain, H5T_NATIVE_DOUBLE, MemSpace, DataSpace, H5P_DEFAULT, Node_Stress_And_Strain_Field); 
 	    H5Sclose(MemSpace); status=H5Sclose(DataSpace);
 		
-		//////////////////////////////////////////////////// Reading Map Data ///////////////////////////////////////////////////////////////////////////////////////////
+		////////////////////////////////////////////////// Reading Map Data ///////////////////////////////////////////////////////////////////////////////////////////
 
 		int Number_of_Gauss_Elements_Shared[Number_of_Nodes];
 		H5Dread(id_Number_of_Gauss_Elements_Shared, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Number_of_Gauss_Elements_Shared);
@@ -2103,7 +2117,9 @@ void pvESSI::Build_Stress_Field_At_Nodes(vtkSmartPointer<vtkUnstructuredGrid> No
 
 		DataSpace = H5Dget_space(id_Gauss_Outputs);
 		H5Sget_simple_extent_dims(DataSpace, dims2_out, NULL);	
-		float Gauss_Outputs[dims2_out[0]];
+		// cout << " length of gauss output " << dims2_out[0] << endl; 
+		// cout << " length of gauss output " << dims2_out[0] << endl; 
+ 		float Gauss_Outputs[dims2_out[0]];
 		offset2[0]=0; 					    count2[0] = dims2_out[0];		dims1_out[0]=dims2_out[0];
 		offset2[1]=Node_Mesh_Current_Time;  count2[1] = 1;					MemSpace = H5Screate_simple(1,dims1_out,NULL);
 		H5Sselect_hyperslab(DataSpace,H5S_SELECT_SET,offset2,NULL,count2,NULL);
@@ -2204,7 +2220,7 @@ void pvESSI::Build_Stress_Field_At_Nodes(vtkSmartPointer<vtkUnstructuredGrid> No
 					// 	Vertices[j] = Inverse_Node_Map[Element_Connectivity[connectivity_index+Nodes_Connectivity_Order[j]]];
 					// }
 
-					/*******************************************************************************************/
+					// *****************************************************************************************
 
 					// for(int p =0; p<number_of_element_nodes ; p++ ){
 					// 	for(int q=0; q<18; q++)
