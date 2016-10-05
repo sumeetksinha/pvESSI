@@ -1115,7 +1115,7 @@ void pvESSI::Domain_Initializer(int Domain_Number){
 		this->Number_of_Constrained_Dofs = dims1_out[0];
 		H5Sclose(DataSpace);
 		H5Dclose(id_Constrained_Nodes);
-	  
+
 	  }
 	  else{ // We need to build the pvESSI folder
 
@@ -2116,10 +2116,8 @@ void pvESSI::Build_Stress_Field_At_Nodes(vtkSmartPointer<vtkUnstructuredGrid> No
 		///////////////////////////////////////////  Gauss Output Dataset for a particular time /////////////////////////////////////////////////////////////////////////////	
 
 		DataSpace = H5Dget_space(id_Gauss_Outputs);
-		H5Sget_simple_extent_dims(DataSpace, dims2_out, NULL);	
-		// cout << " length of gauss output " << dims2_out[0] << endl; 
-		// cout << " length of gauss output " << dims2_out[0] << endl; 
- 		float Gauss_Outputs[dims2_out[0]];
+		H5Sget_simple_extent_dims(DataSpace, dims2_out, NULL);
+ 		float *Gauss_Outputs; Gauss_Outputs = (float*) malloc((dims2_out[0]) * sizeof(float)); 
 		offset2[0]=0; 					    count2[0] = dims2_out[0];		dims1_out[0]=dims2_out[0];
 		offset2[1]=Node_Mesh_Current_Time;  count2[1] = 1;					MemSpace = H5Screate_simple(1,dims1_out,NULL);
 		H5Sselect_hyperslab(DataSpace,H5S_SELECT_SET,offset2,NULL,count2,NULL);
