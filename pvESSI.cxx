@@ -715,6 +715,10 @@ void pvESSI::Get_Node_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh){
 	this->Set_Meta_Array (Meta_Array_Map["Element_Tag"]);
 	Element_Tag->Allocate(Number_of_Elements);
 
+	Class_Tag = vtkSmartPointer<vtkIntArray> ::New();
+	this->Set_Meta_Array (Meta_Array_Map["Class_Tag"]);
+	Class_Tag->Allocate(Number_of_Elements);
+
 	int connectivity_index =0;
 	int nnodes = 0;
 	int Cell_Type;
@@ -724,6 +728,7 @@ void pvESSI::Get_Node_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh){
         nnodes     = (Element_Desc_Array[Element_Class_Tags[i]]/1000000)%100;  // Number of element nodes
 		Material_Tag->InsertValue(i,Element_Material_Tags[i]);
 		Element_Tag->InsertValue(i,Element_Map[i]);
+		Class_Tag->InsertValue(i,Element_Class_Tags[i]);
 
 		vtkIdType Vertices[nnodes];
 		Cell_Type = ESSI_to_VTK_Element.find(nnodes)->second;
@@ -740,6 +745,7 @@ void pvESSI::Get_Node_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh){
 	}
 	Node_Mesh->GetCellData()->AddArray(Material_Tag);
 	Node_Mesh->GetCellData()->AddArray(Element_Tag);
+	Node_Mesh->GetCellData()->AddArray(Class_Tag);
 
 	Whether_Node_Mesh_build[domain_no] = true;
 
@@ -957,6 +963,10 @@ void pvESSI::Set_Meta_Array( int Meta_Array_Id ){
 			Boundary_Conditions->SetComponentName(0,"UX");
 			Boundary_Conditions->SetComponentName(1,"UY");
 			Boundary_Conditions->SetComponentName(2,"UZ");
+			break;
+		case 17:
+			Class_Tag->SetName("Class_Tag");
+			Class_Tag->SetNumberOfComponents(1);
 			break;
 	}
 
@@ -1589,6 +1599,7 @@ void pvESSI::Build_Meta_Array_Map(){
 	/*14 */ Meta_Array_Map["Plastic_Volumetric_Strain"] = key; key=key+1;
 	/*15 */ Meta_Array_Map["Support_Reactions"] = key; key=key+1;	
 	/*16 */ Meta_Array_Map["Boundary_Conditions"] = key; key=key+1;
+	/*16 */ Meta_Array_Map["Class_Tag"] = key; key=key+1;
 }
 
 void pvESSI::Build_Inverse_Matrices(){

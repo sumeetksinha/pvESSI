@@ -363,6 +363,7 @@ private:
   vtkSmartPointer<vtkIntArray>   Material_Tag;
   vtkSmartPointer<vtkIntArray>   Node_Tag;
   vtkSmartPointer<vtkIntArray>   Element_Tag;
+  vtkSmartPointer<vtkIntArray>   Class_Tag;
 
   // Energy 
   vtkSmartPointer<vtkIntArray>   Total_Energy;
