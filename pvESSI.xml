@@ -8,8 +8,8 @@
          short_help="Read a .feioutput file produced by UCD ESSI (Earthquake Soil-Structure Interaction Simulator Program) ">
       </Documentation>
 
-       <OutputPort name="Node Mesh" index="0" />
-	   <OutputPort name="Gaush Mesh" index="1" />
+      <OutputPort name="Node Mesh" index="0" />
+	    <OutputPort name="Gaush Mesh" index="1" />
    
       <StringVectorProperty name="FileName" animateable="0" command="SetFileName" number_of_elements="1">
         <FileListDomain name="files"/>
@@ -45,15 +45,52 @@
         </Documentation>        
       </IntVectorProperty>
 
+      <IntVectorProperty command="Show_Gauss_Mesh" default_values="0" number_of_elements="1" name="Show Gauss Mesh">
+        <BooleanDomain name="bool"/>
+        <Documentation>
+          This property specifies whether to perform gauss to node interpolation or not.
+        </Documentation>        
+      </IntVectorProperty>
+
+      <IntVectorProperty command="Enable_Displacement_Probing" default_values="0" number_of_elements="1" name="Enable Displacement Probing">
+        <BooleanDomain name="bool"/>
+        <Documentation>
+        This property specifies the reference index to displacement.
+        </Documentation>        
+      </IntVectorProperty>
+
       <PropertyGroup label="pvESSI build options" >
         <Property name="Build pvESSI Folder" />
         <Property name="Enable Gauss To Node Interpolation" />
         <Property name="Enable Relative Displacement" />
       </PropertyGroup>
 
+      <PropertyGroup label="pvESSI Gauss Mesh options" >
+        <Property name="Show Gauss Mesh"/>
+        <Property name="Enable Displacement Probing" />
+      </PropertyGroup>
+
       <PropertyGroup label="Relative Displacement" >
         <Property name="Reference Index" />
       </PropertyGroup>
+
+<!--       <StringVectorProperty command="SetCellArrayStatus" 
+                            element_types="2 0" 
+                            information_property="CellArrayInfo" 
+                            label="Physical Element Groups" 
+                            name="CellArrayStatus" 
+                            number_of_elements="0" 
+                            number_of_elements_per_command="2" 
+                            repeat_command="1"> 
+        <ArrayListDomain name="array_list"
+                         attribute_type="Scalars"
+                         input_domain_name="inputs_array">
+          <RequiredProperties>
+            <Property name="Input"
+                      function="Input_Physical_Element_Arrays" />
+          </RequiredProperties>
+        </ArrayListDomain>
+      </StringVectorProperty> -->
 
 
 

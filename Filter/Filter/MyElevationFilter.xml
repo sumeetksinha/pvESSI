@@ -32,6 +32,13 @@
            </DataTypeDomain>
       </InputProperty>
 
+<!--       <StringVectorProperty name="FileName" animateable="0" command="GetFileName" number_of_elements="1">
+        <FileListDomain name="files"/>
+        <Documentation>
+          This property specifies the file name for the pvESSI reader in ESSI.
+        </Documentation>
+      </StringVectorProperty> -->
+
       <DoubleVectorProperty
          name="LowPoint"
          label="Low Point"
@@ -66,12 +73,12 @@
          </Documentation>
       </DoubleVectorProperty>
 
-      <Hints>
+<!--       <Hints>
         <PropertyGroup type="Line" label="My Elevation Widget">
           <Property function="Point1WorldPosition" name="LowPoint" />
           <Property function="Point2WorldPosition" name="HighPoint" />
         </PropertyGroup>
-      </Hints>
+      </Hints> -->
    <!-- End MyElevationFilter -->
    </SourceProxy>
  </ProxyGroup>

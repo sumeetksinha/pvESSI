@@ -48,6 +48,7 @@ pvESSI::pvESSI(){
 
 	this->FileName = NULL;
 	this->eigen_mode_on = false;
+	this->Enable_Initialization_Flag=true;
 	this->SetNumberOfInputPorts(0);
 	this->SetNumberOfOutputPorts(1);
 	this->set_VTK_To_ESSI_Elements_Connectivity();
@@ -95,18 +96,25 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 		this->domain_no = i;
 		Domain_Initializer(domain_no);
 
-		// cout << "domain_no " << domain_no << endl;;
+		// cout << "domain_no " << domain_no << endl;
 
-		if (!Whether_Node_Mesh_build[domain_no]){
-
+		if (!Whether_Node_Mesh_build[domain_no] and (!Show_Gauss_Mesh_Flag or eigen_mode_on or Enable_Displacement_Probing_Flag)){
 			UGrid_Node_Mesh[domain_no]         = vtkSmartPointer<vtkUnstructuredGrid>::New();
 			UGrid_Current_Node_Mesh[domain_no] = vtkSmartPointer<vtkUnstructuredGrid>::New();
-
 			this->Get_Node_Mesh(UGrid_Node_Mesh[domain_no]);
 		}
-
-		UGrid_Current_Node_Mesh[domain_no]->ShallowCopy(UGrid_Node_Mesh[domain_no]);
-
+		else if (!Whether_Gauss_Mesh_build[domain_no] and Show_Gauss_Mesh_Flag){
+			UGrid_Gauss_Mesh[domain_no]         = vtkSmartPointer<vtkUnstructuredGrid>::New();
+			UGrid_Current_Node_Mesh[domain_no]  = vtkSmartPointer<vtkUnstructuredGrid>::New();
+			this->Get_Gauss_Mesh(UGrid_Gauss_Mesh[domain_no]);
+		}
+				
+		if (!Show_Gauss_Mesh_Flag or eigen_mode_on){
+			UGrid_Current_Node_Mesh[domain_no]->ShallowCopy(UGrid_Node_Mesh[domain_no]);
+		}
+		if (Show_Gauss_Mesh_Flag){
+			UGrid_Current_Node_Mesh[domain_no]->ShallowCopy(UGrid_Gauss_Mesh[domain_no]);
+		}
 	  	// int Clength = outInfo->Length(vtkStreamingDemandDrivenPipeline::TIME_STEPS());
 	  	// double* Csteps = outInfo->Get(vtkStreamingDemandDrivenPipeline::TIME_STEPS());
 
@@ -123,34 +131,15 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 		}
 
 		else{
-			Build_Node_Attributes(UGrid_Current_Node_Mesh[domain_no], this->Node_Mesh_Current_Time );
-			if(Enable_Gauss_To_Node_Interpolation_Flag) Build_Stress_Field_At_Nodes(UGrid_Current_Node_Mesh[domain_no], this->Node_Mesh_Current_Time);
+			if(!Show_Gauss_Mesh_Flag){
+				Build_Node_Attributes(UGrid_Current_Node_Mesh[domain_no], this->Node_Mesh_Current_Time );
+				if(Enable_Gauss_To_Node_Interpolation_Flag) Build_Stress_Field_At_Nodes(UGrid_Current_Node_Mesh[domain_no], this->Node_Mesh_Current_Time);
+			}
+			else if(Show_Gauss_Mesh_Flag){
+				Build_Gauss_Attributes(UGrid_Current_Node_Mesh[domain_no], this->Node_Mesh_Current_Time );
+			}
 		}
-		
 
-	// 	// /*************************************************************************************************************************************/
-	// 	// /****************************************************** if Gauss Mesh is Enabled *****************************************************/
-	// 	// if(Enable_Gauss_Mesh){
-
-	// 	// 	vtkInformation *Gauss_Mesh = outputVector->GetInformationObject(1);
-
-	// 	// 	if (!Whether_Gauss_Mesh_build[domain_no] ){ 
-	// 	// 		UGrid_Gauss_Mesh[domain_no] = vtkSmartPointer<vtkUnstructuredGrid>::New();
-	// 	// 		this->Get_Gauss_Mesh(UGrid_Gauss_Mesh[domain_no]);
-	// 	// 		UGrid_Current_Gauss_Mesh->ShallowCopy(UGrid_Gauss_Mesh[domain_no]);
-	// 	// 	} 
-
-	// 	// 	this->Gauss_Mesh_Current_Time = Time_Map.find( Gauss_Mesh->Get(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP()))->second;
-	// 	//   	if(Gauss_Mesh_Current_Time > Number_Of_Time_Steps){
-	// 	//   		Gauss_Mesh_Current_Time =0;
-	// 	//   	}
-
-	// 	//   	Build_Gauss_Attributes(UGrid_Current_Gauss_Mesh, this->Gauss_Mesh_Current_Time );
-	// 	//   	vtkUnstructuredGrid *Output_Gauss_Mesh = vtkUnstructuredGrid::SafeDownCast(Gauss_Mesh->Get(vtkDataObject::DATA_OBJECT()));
-	// 	//   	Output_Gauss_Mesh->ShallowCopy(UGrid_Current_Gauss_Mesh);
-	// 	// }
-	// 	// /***************************************************************************************************************************************/
-	// 	// /***************************************************************************************************************************************/	
 	}
 
 	vtkSmartPointer<vtkUnstructuredGrid>  Chunk_Node_mesh =  vtkSmartPointer<vtkUnstructuredGrid>::New();;
@@ -179,7 +168,7 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 
 int pvESSI::RequestInformation( vtkInformation *request, vtkInformationVector **vtkNotUsed(inVec), vtkInformationVector* outVec){
 
-	this->Initialize();
+	if(this->Enable_Initialization_Flag) this->Initialize(); this->Enable_Initialization_Flag=false;
 
 	vtkInformation* Node_Mesh = outVec->GetInformationObject(0);
 
@@ -472,24 +461,24 @@ void pvESSI::Build_Eigen_Modes_Node_Attributes(vtkSmartPointer<vtkUnstructuredGr
 *****************************************************************************/
 void pvESSI::Build_Gauss_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Gauss_Mesh, int Current_Time){
 
+  	if(Enable_Displacement_Probing_Flag){
+  		Build_ProbeFilter_Gauss_Mesh(Gauss_Mesh,Current_Time);
+  	}
+
 	////////////////////////////////////////////////////// Reading Element  Attributes /////////////////////////////////////////////////////////////////////////////
 
-    int Element_Class_Tags[Pseudo_Number_of_Elements]; 
+    int Element_Class_Tags[Number_of_Elements]; 
 	H5Dread(id_Class_Tags, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Element_Class_Tags);
 
-	///////////////////////////////////////////  Output Dataset for a particular time /////////////////////////////////////////////////////////////////////////////	
-
+	///////////////////////////////////////////  Gauss Output Dataset for a particular time /////////////////////////////////////////////////////////////////////////////	
 	DataSpace = H5Dget_space(id_Gauss_Outputs);
-	H5Sget_simple_extent_dims(DataSpace, dims2_out, NULL);	
-	float Gauss_Outputs[dims2_out[0]];
-	offset2[0]=0; 					   count2[0] = dims2_out[0];		dims1_out[0]=dims2_out[0];
-	offset2[1]=Current_Time; 		   count2[1] = 1;					MemSpace = H5Screate_simple(1,dims1_out,NULL);
+	H5Sget_simple_extent_dims(DataSpace, dims2_out, NULL);
+	float *Gauss_Outputs; Gauss_Outputs = (float*) malloc((dims2_out[0]) * sizeof(float)); 
+	offset2[0]=0; 					    count2[0] = dims2_out[0];		dims1_out[0]=dims2_out[0];
+	offset2[1]=Current_Time;            count2[1] = 1;					MemSpace = H5Screate_simple(1,dims1_out,NULL);
 	H5Sselect_hyperslab(DataSpace,H5S_SELECT_SET,offset2,NULL,count2,NULL);
 	H5Dread(id_Gauss_Outputs, H5T_NATIVE_FLOAT, MemSpace, DataSpace, H5P_DEFAULT, Gauss_Outputs); 
-	H5Sclose(MemSpace); 
-	H5Sclose(DataSpace); 
-
-	///////////////////////////////////////////////////////////////////////////////// Building up the elements //////////////////////////////////////////////////////
+	H5Sclose(MemSpace); status=H5Sclose(DataSpace);
 
 	Elastic_Strain = vtkSmartPointer<vtkFloatArray> ::New();
 	this->Set_Meta_Array (Meta_Array_Map["Elastic_Strain"]);
@@ -499,6 +488,18 @@ void pvESSI::Build_Gauss_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Gauss_M
 
 	Stress = vtkSmartPointer<vtkFloatArray> ::New();
 	this->Set_Meta_Array (Meta_Array_Map["Stress"]);
+
+	Von_Mises_Stress = vtkSmartPointer<vtkFloatArray> ::New();
+	this->Set_Meta_Array (Meta_Array_Map["Von_Mises_Stress"]);
+
+	Confining_Stress = vtkSmartPointer<vtkFloatArray> ::New();
+	this->Set_Meta_Array (Meta_Array_Map["Confining_Stress"]);
+
+	Plastic_Equivalent_Strain = vtkSmartPointer<vtkFloatArray> ::New();
+	this->Set_Meta_Array (Meta_Array_Map["Plastic_Equivalent_Strain"]);
+
+	Plastic_Volumetric_Strain = vtkSmartPointer<vtkFloatArray> ::New();
+	this->Set_Meta_Array (Meta_Array_Map["Plastic_Volumetric_Strain"]);
 
 
 	//////////////////////////////////// Usefull information about tensor components order ///////////////////////////////////////////////////////////////////////////
@@ -513,54 +514,70 @@ void pvESSI::Build_Gauss_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Gauss_M
 	// > 6 7 8
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
- 	int Index_of_Gauss_Nodes =0, element_no, No_of_Element_Gauss_Nodes,Output_Index, gauss_number=0;
- 	int ngauss;
- 	int index_to_gauss_output =0;
+ 	int ngauss, Gauss_Output_Index, index_to_gauss_output =0;
+ 	double Var_Plastic_Volumetric_Strain, Var_Plastic_Equivalent_Strain, Var_Confining_Stress, Var_Von_Mises_Stress;
 
 	for (int i = 0; i < this->Number_of_Elements; i++){
 
     	ngauss = (Element_Desc_Array[Element_Class_Tags[i]]%100000)/100;
-		Output_Index = index_to_gauss_output*18;
+		Gauss_Output_Index = index_to_gauss_output*18;
 
-		for(int j=0; j< No_of_Element_Gauss_Nodes ; j++){
+		for(int j=0; j< ngauss ; j++){
 
 			float El_Strain_Tuple[6] ={
-				Gauss_Outputs[Output_Index  ],
-				Gauss_Outputs[Output_Index+3],
-				Gauss_Outputs[Output_Index+4],
-				Gauss_Outputs[Output_Index+1],
-				Gauss_Outputs[Output_Index+5],
-				Gauss_Outputs[Output_Index+2]
+				Gauss_Outputs[Gauss_Output_Index  ],
+				Gauss_Outputs[Gauss_Output_Index+3],
+				Gauss_Outputs[Gauss_Output_Index+4],
+				Gauss_Outputs[Gauss_Output_Index+1],
+				Gauss_Outputs[Gauss_Output_Index+5],
+				Gauss_Outputs[Gauss_Output_Index+2]
 			};
-
-			Output_Index = Output_Index+6;
 
 			float Pl_Strain_Tuple[6] ={
-				Gauss_Outputs[Output_Index  ],
-				Gauss_Outputs[Output_Index+3],
-				Gauss_Outputs[Output_Index+4],
-				Gauss_Outputs[Output_Index+1],
-				Gauss_Outputs[Output_Index+5],
-				Gauss_Outputs[Output_Index+2]
+				Gauss_Outputs[Gauss_Output_Index+6],
+				Gauss_Outputs[Gauss_Output_Index+9],
+				Gauss_Outputs[Gauss_Output_Index+10],
+				Gauss_Outputs[Gauss_Output_Index+7],
+				Gauss_Outputs[Gauss_Output_Index+11],
+				Gauss_Outputs[Gauss_Output_Index+8]
 			};
-
-			Output_Index = Output_Index+6;
 
 			float Stress_Tuple[6] ={
-				Gauss_Outputs[Output_Index  ],
-				Gauss_Outputs[Output_Index+3],
-				Gauss_Outputs[Output_Index+4],
-				Gauss_Outputs[Output_Index+1],
-				Gauss_Outputs[Output_Index+5],
-				Gauss_Outputs[Output_Index+2]
+				Gauss_Outputs[Gauss_Output_Index+12],
+				Gauss_Outputs[Gauss_Output_Index+15],
+				Gauss_Outputs[Gauss_Output_Index+16],
+				Gauss_Outputs[Gauss_Output_Index+13],
+				Gauss_Outputs[Gauss_Output_Index+17],
+				Gauss_Outputs[Gauss_Output_Index+14]
 			};
 
-			Output_Index = Output_Index+6;
+			Var_Plastic_Volumetric_Strain   = 1.0/3.0*(Gauss_Outputs[Gauss_Output_Index+6]+Gauss_Outputs[Gauss_Output_Index+7]+Gauss_Outputs[Gauss_Output_Index+8]);
+			Var_Plastic_Equivalent_Strain   = sqrt(3.0/2.0* (pow(Gauss_Outputs[Gauss_Output_Index+6]-Gauss_Outputs[Gauss_Output_Index+1],7) +
+										   					 pow(Gauss_Outputs[Gauss_Output_Index+7]-Gauss_Outputs[Gauss_Output_Index+2],8) +
+										   					 pow(Gauss_Outputs[Gauss_Output_Index+8]-Gauss_Outputs[Gauss_Output_Index+1],6) + 6*
+										   					 (	pow(Gauss_Outputs[Gauss_Output_Index+9],2)+
+										   					 	pow(Gauss_Outputs[Gauss_Output_Index+10],2)+
+										   					 	pow(Gauss_Outputs[Gauss_Output_Index+11],2))
+										  					 )
+												  );
+
+			Var_Confining_Stress   		   = 1.0/3.0*(Gauss_Outputs[Gauss_Output_Index+12]+Gauss_Outputs[Gauss_Output_Index+13]+Gauss_Outputs[Gauss_Output_Index+14]);
+			Var_Von_Mises_Stress 		   = sqrt(3.0/2.0* (pow(Gauss_Outputs[Gauss_Output_Index+12]-Gauss_Outputs[Gauss_Output_Index+13],2) +
+													   		pow(Gauss_Outputs[Gauss_Output_Index+13]-Gauss_Outputs[Gauss_Output_Index+14],2) +
+													   		pow(Gauss_Outputs[Gauss_Output_Index+14]-Gauss_Outputs[Gauss_Output_Index+13],2) + 6*
+													   		(	pow(Gauss_Outputs[Gauss_Output_Index+15],2)+
+													   			pow(Gauss_Outputs[Gauss_Output_Index+16],2)+
+													   			pow(Gauss_Outputs[Gauss_Output_Index+17],2))
+													  		)
+												 );
 
 			Elastic_Strain->InsertTypedTuple (index_to_gauss_output,El_Strain_Tuple);
 			Plastic_Strain->InsertTypedTuple (index_to_gauss_output,Pl_Strain_Tuple);
 			Stress->InsertTypedTuple (index_to_gauss_output,Stress_Tuple);
-			
+			Plastic_Volumetric_Strain->InsertValue(index_to_gauss_output,Var_Plastic_Volumetric_Strain);
+			Plastic_Equivalent_Strain->InsertValue(index_to_gauss_output,Var_Plastic_Equivalent_Strain);
+			Confining_Stress->InsertValue(index_to_gauss_output,Var_Confining_Stress);	
+			Von_Mises_Stress->InsertValue(index_to_gauss_output,Var_Von_Mises_Stress);		
 			index_to_gauss_output+=1;
 
 		}
@@ -570,6 +587,10 @@ void pvESSI::Build_Gauss_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Gauss_M
 	Gauss_Mesh->GetPointData()->AddArray(Stress);
   	Gauss_Mesh->GetPointData()->AddArray(Plastic_Strain);
   	Gauss_Mesh->GetPointData()->AddArray(Elastic_Strain);
+	Gauss_Mesh->GetCellData()->AddArray(Plastic_Volumetric_Strain);
+  	Gauss_Mesh->GetCellData()->AddArray(Plastic_Equivalent_Strain);
+  	Gauss_Mesh->GetCellData()->AddArray(Confining_Stress);
+  	Gauss_Mesh->GetCellData()->AddArray(Von_Mises_Stress);
 
 	return;
 }
@@ -579,64 +600,20 @@ void pvESSI::Build_Gauss_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Gauss_M
 * By Default [prob_type =0], probes only generalized displacement
 * But the user can choose an option [prob_type = 1] to probe all variables
 *****************************************************************************/
-void pvESSI::Build_ProbeFilter_Gauss_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Probe_Input, int probe_type){
+void pvESSI::Build_ProbeFilter_Gauss_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Probe_Input, int Current_Time){
 
 	vtkSmartPointer<vtkUnstructuredGrid> Probe_Source = vtkSmartPointer<vtkUnstructuredGrid>::New();
 	Probe_Source->ShallowCopy(this->UGrid_Node_Mesh[domain_no]);
 
-	if (probe_type){
-		Build_Node_Attributes(Probe_Source, this->Gauss_Mesh_Current_Time);
-	}
-	else{
+	////////////////////////////////////// For Debugging ////////////////////////////////
+	Probe_Source->GetCellData()->RemoveArray("Material_Tag");
+	Probe_Source->GetPointData()->RemoveArray("Node_Tag");
+	Probe_Source->GetCellData()->RemoveArray("Element_Tag");
+	Probe_Source->GetPointData()->RemoveArray("Boundary_Conditions");
+	Probe_Source->GetCellData()->RemoveArray("Class_Tag");
+	/////////////////////////////////////////////////////////////////////////////////////
 
-		herr_t status;
-		hid_t File, DataSet, DataSpace, MemSpace; 
-		hsize_t  dims_out[2], offset[2], count[2], col_dims[1];
-
-		////////////////////////////////////////////////////// Reading Node Attributes /////////////////////////////////////////////////////////////////////////////
-
-		int Number_of_DOFs[Number_of_Nodes];
-		H5Dread(id_Number_of_DOFs, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Number_of_DOFs); 
-
-		///////////////////////////////////////////  Output Dataset for a particular time /////////////////////////////////////////////////////////////////////////////	
-
-		DataSpace = H5Dget_space(id_Generalized_Displacements);
-		H5Sget_simple_extent_dims(DataSpace, dims2_out, NULL);	
-		float Node_Generalized_Displacements[dims2_out[0]];
-		offset2[0]=0; 					                  count2[0] = dims2_out[0];		dims1_out[0]=dims2_out[0];
-		offset2[1]=this->Gauss_Mesh_Current_Time; 		  count2[1] = 1;				MemSpace = H5Screate_simple(1,dims1_out,NULL);
-		H5Sselect_hyperslab(DataSpace,H5S_SELECT_SET,offset2,NULL,count2,NULL);
-		H5Dread(id_Generalized_Displacements, H5T_NATIVE_FLOAT, MemSpace, DataSpace, H5P_DEFAULT, Node_Generalized_Displacements); 
-		H5Sclose(MemSpace);
-		H5Sclose(DataSpace); 
-
-		/////////////////////////////////////////////////////////////// DataSets Visulization at Nodes //////////////////////////////////////////////////////////////////////////////////////
-	 	
-	 	Generalized_Displacements = vtkSmartPointer<vtkFloatArray>::New(); 
-		this->Set_Meta_Array (Meta_Array_Map["Generalized_Displacements"]);
-		Generalized_Displacements->Allocate(Number_of_Nodes*3);
-		Generalized_Displacements->SetNumberOfValues(Number_of_Nodes*3);
-
-		int index_to_generalized_displacement=0;
-		
-
-		for (int i = 0; i < Number_of_Nodes; i++){
-
-			float disp[3]={
-				Node_Generalized_Displacements[index_to_generalized_displacement  ],
-				Node_Generalized_Displacements[index_to_generalized_displacement+1],
-				Node_Generalized_Displacements[index_to_generalized_displacement+2]
-			};
-
-
-			Generalized_Displacements->InsertTypedTuple(i,disp);
-			index_to_generalized_displacement = index_to_generalized_displacement + Number_of_DOFs[i];
-
-		}
-
-		Probe_Source->GetPointData()->AddArray(Generalized_Displacements);
-
-	}
+	Build_Node_Attributes(Probe_Source, Current_Time);
 
 	/************* Initializing Probe filter ******************************************/
 
@@ -647,14 +624,7 @@ void pvESSI::Build_ProbeFilter_Gauss_Mesh(vtkSmartPointer<vtkUnstructuredGrid> P
 
 	Probe_Input->ShallowCopy( ProbeFilter->GetOutput());
 
-	////////////////////////////////////// For Debugging ////////////////////////////////
-	// UGrid_Gauss_Mesh[domain_no]->GetPointData()->RemoveArray("Material_Tag");
-	// UGrid_Gauss_Mesh[domain_no]->GetPointData()->RemoveArray("Node_No");
-	// UGrid_Gauss_Mesh[domain_no]->GetPointData()->RemoveArray("Element_No");
-	/////////////////////////////////////////////////////////////////////////////////////
-
   	return;
-
 }
 
 
@@ -850,15 +820,15 @@ void pvESSI::Get_Gauss_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Gauss_Mesh){
 
 	DataSpace = H5Dget_space(id_Gauss_Point_Coordinates);
 	H5Sget_simple_extent_dims(DataSpace, dims1_out, NULL);	
-	double Element_Gauss_Point_Coordinates[dims1_out[0]];
-	H5Dread(id_Gauss_Point_Coordinates, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT,Element_Gauss_Point_Coordinates); 
+	float Element_Gauss_Point_Coordinates[dims1_out[0]];
+	H5Dread(id_Gauss_Point_Coordinates, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Element_Gauss_Point_Coordinates); 
 	status=H5Sclose(DataSpace); 
 
 	////////////////////////////////////////////////////////////////////// Building up the elements //////////////////////////////////////////////////////
 
 	vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
 	points->SetNumberOfPoints(Number_of_Gauss_Points);
-	int No_of_Element_Gauss_Nodes; vtkIdType onevertex;
+	vtkIdType onevertex;
 
 	int gauss_point_no=0;
 	int ngauss=0;
@@ -873,7 +843,7 @@ void pvESSI::Get_Gauss_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Gauss_Mesh){
 								Element_Gauss_Point_Coordinates[3*gauss_point_no+1],
 								Element_Gauss_Point_Coordinates[3*gauss_point_no+2]
 							   );
-			
+
 			/// Adding 1D point to mesh 
 			onevertex = gauss_point_no;
 			Gauss_Mesh->InsertNextCell(VTK_VERTEX, 1, &onevertex);
@@ -886,7 +856,7 @@ void pvESSI::Get_Gauss_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Gauss_Mesh){
 
 	Gauss_Mesh->SetPoints(points);
 
-	this->Build_Delaunay3D_Gauss_Mesh(Gauss_Mesh);
+	// this->Build_Delaunay3D_Gauss_Mesh(Gauss_Mesh);
 
 	Whether_Gauss_Mesh_build[domain_no]=true;
 
@@ -1141,6 +1111,7 @@ void pvESSI::Initialize(){
 	UGrid_Current_Node_Mesh   = new vtkSmartPointer<vtkUnstructuredGrid>[Number_of_Processes_Used];		   // Holds the current combination of node mesh
 	// UGrid_Current_Gauss_Mesh  = new vtkSmartPointer<vtkUnstructuredGrid>[Number_of_Processes_Used];		   // Hold the current combination of gauss mesh
 	UGrid_Node_Mesh = new vtkSmartPointer<vtkUnstructuredGrid>[Number_of_Processes_Used];
+	UGrid_Gauss_Mesh = new vtkSmartPointer<vtkUnstructuredGrid>[Number_of_Processes_Used];
 	Whether_Node_Mesh_build = new bool[Number_of_Processes_Used];
 	Whether_Gauss_Mesh_build = new bool[Number_of_Processes_Used];
 

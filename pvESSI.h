@@ -56,10 +56,12 @@ class pvESSI : public vtkUnstructuredGridAlgorithm{
 public:
   vtkTypeMacro(pvESSI,vtkUnstructuredGridAlgorithm);
   void PrintSelf(ostream& os, vtkIndent indent);
-  void Enable_Gauss_To_Node_Interpolation(int x){ Enable_Gauss_To_Node_Interpolation_Flag=false; if(x) Enable_Gauss_To_Node_Interpolation_Flag=true; }
-  void Build_pvESSI_Folder(int x){ Enable_Building_of_Maps_Flag=true; if(x) Enable_Building_of_Maps_Flag=false; }
-  void Enable_Relative_Displacement(int x ){ Enable_Relative_Displacement_Flag=false; if(x) Enable_Relative_Displacement_Flag=true; }
-  void Reference_Displacement_Index(int x ){ Reference_Displacement_Index_Flag=x;}
+  void Enable_Gauss_To_Node_Interpolation(int x){ Enable_Gauss_To_Node_Interpolation_Flag=false; if(x) Enable_Gauss_To_Node_Interpolation_Flag=true; this->Modified();}
+  void Show_Gauss_Mesh(int x){ Show_Gauss_Mesh_Flag=false; if(x) Show_Gauss_Mesh_Flag=true; this->Modified();}
+  void Build_pvESSI_Folder(int x){ Enable_Building_of_Maps_Flag=true; if(x) Enable_Building_of_Maps_Flag=false; this->Modified(); Enable_Initialization_Flag=true;}
+  void Enable_Relative_Displacement(int x ){ Enable_Relative_Displacement_Flag=false; if(x) Enable_Relative_Displacement_Flag=true; this->Modified();}
+  void Enable_Displacement_Probing(int x ){Enable_Displacement_Probing_Flag=false; if(x) Enable_Displacement_Probing_Flag=true; this->Modified();}
+  void Reference_Displacement_Index(int x ){ Reference_Displacement_Index_Flag=x;this->Modified();}
 
   void PrintX(int x){}
 
@@ -121,6 +123,7 @@ protected:
   int Build_Map_Status;               // Whether Map is Build
   bool *Whether_Node_Mesh_build;      // Whether Node Mesh Build For Domains
   bool *Whether_Gauss_Mesh_build;     // Whether Node Mesh Build For Domains
+  bool Enable_Initialization_Flag;    // Whether Initialization Done
   bool Enable_Gauss_Mesh;             // Enable Gauss Mesh  
   int piece_no;                       // Piece no or Processor no
   int num_of_pieces;                  // total number of pieces or processors
@@ -207,6 +210,8 @@ protected:
   bool Enable_Building_of_Maps_Flag;
   bool Enable_Relative_Displacement_Flag;
   int Reference_Displacement_Index_Flag;
+  bool Show_Gauss_Mesh_Flag;
+  bool Enable_Displacement_Probing_Flag;
 
 
   hsize_t  dims1_out[1], dims2_out[2];
@@ -327,7 +332,7 @@ private:
   void Build_Node_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh, int Gauss_Mesh_Current_Time);
   void Build_Eigen_Modes_Node_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh, int Current_Time);
   void Build_Delaunay3D_Gauss_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Mesh);
-  void Build_ProbeFilter_Gauss_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Probe_Input, int probe_type);               // Probing variables at gauss nodes from node mesh
+  void Build_ProbeFilter_Gauss_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Probe_Input, int Current_Time); // Probing variables at gauss nodes from node mesh
   void Build_Stress_Field_At_Nodes_v2(vtkSmartPointer<vtkUnstructuredGrid> Gauss_Mesh, int Node_Mesh_Current_Time);
   void Build_Stress_Field_At_Nodes(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh, int Node_Mesh_Current_Time);
   void Build_Physical_Element_Group_Mesh(vtkSmartPointer<vtkUnstructuredGrid> NodeMesh);
