@@ -58,6 +58,9 @@ public:
   void PrintSelf(ostream& os, vtkIndent indent);
   void Enable_Gauss_To_Node_Interpolation(int x){ Enable_Gauss_To_Node_Interpolation_Flag=false; if(x) Enable_Gauss_To_Node_Interpolation_Flag=true; }
   void Build_pvESSI_Folder(int x){ Enable_Building_of_Maps_Flag=true; if(x) Enable_Building_of_Maps_Flag=false; }
+  void Enable_Relative_Displacement(int x ){ Enable_Relative_Displacement_Flag=false; if(x) Enable_Relative_Displacement_Flag=true; }
+  void Reference_Displacement_Index(int x ){ Reference_Displacement_Index_Flag=x;}
+
   void PrintX(int x){}
 
   // static vtkInformationQuadratureSchemeDefinitionVectorKey* DICTIONARY();
@@ -202,6 +205,8 @@ protected:
   /************** Visualization Control Variables **********/
   bool Enable_Gauss_To_Node_Interpolation_Flag;
   bool Enable_Building_of_Maps_Flag;
+  bool Enable_Relative_Displacement_Flag;
+  int Reference_Displacement_Index_Flag;
 
 
   hsize_t  dims1_out[1], dims2_out[2];

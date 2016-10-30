@@ -18,19 +18,44 @@
         </Documentation>
       </StringVectorProperty>
 
-      <IntVectorProperty command="Enable_Gauss_To_Node_Interpolation" default_values="0" number_of_elements="1" name="EnableGaussToNodeInterpolation">
+      <IntVectorProperty command="Enable_Gauss_To_Node_Interpolation" default_values="0" number_of_elements="1" name="Enable Gauss To Node Interpolation">
         <BooleanDomain name="bool"/>
         <Documentation>
-          This property specifies specifies whether to perform gauss to node interpolation or not.
+          This property specifies whether to perform gauss to node interpolation or not.
         </Documentation>        
       </IntVectorProperty>
 
       <IntVectorProperty command="Build_pvESSI_Folder" default_values="0" number_of_elements="1" name="Build pvESSI Folder">
         <BooleanDomain name="bool"/>
         <Documentation>
-          This property specifies specifies whether to regenerate pvESSI folder.
+          This property specifies whether to regenerate pvESSI folder.
         </Documentation>        
       </IntVectorProperty>
+
+      <IntVectorProperty command="Enable_Relative_Displacement" default_values="0" number_of_elements="1" name="Enable Relative Displacement">
+        <BooleanDomain name="bool"/>
+        <Documentation>
+        This property specifies the whether to show relative displacements or not.
+        </Documentation>        
+      </IntVectorProperty>
+
+      <IntVectorProperty command="Reference_Displacement_Index" default_values="0" number_of_elements="1" name="Reference Index">
+        <Documentation>
+        This property specifies the reference index to displacement.
+        </Documentation>        
+      </IntVectorProperty>
+
+      <PropertyGroup label="pvESSI build options" >
+        <Property name="Build pvESSI Folder" />
+        <Property name="Enable Gauss To Node Interpolation" />
+        <Property name="Enable Relative Displacement" />
+      </PropertyGroup>
+
+      <PropertyGroup label="Relative Displacement" >
+        <Property name="Reference Index" />
+      </PropertyGroup>
+
+
 
 <!--       <StringVectorProperty name="CellArrayInfo" information_only="1">
          <ArraySelectionInformationHelper attribute_name="Cell"/>

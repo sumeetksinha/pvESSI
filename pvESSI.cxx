@@ -280,6 +280,12 @@ void pvESSI::set_VTK_To_ESSI_Elements_Connectivity(){
 *****************************************************************************/
 void pvESSI::Build_Node_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh, int Current_Time){
 
+	////////////////////////////////////////////////// For Reference Displacement  ///////////////////////////////////////////////////////////////////////////
+	// Finding out the refernce index for displacement 
+	int reference_node_mesh_time = Reference_Displacement_Index_Flag;
+	if(Reference_Displacement_Index_Flag>=Number_of_Time_Steps) reference_node_mesh_time=Number_of_Time_Steps;
+	else if(Reference_Displacement_Index_Flag<=0) reference_node_mesh_time=0;
+	float *Reference_Node_Generalized_Displacements;
 
 	////////////////////////////////////////////////////// Reading Node Attributes /////////////////////////////////////////////////////////////////////////////
 
@@ -290,13 +296,26 @@ void pvESSI::Build_Node_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Node_Mes
 
 	DataSpace = H5Dget_space(id_Generalized_Displacements);
 	H5Sget_simple_extent_dims(DataSpace, dims2_out, NULL);	
-	float Node_Generalized_Displacements[dims2_out[0]];
+	float Node_Generalized_Displacements[dims2_out[0]];	
 	offset2[0]=0; 					  count2[0] = dims2_out[0];		dims1_out[0]=dims2_out[0];
 	offset2[1]=Current_Time; 		  count2[1] = 1;				MemSpace = H5Screate_simple(1,dims1_out,NULL);
 	H5Sselect_hyperslab(DataSpace,H5S_SELECT_SET,offset2,NULL,count2,NULL);
 	H5Dread(id_Generalized_Displacements, H5T_NATIVE_FLOAT, MemSpace, DataSpace, H5P_DEFAULT, Node_Generalized_Displacements); 
 	H5Sclose(MemSpace);
 	H5Sclose(DataSpace); 
+
+	if(Enable_Relative_Displacement_Flag)
+	{
+		DataSpace = H5Dget_space(id_Generalized_Displacements);
+		H5Sget_simple_extent_dims(DataSpace, dims2_out, NULL);	
+		offset2[0]=0; 					              count2[0] = dims2_out[0];		dims1_out[0]=dims2_out[0];
+		offset2[1]=reference_node_mesh_time; 		  count2[1] = 1;				MemSpace = H5Screate_simple(1,dims1_out,NULL);
+		Reference_Node_Generalized_Displacements = (float*) malloc((dims2_out[0]) * sizeof(float));
+		H5Sselect_hyperslab(DataSpace,H5S_SELECT_SET,offset2,NULL,count2,NULL);
+		H5Dread(id_Generalized_Displacements, H5T_NATIVE_FLOAT, MemSpace, DataSpace, H5P_DEFAULT, Reference_Node_Generalized_Displacements); 
+		H5Sclose(MemSpace);
+		H5Sclose(DataSpace); 
+	}
 
 	/////////////////////////////////////////////////////////////// DataSets Visulization at Nodes //////////////////////////////////////////////////////////////////////////////////////
  	
@@ -307,28 +326,48 @@ void pvESSI::Build_Node_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Node_Mes
 
 	int index_to_generalized_displacement=0;
 	
+	if(Enable_Relative_Displacement_Flag==false)
+	{
+		for (int i = 0; i < Number_of_Nodes; i++){
 
-	for (int i = 0; i < Number_of_Nodes; i++){
-
-		float disp[3]={
-			Node_Generalized_Displacements[index_to_generalized_displacement  ],
-			Node_Generalized_Displacements[index_to_generalized_displacement+1],
-			Node_Generalized_Displacements[index_to_generalized_displacement+2]
-		};
+			float disp[3]={
+				Node_Generalized_Displacements[index_to_generalized_displacement  ],
+				Node_Generalized_Displacements[index_to_generalized_displacement+1],
+				Node_Generalized_Displacements[index_to_generalized_displacement+2]
+			};
 
 
-		Generalized_Displacements->InsertTypedTuple(i,disp);
+			Generalized_Displacements->InsertTypedTuple(i,disp);
 
-		index_to_generalized_displacement = index_to_generalized_displacement + Number_of_DOFs[i];
+			index_to_generalized_displacement = index_to_generalized_displacement + Number_of_DOFs[i];
 
-		// ************************************************************** Displacement, Acceleration and Velocity -> Calculation Formulae *********************************************************
+			// ************************************************************** Displacement, Acceleration and Velocity -> Calculation Formulae *********************************************************
 
-		// Displacement(t) = D_t;
-		// Acceleration(t) = (1/del.t)^2*{ D_(t+del.t) - 2*D_t + D_(t-del.t)};
-		// Acceleration(t) = 1/2/del.t*{ D_(t+del.t) - D_(t-del.t)};
+			// Displacement(t) = D_t;
+			// Acceleration(t) = (1/del.t)^2*{ D_(t+del.t) - 2*D_t + D_(t-del.t)};
+			// Acceleration(t) = 1/2/del.t*{ D_(t+del.t) - D_(t-del.t)};
 
-		/***************************************************************** Add Acceleration and Velocity Arrays Here ****************************************/
+			/***************************************************************** Add Acceleration and Velocity Arrays Here ****************************************/
 
+		}
+	}
+	else{
+
+		// cout << "reference_node_mesh_time " << reference_node_mesh_time << endl;
+
+		for (int i = 0; i < Number_of_Nodes; i++){
+
+			float disp[3]={
+				Node_Generalized_Displacements[index_to_generalized_displacement  ] - Reference_Node_Generalized_Displacements[index_to_generalized_displacement  ],
+				Node_Generalized_Displacements[index_to_generalized_displacement+1] - Reference_Node_Generalized_Displacements[index_to_generalized_displacement+1],
+				Node_Generalized_Displacements[index_to_generalized_displacement+2] - Reference_Node_Generalized_Displacements[index_to_generalized_displacement+2]
+			};
+
+			Generalized_Displacements->InsertTypedTuple(i,disp);
+
+			index_to_generalized_displacement = index_to_generalized_displacement + Number_of_DOFs[i];
+
+		}
 	}
 
 	Node_Mesh->GetPointData()->AddArray(Generalized_Displacements);
