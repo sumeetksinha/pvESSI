@@ -322,9 +322,11 @@ private:
   void Build_Node_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh, int Gauss_Mesh_Current_Time);
   void Build_Eigen_Modes_Node_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh, int Current_Time);
   void Build_Delaunay3D_Gauss_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Mesh);
-  void Build_ProbeFilter_Gauss_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Probe_Input, int probe_type);  // Probing variables at gauss nodes from node mesh
+  void Build_ProbeFilter_Gauss_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Probe_Input, int probe_type);               // Probing variables at gauss nodes from node mesh
   void Build_Stress_Field_At_Nodes_v2(vtkSmartPointer<vtkUnstructuredGrid> Gauss_Mesh, int Node_Mesh_Current_Time);
   void Build_Stress_Field_At_Nodes(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh, int Node_Mesh_Current_Time);
+  void Build_Physical_Element_Group_Mesh(vtkSmartPointer<vtkUnstructuredGrid> NodeMesh);
+  void Build_VTK_Element_Selection_mesh();
   std::string GetSourceFile(std::string filename);
 
 

@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 2.8)
 
 include_directories(/usr/lib/)
+
+add_subdirectory(Filter/MyElevationFilter)
+
 FIND_PACKAGE(ParaView REQUIRED)
 LINK_LIBRARIES(hdf5 hdf5_cpp boost_regex  boost_system)
 INCLUDE(${PARAVIEW_USE_FILE})

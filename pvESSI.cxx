@@ -30,6 +30,9 @@
 #include "hdf5.h"
 #include "vtkProbeFilter.h"
 #include <vtkDelaunay3D.h>
+#include "vtkSelectionNode.h"
+#include "vtkExtractSelection.h"
+#include "vtkSelection.h"
 
 // LINK_LIBRARIES(hdf5_cpp hdf5 )
 
@@ -749,8 +752,50 @@ void pvESSI::Get_Node_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh){
 
 	Whether_Node_Mesh_build[domain_no] = true;
 
+	// Build_Physical_Element_Group_Mesh(Node_Mesh);
+
 	return;
 	
+}
+
+/*****************************************************************************
+* Builds a mesh of a physical group pr groups
+* Uses VTKSelection filter to generate the mesh 
+*****************************************************************************/
+void  pvESSI::Build_Physical_Element_Group_Mesh(vtkSmartPointer<vtkUnstructuredGrid> NodeMesh){
+
+  vtkSmartPointer<vtkIdTypeArray> ids = vtkSmartPointer<vtkIdTypeArray>::New();
+  ids->SetNumberOfComponents(1);
+  ids->SetName("Node_Tag");
+
+ // Specify that we want to extract cells 10 through 19
+	for(unsigned int i = 1; i < 6; i++)
+	{
+		ids->InsertNextValue(i);
+	}
+
+    vtkSmartPointer<vtkSelectionNode> selectionNode = vtkSmartPointer<vtkSelectionNode>::New();
+	selectionNode->SetFieldType(vtkSelectionNode::POINT);
+	selectionNode->SetContentType(vtkSelectionNode::VALUES);
+	selectionNode->SetSelectionList(ids);
+	
+	vtkSmartPointer<vtkSelection> selection =   vtkSmartPointer<vtkSelection>::New();
+	selection->AddNode(selectionNode);
+ 
+	vtkSmartPointer<vtkExtractSelection> extractSelection = vtkSmartPointer<vtkExtractSelection>::New();
+
+	extractSelection->SetInputData(0,NodeMesh);
+	extractSelection->SetInputData(1,selection);
+	extractSelection->Update();
+
+
+	vtkIndent indent;
+  	extractSelection->PrintSelf(std::cout, indent);
+
+	NodeMesh->ShallowCopy( extractSelection->GetOutput());
+ 
+
+
 }
 
 /*****************************************************************************
@@ -781,7 +826,7 @@ void pvESSI::Get_Gauss_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Gauss_Mesh){
 
 	for (int i=0; i < Number_of_Elements; i++){
 
-		ngauss     = (Element_Desc_Array[Element_Class_Tags[i]]%100000)/100;  // Number of element nodes
+		ngauss     = (Element_Desc_Array[Element_Class_Tags[i]]%100000)/100;  // Number of gauss nodes
 
 		for(int j=0; j<ngauss ; j++){
 			points->InsertPoint(gauss_point_no, 
@@ -1453,6 +1498,7 @@ void pvESSI::Build_Maps(){
 	int Element_Class_Tags[Pseudo_Number_of_Elements];
 	H5Dread(id_Class_Tags, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Element_Class_Tags);
 
+
     int Element_Connectivity[Number_of_Connectivity_Nodes];
 	H5Dread(id_Connectivity, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Element_Connectivity); 
 
@@ -1460,7 +1506,7 @@ void pvESSI::Build_Maps(){
     int Element_Index_to_Connectivity[Pseudo_Number_of_Elements];
 	H5Dread(id_Index_to_Connectivity, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Element_Index_to_Connectivity); 
 
-	int Material_Tags[Number_of_Elements];
+	int Material_Tags[Pseudo_Number_of_Elements];
 	H5Dread(id_Material_Tags, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Material_Tags); 
 
 	std::map<int,double**>::iterator it;
@@ -1481,6 +1527,8 @@ void pvESSI::Build_Maps(){
 		class_desc = Element_Desc_Array[class_tag];
         nnodes     = (class_desc/1000000)%100;  // Number of element nodes
         ngauss     = (class_desc%100000)/100;  // Number of gauss nodes
+
+        // cout <<  nnodes << " " << ngauss << endl;
 
 	     if(class_tag!=-1){
 
@@ -2132,8 +2180,8 @@ void pvESSI::Build_Stress_Field_At_Nodes(vtkSmartPointer<vtkUnstructuredGrid> No
 	    // dims3[2] = this->Number_of_Strain_Strain_Info;
 	    // status = H5Dset_extent (id_Stress_and_Strain, dims3);
 
-		offset3[0] = 0;  					     offset3[1] =Node_Mesh_Current_Time;    offset3[2] = 0;
-	    count3 [0] = this->Number_of_Nodes;		 count3 [1] = 1;		    count3 [2] = this->Number_of_Strain_Strain_Info;
+		offset3[0] = 0;  					     offset3[1] = Node_Mesh_Current_Time;    offset3[2] = 0;
+	    count3 [0] = this->Number_of_Nodes;		 count3 [1] = 1;		                 count3 [2] = this->Number_of_Strain_Strain_Info;
 	    dims2_out[0] =this->Number_of_Nodes;	 dims2_out[1] = this->Number_of_Strain_Strain_Info;
 
 	    DataSpace = H5Dget_space(id_Stress_and_Strain);
@@ -2149,7 +2197,7 @@ void pvESSI::Build_Stress_Field_At_Nodes(vtkSmartPointer<vtkUnstructuredGrid> No
 
 		////////////////////////////////////////////////// Reading Element Data ///////////////////////////////////////////////////////////////////////////////////////////
 
-	    int Element_Class_Tags[Pseudo_Number_of_Elements]; 
+	    int Element_Class_Tags[Number_of_Elements]; 
 		H5Dread(id_Class_Tags, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Element_Class_Tags);
 
 		int Element_Connectivity[Number_of_Connectivity_Nodes];
@@ -2181,9 +2229,11 @@ void pvESSI::Build_Stress_Field_At_Nodes(vtkSmartPointer<vtkUnstructuredGrid> No
 		for (int i = 0; i < this->Number_of_Elements; ++i)
 		{
 
-			class_tag  = Element_Class_Tags[i];
+			class_tag  =  Element_Class_Tags[i];
 			nnodes     = (Element_Desc_Array[class_tag]/1000000)%100;  // Number of element nodes
 			ngauss     = (Element_Desc_Array[class_tag]%100000)/100;  // Number of element gauss nodes
+
+			// cout << class_tag << "  " << nnodes << " " << ngauss << " " << endl;
 
 			std::map<int,double**>::iterator it;
 			it = Gauss_To_Node_Interpolation_Map.find(class_tag);
@@ -2196,9 +2246,11 @@ void pvESSI::Build_Stress_Field_At_Nodes(vtkSmartPointer<vtkUnstructuredGrid> No
 
 					////////////////////// Initializing Containers ///////////////////////////////////////
 					double **Stress_Strain_At_Nodes = new double*[nnodes];
-				    double **Stress_Strain_At_Gauss_Points = new double*[nnodes];					
+				    double **Stress_Strain_At_Gauss_Points = new double*[ngauss];					
 					for(int j = 0; j < nnodes; ++j){
 				    	Stress_Strain_At_Nodes[j] = new double[this->Number_of_Strain_Strain_Info];
+					}
+					for(int j = 0; j < nnodes; ++j){
 				    	Stress_Strain_At_Gauss_Points[j] = new double[this->Number_of_Strain_Strain_Info];
 					}
 
@@ -2271,8 +2323,10 @@ void pvESSI::Build_Stress_Field_At_Nodes(vtkSmartPointer<vtkUnstructuredGrid> No
 					vtkMath::MultiplyMatrix	(it->second,Stress_Strain_At_Gauss_Points,nnodes,nnodes,nnodes,this->Number_of_Strain_Strain_Info,Stress_Strain_At_Nodes);
 
 					///////////////////////// Adding the Calculated Stresses at Nodes //////////////////////////
+					int node_no=0;
 					for(int j=0; j< nnodes ; j++){
-						int node_no = Element_Connectivity[connectivity_index+j];
+						node_no = Element_Connectivity[connectivity_index+Nodes_Connectivity_Order[j]];
+						// cout << "connectivity_index " << connectivity_index <<" node_no " << node_no  << " class_tag " << class_tag<< endl;
 						for(int k=0; k< this->Number_of_Strain_Strain_Info ; k++){
 							Node_Stress_And_Strain_Field[node_no][k] = Node_Stress_And_Strain_Field[node_no][k] + Stress_Strain_At_Nodes[j][k] ;
 						}
@@ -2284,10 +2338,10 @@ void pvESSI::Build_Stress_Field_At_Nodes(vtkSmartPointer<vtkUnstructuredGrid> No
 					cout << "<<<<pvESSI>>>> Build_Stress_Field_At_Nodes:: Warning!! Gauss_Interpolation to nodes not implemented for element of Class_Tag " << class_tag << endl;
 				}
 
-				connectivity_index = connectivity_index + nnodes;
 				gauss_output_index = gauss_output_index + ngauss*18;
 
 			}
+			connectivity_index = connectivity_index + nnodes;
 		}
 
 		// free(Gauss_Outputs);	
