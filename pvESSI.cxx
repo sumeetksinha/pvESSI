@@ -41,7 +41,7 @@
 // cmake .. -DParaView_DIR="/home/sumeet/Softwares/ParaView-v4.4.0" -DGHOST_BUILD_CDAWEB=OFF
 /************************************************************************************************************************************************/
 
-
+std::vector<std::string> pvESSI::Physical_Group_Container;
 vtkStandardNewMacro(pvESSI);
 
 pvESSI::pvESSI(){ 
@@ -49,14 +49,16 @@ pvESSI::pvESSI(){
 	this->FileName = NULL;
 	this->eigen_mode_on = false;
 	this->Enable_Initialization_Flag=true;
+	this->Whether_Physical_Group_Info_build=false;
 	this->SetNumberOfInputPorts(0);
 	this->SetNumberOfOutputPorts(1);
 	this->set_VTK_To_ESSI_Elements_Connectivity();
 	this->Build_Meta_Array_Map();
+	this->Physical_Element_Group=vtkSmartPointer<vtkDataArraySelection>::New();
+	this->Physical_Node_Group=vtkSmartPointer<vtkDataArraySelection>::New();
 	Build_Inverse_Matrices();
 	Build_Gauss_To_Node_Interpolation_Map();
 }
-
 /*****************************************************************************
 * This method responds to the request made by vtk Pipeleine. 
 * This method is invoked when the time stamp is changed from paraview VCR.
@@ -134,6 +136,7 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 			if(!Show_Gauss_Mesh_Flag){
 				Build_Node_Attributes(UGrid_Current_Node_Mesh[domain_no], this->Node_Mesh_Current_Time );
 				if(Enable_Gauss_To_Node_Interpolation_Flag) Build_Stress_Field_At_Nodes(UGrid_Current_Node_Mesh[domain_no], this->Node_Mesh_Current_Time);
+				if(Enable_Physical_Node_Group_Selection_Flag or Enable_Physical_Element_Group_Selection_Flag) Build_Physical_Element_Group_Mesh(UGrid_Current_Node_Mesh[domain_no]);
 			}
 			else if(Show_Gauss_Mesh_Flag){
 				Build_Gauss_Attributes(UGrid_Current_Node_Mesh[domain_no], this->Node_Mesh_Current_Time );
@@ -177,20 +180,6 @@ int pvESSI::RequestInformation( vtkInformation *request, vtkInformationVector **
 	Node_Mesh->Set(vtkStreamingDemandDrivenPipeline::TIME_STEPS(),Time, this->Number_of_Time_Steps);
 	Node_Mesh->Set(vtkStreamingDemandDrivenPipeline::TIME_RANGE(),Time_range,2);
 	Node_Mesh->Set(CAN_HANDLE_PIECE_REQUEST(), 1);
-
-	/*************************************************************************************************************************************/
-	/****************************************************** if Gauss Mesh is Enabled *****************************************************/
-	if(Enable_Gauss_Mesh){
-
-		vtkInformation* Gauss_Mesh = outVec->GetInformationObject(1);
-
-		Gauss_Mesh->Set(vtkStreamingDemandDrivenPipeline::TIME_STEPS(),Time, this->Number_of_Time_Steps);
-		Gauss_Mesh->Set(vtkStreamingDemandDrivenPipeline::TIME_RANGE(),Time_range,2);
-
-		Gauss_Mesh->Set(CAN_HANDLE_PIECE_REQUEST(), 1);
-	}
-
-	/************************************************************************************************************************************/
 
 	return 1;
 }
@@ -761,8 +750,6 @@ void pvESSI::Get_Node_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh){
 
 	Whether_Node_Mesh_build[domain_no] = true;
 
-	// Build_Physical_Element_Group_Mesh(Node_Mesh);
-
 	return;
 	
 }
@@ -773,20 +760,77 @@ void pvESSI::Get_Node_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh){
 *****************************************************************************/
 void  pvESSI::Build_Physical_Element_Group_Mesh(vtkSmartPointer<vtkUnstructuredGrid> NodeMesh){
 
-  vtkSmartPointer<vtkIdTypeArray> ids = vtkSmartPointer<vtkIdTypeArray>::New();
-  ids->SetNumberOfComponents(1);
-  ids->SetName("Node_Tag");
+	int number_of_physical_node_group_arrays = GetNumberOfPhysicalElementGroupArrays();
+	int number_of_physical_element_group_arrays = GetNumberOfPhysicalElementGroupArrays();
 
- // Specify that we want to extract cells 10 through 19
-	for(unsigned int i = 1; i < 6; i++)
+	vtkSmartPointer<vtkIdTypeArray> Element_Ids = vtkSmartPointer<vtkIdTypeArray>::New();
+	Element_Ids->SetNumberOfComponents(1); Element_Ids->SetName("Element_Tag");
+
+	vtkSmartPointer<vtkIdTypeArray> Node_Ids = vtkSmartPointer<vtkIdTypeArray>::New();
+	Node_Ids->SetNumberOfComponents(1); Node_Ids->SetName("Node_Tag");	
+
+    hid_t id_Physical_Group_Id;
+    int number_of_Element_Ids=0,number_of_Node_Ids=0 ;
+
+	//**********/ Physical Element Groups **********************//
+	if(Enable_Physical_Element_Group_Selection_Flag)
 	{
-		ids->InsertNextValue(i);
+		for(int k =0; k<number_of_physical_element_group_arrays;k++)
+		{
+			// cout << GetPhysicalElementGroupArrayStatus(GetPhysicalElementGroupArrayName(k)) << " " << endl;;
+			if( GetPhysicalElementGroupArrayStatus(GetPhysicalElementGroupArrayName(k)) >0){
+		
+				const char *name = GetPhysicalElementGroupArrayName(k);
+				id_Physical_Group_Id =  H5Dopen(id_Physical_Element_Groups,name, H5P_DEFAULT);
+				DataSpace = H5Dget_space(id_Physical_Group_Id);
+				H5Sget_simple_extent_dims(DataSpace, dims1_out, NULL);
+				int Individual_Physical_group[dims1_out[0]];
+				offset1[0]=0;   	MemSpace = H5Screate_simple(1,dims1_out,NULL); 
+				H5Sselect_hyperslab(DataSpace,H5S_SELECT_SET,offset1,NULL,dims1_out,NULL);
+				H5Dread(id_Physical_Group_Id, H5T_NATIVE_INT, MemSpace, DataSpace, H5P_DEFAULT, Individual_Physical_group); 
+				H5Sclose(MemSpace); status=H5Sclose(DataSpace); H5Dclose(id_Physical_Group_Id);
+
+				for(int l=0; l<dims1_out[0];l++){
+					Element_Ids->InsertNextValue(Individual_Physical_group[l]);
+					number_of_Element_Ids++;
+				}
+
+			}
+		}
 	}
 
+	if(Enable_Physical_Node_Group_Selection_Flag)
+	{
+		for(int k =0; k<number_of_physical_node_group_arrays;k++)
+		{
+			// cout << GetPhysicalNodeGroupArrayStatus(GetPhysicalNodeGroupArrayName(k)) << " " << endl;;
+			if(GetPhysicalNodeGroupArrayStatus(GetPhysicalNodeGroupArrayName(k))){
+
+				const char *name = GetPhysicalNodeGroupArrayName(k);
+				id_Physical_Group_Id =  H5Dopen(id_Physical_Node_Groups,name, H5P_DEFAULT);
+				DataSpace = H5Dget_space(id_Physical_Group_Id);
+				H5Sget_simple_extent_dims(DataSpace, dims1_out, NULL);
+				int Individual_Physical_group[dims1_out[0]];
+				offset1[0]=0;   	MemSpace = H5Screate_simple(1,dims1_out,NULL); 
+				H5Sselect_hyperslab(DataSpace,H5S_SELECT_SET,offset1,NULL,dims1_out,NULL);
+				H5Dread(id_Physical_Group_Id, H5T_NATIVE_INT, MemSpace, DataSpace, H5P_DEFAULT, Individual_Physical_group); 
+				H5Sclose(MemSpace); status=H5Sclose(DataSpace); H5Dclose(id_Physical_Group_Id);
+
+				for(int l=0; l<dims1_out[0];l++){
+					Node_Ids->InsertNextValue(Individual_Physical_group[l]);
+					number_of_Node_Ids++;
+				}
+
+			}
+		}
+	}
+
+	//************************************ Element Selection  **************************************/
+
     vtkSmartPointer<vtkSelectionNode> selectionNode = vtkSmartPointer<vtkSelectionNode>::New();
-	selectionNode->SetFieldType(vtkSelectionNode::POINT);
+	selectionNode->SetFieldType(vtkSelectionNode::CELL);
 	selectionNode->SetContentType(vtkSelectionNode::VALUES);
-	selectionNode->SetSelectionList(ids);
+	selectionNode->SetSelectionList(Element_Ids);
 	
 	vtkSmartPointer<vtkSelection> selection =   vtkSmartPointer<vtkSelection>::New();
 	selection->AddNode(selectionNode);
@@ -797,13 +841,35 @@ void  pvESSI::Build_Physical_Element_Group_Mesh(vtkSmartPointer<vtkUnstructuredG
 	extractSelection->SetInputData(1,selection);
 	extractSelection->Update();
 
+	//************************************ Node Selection ****************************************/
 
-	vtkIndent indent;
-  	extractSelection->PrintSelf(std::cout, indent);
-
-	NodeMesh->ShallowCopy( extractSelection->GetOutput());
+    vtkSmartPointer<vtkSelectionNode> selectionNode2 = vtkSmartPointer<vtkSelectionNode>::New();
+	selectionNode2->SetFieldType(vtkSelectionNode::POINT);
+	selectionNode2->SetContentType(vtkSelectionNode::VALUES);
+	selectionNode2->SetSelectionList(Node_Ids);
+	
+	vtkSmartPointer<vtkSelection> selection2 =   vtkSmartPointer<vtkSelection>::New();
+	selection2->AddNode(selectionNode2);
  
+	vtkSmartPointer<vtkExtractSelection> extractSelection2 = vtkSmartPointer<vtkExtractSelection>::New();
 
+	extractSelection2->SetInputData(0,NodeMesh);
+	extractSelection2->SetInputData(1,selection2);
+	extractSelection2->Update();
+
+
+	// vtkIndent indent;
+	// extractSelection->PrintSelf(std::cout, indent);
+
+	//*********************************** Merging Mesh *****************************************/
+
+	vtkSmartPointer<vtkAppendFilter> AppendFilter =  vtkSmartPointer<vtkAppendFilter>::New();
+	vtkAppendFilter::GlobalWarningDisplayOff();
+	if(number_of_Element_Ids>0) AppendFilter->AddInputData(extractSelection->GetOutput());
+	if(number_of_Node_Ids>0)    AppendFilter->AddInputData(extractSelection2->GetOutput());
+	AppendFilter->Update();
+
+	NodeMesh->ShallowCopy( AppendFilter->GetOutput());
 
 }
 
@@ -1041,7 +1107,6 @@ void pvESSI::Initialize(){
 
 	/*********Initializing some parameters of visualization ******/
 	this->Build_Map_Status = 0;
-	this->Enable_Gauss_Mesh = false;
 	this->Number_of_Strain_Strain_Info = 22;
 	this->single_file_visualization_mode = false;
 
@@ -1139,7 +1204,30 @@ void pvESSI::Domain_Initializer(int Domain_Number){
 		domain_no =0;               // setting the index to be zero for Single_Domain_Visualization_Mode
 	}
 
-	// cout << "File_name " << filename << endl;
+	if(!Whether_Physical_Group_Info_build)
+	{
+		//********************* Building Avialable Physical Groups ***************************************************************/
+		// getting the master file containing physical group
+		std::string Source_File = GetSourceFile(this->FileName)+"feioutput";
+		hid_t id_Source_File = H5Fopen(Source_File.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
+
+	    this->id_Physical_Element_Groups = H5Gopen(id_Source_File, "/Model/Physical_Groups/Physical_Element_Groups", H5P_DEFAULT);
+	    this->id_Physical_Node_Groups    = H5Gopen(id_Source_File, "/Model/Physical_Groups/Physical_Node_Groups", H5P_DEFAULT);
+
+	    status = H5Ovisit (id_Physical_Element_Groups, H5_INDEX_NAME, H5_ITER_NATIVE, op_func, NULL);
+		for(int i=0; i<Physical_Group_Container.size(); ++i){ const char *name = Physical_Group_Container[i].c_str(); this->Physical_Element_Group->AddArray(name);}
+		if(!Enable_Physical_Element_Group_Selection_Flag){this->Physical_Element_Group->DisableAllArrays();} Physical_Group_Container.clear();
+
+	    status = H5Ovisit (id_Physical_Node_Groups, H5_INDEX_NAME, H5_ITER_NATIVE, op_func, NULL);
+	    for(int i=0; i<Physical_Group_Container.size(); ++i){ const char *name = Physical_Group_Container[i].c_str(); this->Physical_Node_Group->AddArray(name);}
+	    if(!Enable_Physical_Node_Group_Selection_Flag){this->Physical_Node_Group->DisableAllArrays();} Physical_Group_Container.clear();
+
+	    Whether_Physical_Group_Info_build = true;;
+
+	    H5Fclose(id_Source_File);
+		H5Gclose(id_Physical_Element_Groups); 
+		H5Gclose(id_Physical_Node_Groups); 
+	}
 
 	/****************************************************************************************
 	* We want to open the file and keep it open until we have read all the data what we want
@@ -1214,6 +1302,9 @@ void pvESSI::Domain_Initializer(int Domain_Number){
 		  this->id_Constrained_Nodes               = H5Dopen(id_File, "pvESSI/Constrained_Nodes", H5P_DEFAULT);
 		  this->id_Class_Tags                      = H5Dopen(id_File, "pvESSI/Class_Tags", H5P_DEFAULT);
 		  this->id_Material_Tags                   = H5Dopen(id_File, "pvESSI/Material_Tags", H5P_DEFAULT);
+	      this->id_Physical_Element_Groups         = H5Gopen(id_File, "pvESSI/Physical_Groups/Physical_Element_Groups", H5P_DEFAULT);
+	      this->id_Physical_Node_Groups            = H5Gopen(id_File, "pvESSI/Physical_Groups/Physical_Node_Groups", H5P_DEFAULT);
+
 
 		  /*************** Field at Nodes ***************************/
 		  this->id_Field_at_Nodes_group = H5Gopen(id_File, "pvESSI/Field_at_Nodes", H5P_DEFAULT);
@@ -1298,6 +1389,13 @@ void pvESSI::Close_File(){
 * 	Inverse_Element_Map: From reduced element number to global(input) element number 
 *****************************************************************************/
 
+    // status = H5Ovisit (id_Physical_Element_Groups, H5_INDEX_NAME, H5_ITER_NATIVE, op_func, NULL);
+    // for(int i=0; i<Physical_Group_Container.size(); ++i){const char *name = Physical_Group_Container[i].c_str(); ; this->Physical_Element_Group->AddArray(name);}
+
+    // status = H5Ovisit (id_Physical_Node_Groups, H5_INDEX_NAME, H5_ITER_NATIVE, op_func, NULL);
+    // for(int i=0; i<Physical_Group_Container.size(); ++i){const char *name = Physical_Group_Container[i].c_str(); this->Physical_Node_Group->AddArray(name);}
+
+
 void pvESSI::Build_Maps(){
 
 
@@ -1329,7 +1427,7 @@ void pvESSI::Build_Maps(){
 	this->Number_of_Constrained_Dofs = dims1_out[0];
 	H5Sclose(DataSpace);
 
-    this->id_Material_Tags = H5Dopen(id_File, "Model/Elements/Material_Tags", H5P_DEFAULT);
+    this->id_Material_Tags           = H5Dopen(id_File, "Model/Elements/Material_Tags", H5P_DEFAULT);
 
 	/*********************************************** First Need to build Datasets and Folders *********************************************************************/
 
@@ -1447,7 +1545,6 @@ void pvESSI::Build_Maps(){
 
 
 	//************** Building Node Map datset *******************************//
-
 	int Node_Map[Number_of_Nodes];
 	int pvESSI_Number_of_DOFs[Number_of_Nodes];
 	int Inverse_Node_Map[Pseudo_Number_of_Nodes];
@@ -1608,11 +1705,121 @@ void pvESSI::Build_Maps(){
 	H5Dwrite(pvESSI_id_Class_Tags, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,pvESSI_Class_Tags);
 	H5Dwrite(pvESSI_id_Material_Tags, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,pvESSI_Material_Tags);
 
-	// close dataset 
+    // close dataset 
 	H5Dclose(id_Connectivity);
 	H5Dclose(id_Class_Tags);
 	H5Dclose(id_Material_Tags);
 
+	/**************************************************** Building Element Physical Group *****************************************************/
+
+	// getting the master file containing physical group
+	std::string Source_File = GetSourceFile(this->FileName)+"feioutput";
+	hid_t id_Source_File = H5Fopen(Source_File.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
+
+    this->id_Physical_Element_Groups = H5Gopen(id_Source_File, "/Model/Physical_Groups/Physical_Element_Groups", H5P_DEFAULT);
+    this->id_Physical_Node_Groups    = H5Gopen(id_Source_File, "/Model/Physical_Groups/Physical_Node_Groups", H5P_DEFAULT);
+
+	hid_t pvESSI_id_Physical_Groups = H5Gcreate(id_File, "/pvESSI/Physical_Groups", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT); 	                                        
+	hid_t pvESSI_id_Physical_Element_Groups = H5Gcreate(id_File, "/pvESSI/Physical_Groups/Physical_Element_Groups", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);             
+	hid_t pvESSI_id_Physical_Node_Groups = H5Gcreate(id_File, "/pvESSI/Physical_Groups/Physical_Node_Groups", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);   
+
+    hid_t id_Physical_Group_Id;
+    int Length_of_individual_physical_group=0;
+
+	//**********/ Physical Element Groups **********************//
+
+    status = H5Ovisit (id_Physical_Element_Groups, H5_INDEX_NAME, H5_ITER_NATIVE, op_func, NULL);
+
+    for(int i=0; i<Physical_Group_Container.size(); ++i){
+
+    	const char *name = Physical_Group_Container[i].c_str();
+
+    	id_Physical_Group_Id =  H5Dopen(id_Physical_Element_Groups,name, H5P_DEFAULT);
+    	DataSpace = H5Dget_space(id_Physical_Group_Id);
+    	H5Sget_simple_extent_dims(DataSpace, dims1_out, NULL);
+    	int *Individual_Physical_group; Individual_Physical_group = (int*) malloc((dims1_out[0]) * sizeof(int)); 
+    	int *pvESSI_Individual_Physical_group; pvESSI_Individual_Physical_group = (int*) malloc((dims1_out[0]) * sizeof(int)); 
+    	offset1[0]=0;   	MemSpace = H5Screate_simple(1,dims1_out,NULL);
+		H5Sselect_hyperslab(DataSpace,H5S_SELECT_SET,offset1,NULL,dims1_out,NULL);
+		H5Dread(id_Physical_Group_Id, H5T_NATIVE_INT, MemSpace, DataSpace, H5P_DEFAULT, Individual_Physical_group); 
+		H5Sclose(MemSpace); status=H5Sclose(DataSpace); H5Dclose(id_Physical_Group_Id);
+
+		Length_of_individual_physical_group =0;
+		for(int j=0; j<(int)dims1_out[0];j++){
+			element_no = Individual_Physical_group[j];
+			if(Element_Class_Tags[element_no]!=-1){
+				// cout << Individual_Physical_group[j] << endl;;
+				// cout << Inverse_Element_Map[element_no] << endl;
+				pvESSI_Individual_Physical_group[Length_of_individual_physical_group++]=element_no;
+			}
+		}
+
+		dims1_out[0] = Length_of_individual_physical_group;
+		DataSpace = H5Screate_simple(1, dims1_out, NULL);
+		id_Physical_Group_Id = H5Dcreate(pvESSI_id_Physical_Element_Groups,name,H5T_NATIVE_INT,DataSpace,H5P_DEFAULT,H5P_DEFAULT, H5P_DEFAULT);
+		H5Sclose(DataSpace);
+
+		if(Length_of_individual_physical_group>0)
+		{
+			H5Dwrite(id_Physical_Group_Id, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,pvESSI_Individual_Physical_group);
+		}
+
+		H5Dclose(id_Physical_Group_Id);
+
+		delete [] pvESSI_Individual_Physical_group;
+		delete [] Individual_Physical_group;
+    }
+
+	//**********/ Physical Node Groups **********************//
+    Physical_Group_Container.clear();
+    status = H5Ovisit (id_Physical_Node_Groups, H5_INDEX_NAME, H5_ITER_NATIVE, op_func, NULL);
+
+    for(int i=0; i<Physical_Group_Container.size(); ++i){
+
+    	const char *name = Physical_Group_Container[i].c_str();
+
+    	id_Physical_Group_Id =  H5Dopen(id_Physical_Node_Groups,name, H5P_DEFAULT);
+    	DataSpace = H5Dget_space(id_Physical_Group_Id);
+    	H5Sget_simple_extent_dims(DataSpace, dims1_out, NULL);
+    	int *Individual_Physical_group; Individual_Physical_group = (int*) malloc((dims1_out[0]) * sizeof(int)); 
+    	int *pvESSI_Individual_Physical_group; pvESSI_Individual_Physical_group = (int*) malloc((dims1_out[0]) * sizeof(int)); 
+    	offset1[0]=0;   	MemSpace = H5Screate_simple(1,dims1_out,NULL);
+		H5Sselect_hyperslab(DataSpace,H5S_SELECT_SET,offset1,NULL,dims1_out,NULL);
+		H5Dread(id_Physical_Group_Id, H5T_NATIVE_INT, MemSpace, DataSpace, H5P_DEFAULT, Individual_Physical_group); 
+		H5Sclose(MemSpace); status=H5Sclose(DataSpace); H5Dclose(id_Physical_Group_Id);
+
+		Length_of_individual_physical_group =0;
+		for(int j=0; j<dims1_out[0];j++){
+			node_no = Individual_Physical_group[j];
+			if(Number_of_DOFs[node_no]!=-1){
+				// cout << Individual_Physical_group[j] << endl;;
+				// cout << Inverse_Node_Map[node_no] << endl;
+				pvESSI_Individual_Physical_group[Length_of_individual_physical_group++]=node_no;
+			}
+		}
+
+		dims1_out[0] = (hsize_t) Length_of_individual_physical_group;
+		DataSpace = H5Screate_simple(1, dims1_out, NULL);
+		id_Physical_Group_Id = H5Dcreate(pvESSI_id_Physical_Node_Groups,name,H5T_NATIVE_INT,DataSpace,H5P_DEFAULT,H5P_DEFAULT, H5P_DEFAULT);
+		H5Sclose(DataSpace);
+
+
+		if(Length_of_individual_physical_group>0)
+		{
+			H5Dwrite(id_Physical_Group_Id, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,pvESSI_Individual_Physical_group);
+		}
+
+		H5Dclose(id_Physical_Group_Id);
+
+		delete [] pvESSI_Individual_Physical_group;
+		delete [] Individual_Physical_group;
+    }
+
+	H5Gclose(pvESSI_id_Physical_Groups); 
+	H5Gclose(pvESSI_id_Physical_Element_Groups); 
+	H5Gclose(pvESSI_id_Physical_Node_Groups); 
+	H5Gclose(id_Physical_Element_Groups); 
+	H5Gclose(id_Physical_Node_Groups); 
 }
 
 /*****************************************************************************
@@ -2485,3 +2692,85 @@ std::string pvESSI::GetSourceFile(std::string filename) {
 }
 
 
+void pvESSI::SetPhysicalElementGroupArrayStatus(const char * name, int status){
+        if (status){
+                this->Physical_Element_Group->EnableArray(name);
+        }
+        else{
+                this->Physical_Element_Group->DisableArray(name);
+        }
+
+        this->Modified();
+}
+
+const char* pvESSI::GetPhysicalElementGroupArrayName(int index){
+	return this->Physical_Element_Group->GetArrayName(index);
+}
+
+int pvESSI::GetNumberOfPhysicalElementGroupArrays(){
+	return this->Physical_Element_Group->GetNumberOfArrays();
+}
+
+int pvESSI::GetPhysicalElementGroupArrayStatus(const char* name){
+
+	return this->Physical_Element_Group->GetArraySetting(name);
+
+}
+
+
+void pvESSI::SetPhysicalNodeGroupArrayStatus(const char * name, int status){
+        if (status){
+                this->Physical_Node_Group->EnableArray(name);
+        }
+        else{
+                this->Physical_Node_Group->DisableArray(name);
+        }
+
+        this->Modified();
+}
+
+const char* pvESSI::GetPhysicalNodeGroupArrayName(int index){
+	return this->Physical_Node_Group->GetArrayName(index);
+}
+
+int pvESSI::GetNumberOfPhysicalNodeGroupArrays(){
+	return this->Physical_Node_Group->GetNumberOfArrays();
+}
+
+int pvESSI::GetPhysicalNodeGroupArrayStatus(const char* name){
+
+	return this->Physical_Node_Group->GetArraySetting(name);
+
+}
+
+
+herr_t pvESSI::op_func (hid_t loc_id, const char *name, const H5O_info_t *info,void *operator_data)
+{
+    // printf ("/");               /* Print root group in object path */
+
+    /*
+     * Check if the current object is the root group, and if not print
+     * the full path name and type.
+     */
+    if (name[0] == '.')         /* Root group, do not print '.' */
+        // printf ("  (Group)\n");
+        printf ("<<<<pvESSI>>>>  Discovering Physical Groups ........   \n");
+    else
+        switch (info->type) {
+            case H5O_TYPE_GROUP:
+                // printf ("%s  (Group)\n", name);
+                break;
+            case H5O_TYPE_DATASET:
+                // printf ("%s  (Dataset)\n", name);
+            	printf ("%s  Found \n", name);
+                Physical_Group_Container.push_back(name);
+                break;
+            case H5O_TYPE_NAMED_DATATYPE:
+                // printf ("%s  (Datatype)\n", name);
+                break;
+            default:
+                printf ("%s  (Unknown)\n", name);
+        }
+
+    return 0;
+}

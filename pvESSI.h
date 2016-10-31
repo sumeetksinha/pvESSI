@@ -44,6 +44,7 @@
 #include <vtkAppendFilter.h>
 #include <QApplication>
 #include <QStyle>
+#include "vtkDataArraySelection.h"
 
 #include "pqApplicationCore.h"
 #include "pqObjectBuilder.h"
@@ -56,12 +57,14 @@ class pvESSI : public vtkUnstructuredGridAlgorithm{
 public:
   vtkTypeMacro(pvESSI,vtkUnstructuredGridAlgorithm);
   void PrintSelf(ostream& os, vtkIndent indent);
-  void Enable_Gauss_To_Node_Interpolation(int x){ Enable_Gauss_To_Node_Interpolation_Flag=false; if(x) Enable_Gauss_To_Node_Interpolation_Flag=true; this->Modified();}
-  void Show_Gauss_Mesh(int x){ Show_Gauss_Mesh_Flag=false; if(x) Show_Gauss_Mesh_Flag=true; this->Modified();}
-  void Build_pvESSI_Folder(int x){ Enable_Building_of_Maps_Flag=true; if(x) Enable_Building_of_Maps_Flag=false; this->Modified(); Enable_Initialization_Flag=true;}
-  void Enable_Relative_Displacement(int x ){ Enable_Relative_Displacement_Flag=false; if(x) Enable_Relative_Displacement_Flag=true; this->Modified();}
-  void Enable_Displacement_Probing(int x ){Enable_Displacement_Probing_Flag=false; if(x) Enable_Displacement_Probing_Flag=true; this->Modified();}
-  void Reference_Displacement_Index(int x ){ Reference_Displacement_Index_Flag=x;this->Modified();}
+  void Enable_Gauss_To_Node_Interpolation(int x){ if(!(x and Enable_Gauss_To_Node_Interpolation_Flag))this->Modified();  Enable_Gauss_To_Node_Interpolation_Flag=false; if(x) Enable_Gauss_To_Node_Interpolation_Flag=true; }
+  void Show_Gauss_Mesh(int x){ if(!(x and Show_Gauss_Mesh_Flag))this->Modified(); Show_Gauss_Mesh_Flag=false; if(x) Show_Gauss_Mesh_Flag=true;}
+  void Build_pvESSI_Folder(int x){ if(!(x and Enable_Building_of_Maps_Flag))this->Modified(); Enable_Building_of_Maps_Flag=true; if(x) Enable_Building_of_Maps_Flag=false; Enable_Initialization_Flag=true;}
+  void Enable_Relative_Displacement(int x ){if(!(x and Enable_Relative_Displacement_Flag))this->Modified();  Enable_Relative_Displacement_Flag=false; if(x) Enable_Relative_Displacement_Flag=true;}
+  void Enable_Displacement_Probing(int x ){ if(!(x and Enable_Displacement_Probing_Flag))this->Modified();   Enable_Displacement_Probing_Flag=false; if(x) Enable_Displacement_Probing_Flag=true;}
+  void Reference_Displacement_Index(int x ){if(x!=Reference_Displacement_Index_Flag)this->Modified();   Reference_Displacement_Index_Flag=x;}
+  void Enable_Physical_Node_Group_Selection(int x ){ if(!(x and Enable_Physical_Node_Group_Selection_Flag))this->Modified();  Enable_Physical_Node_Group_Selection_Flag=false; if(x) Enable_Physical_Node_Group_Selection_Flag=true;}
+  void Enable_Physical_Element_Group_Selection(int x ){ if(!(x and Enable_Physical_Element_Group_Selection_Flag))this->Modified();  Enable_Physical_Element_Group_Selection_Flag=false; if(x) Enable_Physical_Element_Group_Selection_Flag=true;}
 
   void PrintX(int x){}
 
@@ -81,7 +84,19 @@ public:
   int GetNumberOfTimeSteps(){
     return this->Number_of_Time_Steps;
   }
- 
+
+  /*************** Physical Element Groups ****************************/
+  void SetPhysicalElementGroupArrayStatus(const char* name, int status);
+  const char* GetPhysicalElementGroupArrayName(int index);
+  int GetNumberOfPhysicalElementGroupArrays();
+  int GetPhysicalElementGroupArrayStatus(const char* name);
+
+  /*************** Physical Node Groups ****************************/
+  void SetPhysicalNodeGroupArrayStatus(const char* name, int status);
+  const char* GetPhysicalNodeGroupArrayName(int index);
+  int GetNumberOfPhysicalNodeGroupArrays();
+  int GetPhysicalNodeGroupArrayStatus(const char* name);
+
 protected:
   pvESSI();
   ~pvESSI(){}
@@ -118,13 +133,10 @@ protected:
   bool single_file_visualization_mode; 
   
   /*************************** Visualization Parameters *****************************************/
-  int Display_Node_Mesh;              // Whether One Wants to display Node Mesh
-  int Display_Gauss_Mesh;             // Whether one wants to display gauss mesh
   int Build_Map_Status;               // Whether Map is Build
   bool *Whether_Node_Mesh_build;      // Whether Node Mesh Build For Domains
   bool *Whether_Gauss_Mesh_build;     // Whether Node Mesh Build For Domains
   bool Enable_Initialization_Flag;    // Whether Initialization Done
-  bool Enable_Gauss_Mesh;             // Enable Gauss Mesh  
   int piece_no;                       // Piece no or Processor no
   int num_of_pieces;                  // total number of pieces or processors
   int Number_of_Strain_Strain_Info;   // Total Number_of_Stress_Strain_Data_at_Nodes
@@ -199,6 +211,10 @@ protected:
   hid_t id_periods;
   hid_t id_values;
 
+  /************** Physical Groups ***************************/
+  hid_t id_Physical_Element_Groups;
+  hid_t id_Physical_Node_Groups;
+
   /************** General Variable **************************/
   hid_t DataSpace;
   hid_t DataSet;
@@ -212,6 +228,12 @@ protected:
   int Reference_Displacement_Index_Flag;
   bool Show_Gauss_Mesh_Flag;
   bool Enable_Displacement_Probing_Flag;
+  bool Whether_Physical_Group_Info_build;
+  bool Enable_Physical_Element_Group_Selection_Flag;
+  bool Enable_Physical_Node_Group_Selection_Flag;
+  vtkSmartPointer<vtkDataArraySelection> Physical_Node_Group;
+  vtkSmartPointer<vtkDataArraySelection> Physical_Element_Group;
+
 
 
   hsize_t  dims1_out[1], dims2_out[2];
@@ -293,7 +315,8 @@ protected:
                                    hsize_t *block,
                                    int* data);
 
-  void Append_Number_of_Elements_Shared(int message);
+static herr_t op_func (hid_t loc_id, const char *name, const H5O_info_t *info, void *operator_data);
+
 
   /************************* Some common Variables ********************************/
 
@@ -348,8 +371,10 @@ private:
   vtkSmartPointer<vtkUnstructuredGrid> *UGrid_Node_Mesh;                 // Contains the mesh of all domains
   vtkSmartPointer<vtkUnstructuredGrid> *UGrid_Gauss_Mesh;                // Contains the mesh of all domains
   vtkSmartPointer<vtkUnstructuredGrid> *UGrid_Current_Node_Mesh;         // Contains mesh with data attributes 
-  vtkSmartPointer<vtkUnstructuredGrid> *UGrid_Current_Gauss_Mesh;        // Contains mesh with data attributes   
+  vtkSmartPointer<vtkUnstructuredGrid> *UGrid_Current_Gauss_Mesh;        // Contains mesh with data attributes 
 
+  /****************************************** Physical Groups*********************************/
+  static std::vector<std::string> Physical_Group_Container;
   /******************************* Meta Data Arrays ********************************************/
 
   // Meta Data Arrays

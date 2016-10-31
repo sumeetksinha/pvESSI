@@ -74,53 +74,73 @@
         <Property name="Reference Index" />
       </PropertyGroup>
 
-<!--       <StringVectorProperty command="SetCellArrayStatus" 
-                            element_types="2 0" 
-                            information_property="CellArrayInfo" 
-                            label="Physical Element Groups" 
-                            name="CellArrayStatus" 
-                            number_of_elements="0" 
-                            number_of_elements_per_command="2" 
-                            repeat_command="1"> 
-        <ArrayListDomain name="array_list"
-                         attribute_type="Scalars"
-                         input_domain_name="inputs_array">
-          <RequiredProperties>
-            <Property name="Input"
-                      function="Input_Physical_Element_Arrays" />
-          </RequiredProperties>
-        </ArrayListDomain>
-      </StringVectorProperty> -->
-
-
-
-<!--       <StringVectorProperty name="CellArrayInfo" information_only="1">
-         <ArraySelectionInformationHelper attribute_name="Cell"/>
-      </StringVectorProperty>
-
-      <StringVectorProperty name="CellArrayStatus" command="SetCellArrayStatus" number_of_elements="0" repeat_command="1" number_of_elements_per_command="2" element_types="2 0"
-          information_property="CellArrayInfo" label="Cell Arrays">
-          <ArraySelectionDomain name="array_list">
-              <RequiredProperties>
-                  <Property name="CellArrayInfo" function="ArrayList"/>
-              </RequiredProperties>
-          </ArraySelectionDomain>
-      </StringVectorProperty>
- -->
-      <!-- Display the number of Particles -->
-<!--       <IntVectorProperty command="PrintX" default_values="1" number_of_elements="1" name="NumParticles"> 
-      </IntVectorProperty> -->
-     
-<!--       <IntVectorProperty name="TransformMode" number_of_elements="1" default_values="1">
-        <EnumerationDomain name="enum">
-          <Entry value="6" text="RigidBody"/>
-          <Entry value="7" text="Similarity"/>
-          <Entry value="12" text="Affine"/>
-        </EnumerationDomain>
+      <IntVectorProperty command="Enable_Physical_Element_Group_Selection" default_values="0" number_of_elements="1" name="Enable Physical Element Group Selection">
+        <BooleanDomain name="bool"/>
         <Documentation>
-          This property indicates which transform mode will be used.
-        </Documentation>
-      </IntVectorProperty> -->
+        This property enables/disables Physical Element Group Selection.
+        </Documentation>        
+      </IntVectorProperty>
+
+      <!--  Array Selection GUI Component -->
+      <StringVectorProperty information_only="1"
+                            name="PhysicalElementGroupArrayInfo">
+        <ArraySelectionInformationHelper attribute_name="PhysicalElementGroup" />
+      </StringVectorProperty>
+
+      <StringVectorProperty command="SetPhysicalElementGroupArrayStatus"
+                            element_types="2 0"
+                            information_property="PhysicalElementGroupArrayInfo"
+                            label="Physical Element Groups"
+                            name="PhysicalElementGroupArrayStatus"
+                            number_of_elements="0"
+                            number_of_elements_per_command="2"
+                            repeat_command="1">
+        <ArraySelectionDomain name="array_list">
+          <RequiredProperties>
+            <Property function="ArrayList"
+                      name="PhysicalElementGroupArrayInfo" />
+          </RequiredProperties>
+        </ArraySelectionDomain>
+        <Documentation>This property lists which cell-centered arrays toread.</Documentation>
+      </StringVectorProperty>
+
+      <StringVectorProperty information_only="1"
+                            name="PhysicalNodeGroupArrayInfo">
+        <ArraySelectionInformationHelper attribute_name="PhysicalNodeGroup" />
+      </StringVectorProperty>
+
+      <IntVectorProperty command="Enable_Physical_Node_Group_Selection" default_values="0" number_of_elements="1" name="Enable Physical Node Group Selection">
+        <BooleanDomain name="bool"/>
+        <Documentation>
+        This property enables/disables Physical Node Group Selection.
+        </Documentation>        
+      </IntVectorProperty>
+
+      <StringVectorProperty command="SetPhysicalNodeGroupArrayStatus"
+                            element_types="2 0"
+                            information_property="PhysicalNodeGroupArrayInfo"
+                            label="Physical Node Groups"
+                            name="PhysicalNodeGroupArrayStatus"
+                            number_of_elements="0"
+                            number_of_elements_per_command="2"
+                            repeat_command="1">
+        <ArraySelectionDomain name="array_list">
+          <RequiredProperties>
+            <Property function="ArrayList"
+                      name="PhysicalNodeGroupArrayInfo" />
+          </RequiredProperties>
+        </ArraySelectionDomain>
+        <Documentation>This property lists which cell-centered arrays toread.</Documentation>
+      </StringVectorProperty>
+
+ 
+      <PropertyGroup label="Physical Groups" >
+        <Property name="Enable Physical Element Group Selection"/>
+        <Property name="PhysicalElementGroupArrayStatus" />
+        <Property name="Enable Physical Node Group Selection"/>
+        <Property name="PhysicalNodeGroupArrayStatus" />
+      </PropertyGroup>
+
 
       <!--  For Time Step  -->
       <DoubleVectorProperty name="TimestepValues" repeatable="1" information_only="1">
@@ -130,9 +150,6 @@
         </Documentation>
      </DoubleVectorProperty>
      <!--  For Time Step  -->
-
-<!--       <DoubleVectorProperty name="YourDoubleVectorVariable"  number_of_elements="3"  default_values="1.0 0.0 0.0">
-      </DoubleVectorProperty> -->
 
       <Hints>
         <ReaderFactory extensions="feioutput" file_description="pvESSI" />
