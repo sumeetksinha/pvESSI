@@ -33,6 +33,7 @@
 #include "vtkSelectionNode.h"
 #include "vtkExtractSelection.h"
 #include "vtkSelection.h"
+#include "vtkGaussianSplatter.h"
 
 // LINK_LIBRARIES(hdf5_cpp hdf5 )
 
@@ -478,17 +479,17 @@ void pvESSI::Build_Gauss_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Gauss_M
 	Stress = vtkSmartPointer<vtkFloatArray> ::New();
 	this->Set_Meta_Array (Meta_Array_Map["Stress"]);
 
-	Von_Mises_Stress = vtkSmartPointer<vtkFloatArray> ::New();
-	this->Set_Meta_Array (Meta_Array_Map["Von_Mises_Stress"]);
+	q = vtkSmartPointer<vtkFloatArray> ::New();
+	this->Set_Meta_Array (Meta_Array_Map["q"]);
 
-	Confining_Stress = vtkSmartPointer<vtkFloatArray> ::New();
-	this->Set_Meta_Array (Meta_Array_Map["Confining_Stress"]);
+	p = vtkSmartPointer<vtkFloatArray> ::New();
+	this->Set_Meta_Array (Meta_Array_Map["p"]);
 
-	Plastic_Equivalent_Strain = vtkSmartPointer<vtkFloatArray> ::New();
-	this->Set_Meta_Array (Meta_Array_Map["Plastic_Equivalent_Strain"]);
+	Plastic_Strain_q = vtkSmartPointer<vtkFloatArray> ::New();
+	this->Set_Meta_Array (Meta_Array_Map["Plastic_Strain_q"]);
 
-	Plastic_Volumetric_Strain = vtkSmartPointer<vtkFloatArray> ::New();
-	this->Set_Meta_Array (Meta_Array_Map["Plastic_Volumetric_Strain"]);
+	Plastic_Strain_p = vtkSmartPointer<vtkFloatArray> ::New();
+	this->Set_Meta_Array (Meta_Array_Map["Plastic_Strain_p"]);
 
 
 	//////////////////////////////////// Usefull information about tensor components order ///////////////////////////////////////////////////////////////////////////
@@ -504,7 +505,7 @@ void pvESSI::Build_Gauss_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Gauss_M
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
  	int ngauss, Gauss_Output_Index, index_to_gauss_output =0;
- 	double Var_Plastic_Volumetric_Strain, Var_Plastic_Equivalent_Strain, Var_Confining_Stress, Var_Von_Mises_Stress;
+ 	double Var_Plastic_p, Var_Plastic_q, Var_p, Var_q;
 
 	for (int i = 0; i < this->Number_of_Elements; i++){
 
@@ -541,33 +542,33 @@ void pvESSI::Build_Gauss_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Gauss_M
 				Gauss_Outputs[Gauss_Output_Index+14]
 			};
 
-			Var_Plastic_Volumetric_Strain   = 1.0/3.0*(Gauss_Outputs[Gauss_Output_Index+6]+Gauss_Outputs[Gauss_Output_Index+7]+Gauss_Outputs[Gauss_Output_Index+8]);
-			Var_Plastic_Equivalent_Strain   = sqrt(3.0/2.0* (pow(Gauss_Outputs[Gauss_Output_Index+6]-Gauss_Outputs[Gauss_Output_Index+1],7) +
-										   					 pow(Gauss_Outputs[Gauss_Output_Index+7]-Gauss_Outputs[Gauss_Output_Index+2],8) +
-										   					 pow(Gauss_Outputs[Gauss_Output_Index+8]-Gauss_Outputs[Gauss_Output_Index+1],6) + 6*
-										   					 (	pow(Gauss_Outputs[Gauss_Output_Index+9],2)+
-										   					 	pow(Gauss_Outputs[Gauss_Output_Index+10],2)+
-										   					 	pow(Gauss_Outputs[Gauss_Output_Index+11],2))
-										  					 )
-												  );
+			Var_Plastic_p   = -1.0*(Gauss_Outputs[Gauss_Output_Index+6]+Gauss_Outputs[Gauss_Output_Index+7]+Gauss_Outputs[Gauss_Output_Index+8]);
+			Var_Plastic_q   = sqrt(2.0/9.0* (pow(Gauss_Outputs[Gauss_Output_Index+6]-Gauss_Outputs[Gauss_Output_Index+1],7) +
+					   					 pow(Gauss_Outputs[Gauss_Output_Index+7]-Gauss_Outputs[Gauss_Output_Index+2],8) +
+					   					 pow(Gauss_Outputs[Gauss_Output_Index+8]-Gauss_Outputs[Gauss_Output_Index+1],6) + 6*
+					   					 (	pow(Gauss_Outputs[Gauss_Output_Index+9],2)+
+					   					 	pow(Gauss_Outputs[Gauss_Output_Index+10],2)+
+					   					 	pow(Gauss_Outputs[Gauss_Output_Index+11],2))
+					  					 )
+							  );
 
-			Var_Confining_Stress   		   = 1.0/3.0*(Gauss_Outputs[Gauss_Output_Index+12]+Gauss_Outputs[Gauss_Output_Index+13]+Gauss_Outputs[Gauss_Output_Index+14]);
-			Var_Von_Mises_Stress 		   = sqrt(3.0/2.0* (pow(Gauss_Outputs[Gauss_Output_Index+12]-Gauss_Outputs[Gauss_Output_Index+13],2) +
-													   		pow(Gauss_Outputs[Gauss_Output_Index+13]-Gauss_Outputs[Gauss_Output_Index+14],2) +
-													   		pow(Gauss_Outputs[Gauss_Output_Index+14]-Gauss_Outputs[Gauss_Output_Index+13],2) + 6*
-													   		(	pow(Gauss_Outputs[Gauss_Output_Index+15],2)+
-													   			pow(Gauss_Outputs[Gauss_Output_Index+16],2)+
-													   			pow(Gauss_Outputs[Gauss_Output_Index+17],2))
-													  		)
-												 );
+			Var_p   	   = -1.0/3.0*(Gauss_Outputs[Gauss_Output_Index+12]+Gauss_Outputs[Gauss_Output_Index+13]+Gauss_Outputs[Gauss_Output_Index+14]);
+			Var_q 		   = sqrt(1.0/2.0* (pow(Gauss_Outputs[Gauss_Output_Index+12]-Gauss_Outputs[Gauss_Output_Index+13],2) +
+									   		pow(Gauss_Outputs[Gauss_Output_Index+13]-Gauss_Outputs[Gauss_Output_Index+14],2) +
+									   		pow(Gauss_Outputs[Gauss_Output_Index+14]-Gauss_Outputs[Gauss_Output_Index+13],2) + 6*
+									   		(	pow(Gauss_Outputs[Gauss_Output_Index+15],2)+
+									   			pow(Gauss_Outputs[Gauss_Output_Index+16],2)+
+									   			pow(Gauss_Outputs[Gauss_Output_Index+17],2))
+									  		)
+							 );
 
 			Elastic_Strain->InsertTypedTuple (index_to_gauss_output,El_Strain_Tuple);
 			Plastic_Strain->InsertTypedTuple (index_to_gauss_output,Pl_Strain_Tuple);
 			Stress->InsertTypedTuple (index_to_gauss_output,Stress_Tuple);
-			Plastic_Volumetric_Strain->InsertValue(index_to_gauss_output,Var_Plastic_Volumetric_Strain);
-			Plastic_Equivalent_Strain->InsertValue(index_to_gauss_output,Var_Plastic_Equivalent_Strain);
-			Confining_Stress->InsertValue(index_to_gauss_output,Var_Confining_Stress);	
-			Von_Mises_Stress->InsertValue(index_to_gauss_output,Var_Von_Mises_Stress);		
+			Plastic_Strain_p->InsertValue(index_to_gauss_output,Var_Plastic_p);
+			Plastic_Strain_q->InsertValue(index_to_gauss_output,Var_Plastic_q);
+			p->InsertValue(index_to_gauss_output,Var_p);	
+			q->InsertValue(index_to_gauss_output,Var_q);		
 			index_to_gauss_output+=1;
 
 		}
@@ -577,10 +578,10 @@ void pvESSI::Build_Gauss_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Gauss_M
 	Gauss_Mesh->GetPointData()->AddArray(Stress);
   	Gauss_Mesh->GetPointData()->AddArray(Plastic_Strain);
   	Gauss_Mesh->GetPointData()->AddArray(Elastic_Strain);
-	Gauss_Mesh->GetCellData()->AddArray(Plastic_Volumetric_Strain);
-  	Gauss_Mesh->GetCellData()->AddArray(Plastic_Equivalent_Strain);
-  	Gauss_Mesh->GetCellData()->AddArray(Confining_Stress);
-  	Gauss_Mesh->GetCellData()->AddArray(Von_Mises_Stress);
+	Gauss_Mesh->GetCellData()->AddArray(Plastic_Strain_p);
+  	Gauss_Mesh->GetCellData()->AddArray(Plastic_Strain_q);
+  	Gauss_Mesh->GetCellData()->AddArray(p);
+  	Gauss_Mesh->GetCellData()->AddArray(q);
 
 	return;
 }
@@ -613,6 +614,17 @@ void pvESSI::Build_ProbeFilter_Gauss_Mesh(vtkSmartPointer<vtkUnstructuredGrid> P
 	ProbeFilter->Update();
 
 	Probe_Input->ShallowCopy( ProbeFilter->GetOutput());
+
+	  // vtkSmartPointer<vtkGaussianSplatter> splatter = 
+	  //   vtkSmartPointer<vtkGaussianSplatter>::New();
+	  // splatter->SetInputData(Probe_Input);
+	  // splatter->SetSampleDimensions(50,50,50);
+	  // splatter->SetRadius(0.5);
+	  // splatter->ScalarWarpingOff();
+	  // splatter->Update();
+
+
+	// Probe_Input->ShallowCopy(splatter->GetOutput());
 
   	return;
 }
@@ -1052,23 +1064,23 @@ void pvESSI::Set_Meta_Array( int Meta_Array_Id ){
 			break;
 
 		case 11:
-			Von_Mises_Stress->SetName("Von_Mises_Stress");
-			Von_Mises_Stress->SetNumberOfComponents(1);
+			q->SetName("q");
+			q->SetNumberOfComponents(1);
 			break;
 
 		case 12:
-			Confining_Stress->SetName("Confining_Stress");
-			Confining_Stress->SetNumberOfComponents(1);
+			p->SetName("p");
+			p->SetNumberOfComponents(1);
 			break;
 
 		case 13:
-			Plastic_Equivalent_Strain->SetName("Plastic_Equivalent_Strain");
-			Plastic_Equivalent_Strain->SetNumberOfComponents(1);
+			Plastic_Strain_q->SetName("$\\epsilon^{pl}_{q}$");
+			Plastic_Strain_q->SetNumberOfComponents(1);
 			break;
 
 		case 14:
-			Plastic_Volumetric_Strain->SetName("Plastic_Volumetric_Strain");
-			Plastic_Volumetric_Strain->SetNumberOfComponents(1);
+			Plastic_Strain_p->SetName("$\\epsilon^{pl}_{p}$");
+			Plastic_Strain_p->SetNumberOfComponents(1);
 			break;
 
 		case 15:
@@ -1859,10 +1871,10 @@ void pvESSI::Build_Meta_Array_Map(){
 	/*8  */ Meta_Array_Map["Incremental_Energy"] = key; key=key+1;
 	/*9  */ Meta_Array_Map["Node_Tag"] = key; key=key+1;
 	/*10 */ Meta_Array_Map["Element_Tag"] = key; key=key+1;
-	/*11 */ Meta_Array_Map["Von_Mises_Stress"] = key; key=key+1;
-	/*12 */ Meta_Array_Map["Confining_Stress"] = key; key=key+1;
-	/*13 */ Meta_Array_Map["Plastic_Equivalent_Strain"] = key; key=key+1;
-	/*14 */ Meta_Array_Map["Plastic_Volumetric_Strain"] = key; key=key+1;
+	/*11 */ Meta_Array_Map["q"] = key; key=key+1;
+	/*12 */ Meta_Array_Map["p"] = key; key=key+1;
+	/*13 */ Meta_Array_Map["Plastic_Strain_q"] = key; key=key+1;
+	/*14 */ Meta_Array_Map["Plastic_Strain_p"] = key; key=key+1;
 	/*15 */ Meta_Array_Map["Support_Reactions"] = key; key=key+1;	
 	/*16 */ Meta_Array_Map["Boundary_Conditions"] = key; key=key+1;
 	/*16 */ Meta_Array_Map["Class_Tag"] = key; key=key+1;
@@ -2349,17 +2361,17 @@ void pvESSI::Build_Stress_Field_At_Nodes(vtkSmartPointer<vtkUnstructuredGrid> No
 	Stress = vtkSmartPointer<vtkFloatArray> ::New();
 	this->Set_Meta_Array (Meta_Array_Map["Stress"]);
 
-	Von_Mises_Stress = vtkSmartPointer<vtkFloatArray> ::New();
-	this->Set_Meta_Array (Meta_Array_Map["Von_Mises_Stress"]);
+	q = vtkSmartPointer<vtkFloatArray> ::New();
+	this->Set_Meta_Array (Meta_Array_Map["q"]);
 
-	Confining_Stress = vtkSmartPointer<vtkFloatArray> ::New();
-	this->Set_Meta_Array (Meta_Array_Map["Confining_Stress"]);
+	p = vtkSmartPointer<vtkFloatArray> ::New();
+	this->Set_Meta_Array (Meta_Array_Map["p"]);
 
-	Plastic_Equivalent_Strain = vtkSmartPointer<vtkFloatArray> ::New();
-	this->Set_Meta_Array (Meta_Array_Map["Plastic_Equivalent_Strain"]);
+	Plastic_Strain_q = vtkSmartPointer<vtkFloatArray> ::New();
+	this->Set_Meta_Array (Meta_Array_Map["Plastic_Strain_q"]);
 
-	Plastic_Volumetric_Strain = vtkSmartPointer<vtkFloatArray> ::New();
-	this->Set_Meta_Array (Meta_Array_Map["Plastic_Volumetric_Strain"]);
+	Plastic_Strain_p = vtkSmartPointer<vtkFloatArray> ::New();
+	this->Set_Meta_Array (Meta_Array_Map["Plastic_Strain_p"]);
 
 	count1[0]   =1;
 	dims1_out[0]=1;
@@ -2474,7 +2486,7 @@ void pvESSI::Build_Stress_Field_At_Nodes(vtkSmartPointer<vtkUnstructuredGrid> No
 
 					///////////////////// Calculating Stresses at gauss Points /////////////////////////////////
 
-					double  Var_Von_Mises_Stress, Var_Confining_Stress, Var_Plastic_Equivalent_Strain, Var_Plastic_Volumetric_Strain;
+					double  Var_q, Var_p, Var_Plastic_q, Var_Plastic_p;
 
 					for(int j=0; j< nnodes ; j++){
 
@@ -2492,30 +2504,30 @@ void pvESSI::Build_Stress_Field_At_Nodes(vtkSmartPointer<vtkUnstructuredGrid> No
 						// 						  		)
 						// 						 );
 
-						Var_Plastic_Volumetric_Strain   = 1.0/3.0*(Gauss_Outputs[index_2+6]+Gauss_Outputs[index_2+7]+Gauss_Outputs[index_2+8]);
-						Var_Plastic_Equivalent_Strain   = sqrt(3.0/2.0* (pow(Gauss_Outputs[index_2+6]-Gauss_Outputs[index_2+1],7) +
-													   					 pow(Gauss_Outputs[index_2+7]-Gauss_Outputs[index_2+2],8) +
-													   					 pow(Gauss_Outputs[index_2+8]-Gauss_Outputs[index_2+1],6) + 6*
-													   					 (	pow(Gauss_Outputs[index_2+9],2)+
-													   					 	pow(Gauss_Outputs[index_2+10],2)+
-													   					 	pow(Gauss_Outputs[index_2+11],2))
-													  					 )
-															  );
+						Var_Plastic_p   = -1.0*(Gauss_Outputs[index_2+6]+Gauss_Outputs[index_2+7]+Gauss_Outputs[index_2+8]);
+						Var_Plastic_q   = sqrt(2.0/9.0* (pow(Gauss_Outputs[index_2+6]-Gauss_Outputs[index_2+1],7) +
+									   					 pow(Gauss_Outputs[index_2+7]-Gauss_Outputs[index_2+2],8) +
+									   					 pow(Gauss_Outputs[index_2+8]-Gauss_Outputs[index_2+1],6) + 6*
+									   					 (	pow(Gauss_Outputs[index_2+9],2)+
+									   					 	pow(Gauss_Outputs[index_2+10],2)+
+									   					 	pow(Gauss_Outputs[index_2+11],2))
+									  					 )
+											  );
 
-						Var_Confining_Stress   		   = 1.0/3.0*(Gauss_Outputs[index_2+12]+Gauss_Outputs[index_2+13]+Gauss_Outputs[index_2+14]);
-						Var_Von_Mises_Stress 		   = sqrt(3.0/2.0* (pow(Gauss_Outputs[index_2+12]-Gauss_Outputs[index_2+13],2) +
-																   		pow(Gauss_Outputs[index_2+13]-Gauss_Outputs[index_2+14],2) +
-																   		pow(Gauss_Outputs[index_2+14]-Gauss_Outputs[index_2+13],2) + 6*
-																   		(	pow(Gauss_Outputs[index_2+15],2)+
-																   			pow(Gauss_Outputs[index_2+16],2)+
-																   			pow(Gauss_Outputs[index_2+17],2))
-																  		)
-															 );
+						Var_p   	   = -1.0/3.0*(Gauss_Outputs[index_2+12]+Gauss_Outputs[index_2+13]+Gauss_Outputs[index_2+14]);
+						Var_q 		   = sqrt(1.0/2.0* (pow(Gauss_Outputs[index_2+12]-Gauss_Outputs[index_2+13],2) +
+												   		pow(Gauss_Outputs[index_2+13]-Gauss_Outputs[index_2+14],2) +
+												   		pow(Gauss_Outputs[index_2+14]-Gauss_Outputs[index_2+13],2) + 6*
+												   		(	pow(Gauss_Outputs[index_2+15],2)+
+												   			pow(Gauss_Outputs[index_2+16],2)+
+												   			pow(Gauss_Outputs[index_2+17],2))
+												  		)
+											 );
 
-						Stress_Strain_At_Gauss_Points[j][18] = Var_Von_Mises_Stress;
-						Stress_Strain_At_Gauss_Points[j][19] = Var_Confining_Stress;
-						Stress_Strain_At_Gauss_Points[j][20] = Var_Plastic_Equivalent_Strain;
-						Stress_Strain_At_Gauss_Points[j][21] = Var_Plastic_Volumetric_Strain;
+						Stress_Strain_At_Gauss_Points[j][18] = Var_q;
+						Stress_Strain_At_Gauss_Points[j][19] = Var_p;
+						Stress_Strain_At_Gauss_Points[j][20] = Var_Plastic_q;
+						Stress_Strain_At_Gauss_Points[j][21] = Var_Plastic_p;
 
 					}
 
@@ -2611,7 +2623,7 @@ void pvESSI::Build_Stress_Field_At_Nodes(vtkSmartPointer<vtkUnstructuredGrid> No
     H5Dread(id_Stress_and_Strain, H5T_NATIVE_DOUBLE, MemSpace, DataSpace, H5P_DEFAULT, Node_Stress_And_Strain_Field); 
     H5Sclose(MemSpace); status=H5Sclose(DataSpace);
 
-    float Var_Von_Mises_Stress, Var_Confining_Stress, Var_Plastic_Equivalent_Strain, Var_Plastic_Volumetric_Strain;
+    float Var_q, Var_p, Var_Plastic_q, Var_Plastic_p;
 
 
 	for(int i=0; i< this->Number_of_Nodes; i++){	
@@ -2647,20 +2659,20 @@ void pvESSI::Build_Stress_Field_At_Nodes(vtkSmartPointer<vtkUnstructuredGrid> No
 		Plastic_Strain->InsertTypedTuple (i,Pl_Strain_Tuple);
 		Stress->InsertTypedTuple (i,Stress_Tuple);
 
-		Von_Mises_Stress->InsertValue(i,Node_Stress_And_Strain_Field[i][18]);
-		Confining_Stress->InsertValue(i,Node_Stress_And_Strain_Field[i][19]);
-		Plastic_Equivalent_Strain->InsertValue(i,Node_Stress_And_Strain_Field[i][20]);
-		Plastic_Volumetric_Strain->InsertValue(i,Node_Stress_And_Strain_Field[i][21]);
+		q->InsertValue(i,Node_Stress_And_Strain_Field[i][18]);
+		p->InsertValue(i,Node_Stress_And_Strain_Field[i][19]);
+		Plastic_Strain_q->InsertValue(i,Node_Stress_And_Strain_Field[i][20]);
+		Plastic_Strain_p->InsertValue(i,Node_Stress_And_Strain_Field[i][21]);
 	}
 
 	Node_Mesh->GetPointData()->AddArray(Elastic_Strain);
 	Node_Mesh->GetPointData()->AddArray(Plastic_Strain);
 	Node_Mesh->GetPointData()->AddArray(Stress);
 
-	Node_Mesh->GetPointData()->AddArray(Von_Mises_Stress);
-	Node_Mesh->GetPointData()->AddArray(Confining_Stress);
-	Node_Mesh->GetPointData()->AddArray(Plastic_Equivalent_Strain);
-	Node_Mesh->GetPointData()->AddArray(Plastic_Volumetric_Strain);
+	Node_Mesh->GetPointData()->AddArray(q);
+	Node_Mesh->GetPointData()->AddArray(p);
+	Node_Mesh->GetPointData()->AddArray(Plastic_Strain_q);
+	Node_Mesh->GetPointData()->AddArray(Plastic_Strain_p);
 	cout << "<<<<pvESSI>>>> Build_Stress_Field_At_Nodes:: Calculation done for the step no  " << Node_Mesh_Current_Time << endl;
 
 	return;

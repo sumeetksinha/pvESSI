@@ -391,10 +391,10 @@ private:
   vtkSmartPointer<vtkFloatArray> Stress;
 
   // Stress-Strain Invariants
-  vtkSmartPointer<vtkFloatArray> Von_Mises_Stress;
-  vtkSmartPointer<vtkFloatArray> Confining_Stress;
-  vtkSmartPointer<vtkFloatArray> Plastic_Equivalent_Strain;
-  vtkSmartPointer<vtkFloatArray> Plastic_Volumetric_Strain;
+  vtkSmartPointer<vtkFloatArray> q;
+  vtkSmartPointer<vtkFloatArray> p;
+  vtkSmartPointer<vtkFloatArray> Plastic_Strain_q;
+  vtkSmartPointer<vtkFloatArray> Plastic_Strain_p;
 
   // Tags
   vtkSmartPointer<vtkIntArray>   Material_Tag;
