@@ -509,9 +509,10 @@ void pvESSI::Build_Gauss_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Gauss_M
 	for (int i = 0; i < this->Number_of_Elements; i++){
 
     	ngauss = (Element_Desc_Array[Element_Class_Tags[i]]%100000)/100;
-		Gauss_Output_Index = index_to_gauss_output*18;
 
 		for(int j=0; j< ngauss ; j++){
+
+			Gauss_Output_Index = index_to_gauss_output*18;
 
 			float El_Strain_Tuple[6] ={
 				Gauss_Outputs[Gauss_Output_Index  ],
@@ -2542,7 +2543,7 @@ void pvESSI::Build_Stress_Field_At_Nodes(vtkSmartPointer<vtkUnstructuredGrid> No
 					///////////////////////// Adding the Calculated Stresses at Nodes //////////////////////////
 					int node_no=0;
 					for(int j=0; j< nnodes ; j++){
-						node_no = Element_Connectivity[connectivity_index+Nodes_Connectivity_Order[j]];
+						node_no = Element_Connectivity[connectivity_index+j];
 						// cout << "connectivity_index " << connectivity_index <<" node_no " << node_no  << " class_tag " << class_tag<< endl;
 						for(int k=0; k< this->Number_of_Strain_Strain_Info ; k++){
 							Node_Stress_And_Strain_Field[node_no][k] = Node_Stress_And_Strain_Field[node_no][k] + Stress_Strain_At_Nodes[j][k] ;
