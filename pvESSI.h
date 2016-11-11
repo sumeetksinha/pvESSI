@@ -127,6 +127,9 @@ protected:
   int Pseudo_Number_of_Nodes;         // Stores the max Node Tag in each demain 
   int Number_of_Constrained_Dofs;     // Number of constrained dofs
 
+  /********************************* Output Class_DESC_ENCODING Format *************************/
+  int ELE_TAG_DESC_ENCODING;
+
   /********************************** Model Info *************************************************/
   int Number_of_Processes_Used;       // Number of Processes used
   int Process_Number;

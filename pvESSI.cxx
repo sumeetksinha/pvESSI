@@ -42,6 +42,10 @@
 // cmake .. -DParaView_DIR="/home/sumeet/Softwares/ParaView-v4.4.0" -DGHOST_BUILD_CDAWEB=OFF
 /************************************************************************************************************************************************/
 
+#define NUMBER_OF_NODES(class_tag_desc)             (class_tag_desc/(int)pow(10.0,(9-(ELE_TAG_DESC_ENCODING/(int)pow(10.0,7))%100%10)))%((int)pow(10.0,((ELE_TAG_DESC_ENCODING/(int)pow(10.0,7))%100%10   - (ELE_TAG_DESC_ENCODING/(int)pow(10.0,8))%100%10  + 1)))
+#define NUMBER_OF_GAUSS(class_tag_desc)             (class_tag_desc/(int)pow(10.0,(9-(ELE_TAG_DESC_ENCODING/(int)pow(10.0,5))%100%10)))%((int)pow(10.0,((ELE_TAG_DESC_ENCODING/(int)pow(10.0,5))%100%10   - (ELE_TAG_DESC_ENCODING/(int)pow(10.0,6))%100%10  + 1))) 
+#define NUMBER_OF_ELEMENT_OUTPUTS(class_tag_desc)   (class_tag_desc/(int)pow(10.0,(9-(ELE_TAG_DESC_ENCODING/(int)pow(10.0,3))%100%10)))%((int)pow(10.0,((ELE_TAG_DESC_ENCODING/(int)pow(10.0,3))%100%10   - (ELE_TAG_DESC_ENCODING/(int)pow(10.0,4))%100%10  + 1))) 
+
 std::vector<std::string> pvESSI::Physical_Group_Container;
 vtkStandardNewMacro(pvESSI);
 
@@ -509,7 +513,7 @@ void pvESSI::Build_Gauss_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Gauss_M
 
 	for (int i = 0; i < this->Number_of_Elements; i++){
 
-    	ngauss = (Element_Desc_Array[Element_Class_Tags[i]]%100000)/100;
+    	ngauss = NUMBER_OF_GAUSS(Element_Desc_Array[Element_Class_Tags[i]]);
 
 		for(int j=0; j< ngauss ; j++){
 
@@ -779,7 +783,8 @@ void pvESSI::Get_Node_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh){
 
 	for (int i = 0; i < Number_of_Elements; i++){
 
-        nnodes     = (Element_Desc_Array[Element_Class_Tags[i]]/1000000)%100;  // Number of element nodes
+        nnodes     = NUMBER_OF_NODES(Element_Desc_Array[Element_Class_Tags[i]]);  // Number of element nodes
+
 		Material_Tag->InsertValue(i,Element_Material_Tags[i]);
 		Element_Tag->InsertValue(i,Element_Map[i]);
 		Class_Tag->InsertValue(i,Element_Class_Tags[i]);
@@ -1218,6 +1223,8 @@ void pvESSI::Initialize(){
 	Element_Desc_Array = new int[dims1_out[0]];
 	H5Dread(id_Element_Class_Desc, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Element_Desc_Array);
 	H5Dclose(id_Element_Class_Desc);
+
+	ELE_TAG_DESC_ENCODING = Element_Desc_Array[0];  // Class_DESC_ENCODING
 
 	H5Fclose(id_File);		// close the file
 
@@ -1692,8 +1699,8 @@ void pvESSI::Build_Maps(){
 
 		class_tag  = Element_Class_Tags[index];
 		class_desc = Element_Desc_Array[class_tag];
-        nnodes     = (class_desc/1000000)%100;  // Number of element nodes
-        ngauss     = (class_desc%100000)/100;  // Number of gauss nodes
+        nnodes     = NUMBER_OF_NODES(class_desc); // Number of element nodes
+        ngauss     = NUMBER_OF_GAUSS(class_desc); // Number of gauss nodes
 
         // cout <<  nnodes << " " << ngauss << endl;
 
@@ -2507,9 +2514,9 @@ void pvESSI::Build_Stress_Field_At_Nodes(vtkSmartPointer<vtkUnstructuredGrid> No
 		for (int i = 0; i < this->Number_of_Elements; ++i)
 		{
 
-			class_tag  =  Element_Class_Tags[i];
-			nnodes     = (Element_Desc_Array[class_tag]/1000000)%100;  // Number of element nodes
-			ngauss     = (Element_Desc_Array[class_tag]%100000)/100;  // Number of element gauss nodes
+			class_tag  = Element_Class_Tags[i];
+			nnodes     = NUMBER_OF_NODES(Element_Desc_Array[class_tag]); // Number of element nodes
+			ngauss     = NUMBER_OF_GAUSS(Element_Desc_Array[class_tag]); // Number of element gauss nodes
 
 			// cout << class_tag << "  " << nnodes << " " << ngauss << " " << endl;
 
