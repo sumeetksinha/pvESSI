@@ -645,6 +645,38 @@ void pvESSI::Get_Node_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh){
 	int Element_Map[Number_of_Elements];
 	H5Dread(id_Element_Map, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Element_Map); 
 
+	/////////////////////////////////////////////////// Reading Element Partitioning Information ///////////////////////////////////////////////////////////////////
+
+	int *Element_Partition;
+	int *Inverse_Element_Map;
+
+	if(Number_of_Processes_Used>1)
+	{
+
+		DataSpace = H5Dget_space(id_Inverse_Element_Map);
+		H5Sget_simple_extent_dims(DataSpace, dims1_out, NULL);
+		Inverse_Element_Map = (int*) malloc((dims1_out[0]) * sizeof(int)); 
+		offset1[0]=0;   	MemSpace = H5Screate_simple(1,dims1_out,NULL);
+		H5Sselect_hyperslab(DataSpace,H5S_SELECT_SET,offset1,NULL,dims1_out,NULL);
+		H5Dread(id_Inverse_Element_Map, H5T_NATIVE_INT, MemSpace, DataSpace, H5P_DEFAULT, Inverse_Element_Map); 
+		H5Sclose(MemSpace); status=H5Sclose(DataSpace); H5Dclose(id_Inverse_Element_Map);
+
+
+		// getting the master file containing physical group
+		std::string Source_File = GetSourceFile(this->FileName)+"feioutput";
+		hid_t id_Source_File = H5Fopen(Source_File.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
+		id_Element_Partition = H5Dopen(id_Source_File, "/Model/Elements/Partition", H5P_DEFAULT);
+
+		DataSpace = H5Dget_space(id_Element_Partition);
+		H5Sget_simple_extent_dims(DataSpace, dims1_out, NULL);
+		Element_Partition = (int*) malloc((dims1_out[0]) * sizeof(int)); 
+		offset1[0]=0;   	MemSpace = H5Screate_simple(1,dims1_out,NULL);
+		H5Sselect_hyperslab(DataSpace,H5S_SELECT_SET,offset1,NULL,dims1_out,NULL);
+		H5Dread(id_Element_Partition, H5T_NATIVE_INT, MemSpace, DataSpace, H5P_DEFAULT, Element_Partition); 
+		H5Sclose(MemSpace); status=H5Sclose(DataSpace); H5Dclose(id_Element_Partition);
+
+	}
+
 	////////////////////////////////////////////////////// Reading Node Attributes /////////////////////////////////////////////////////////////////////////////
 
 	DataSpace = H5Dget_space(id_Coordinates);
@@ -733,6 +765,14 @@ void pvESSI::Get_Node_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh){
 	this->Set_Meta_Array (Meta_Array_Map["Class_Tag"]);
 	Class_Tag->Allocate(Number_of_Elements);
 
+
+	if(Number_of_Processes_Used>1){
+		Partition_Info = vtkSmartPointer<vtkIntArray> ::New();
+		this->Set_Meta_Array (Meta_Array_Map["Partition_Info"]);
+		Partition_Info->Allocate(Number_of_Elements);		
+	}
+
+
 	int connectivity_index =0;
 	int nnodes = 0;
 	int Cell_Type;
@@ -743,6 +783,8 @@ void pvESSI::Get_Node_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh){
 		Material_Tag->InsertValue(i,Element_Material_Tags[i]);
 		Element_Tag->InsertValue(i,Element_Map[i]);
 		Class_Tag->InsertValue(i,Element_Class_Tags[i]);
+
+		if(Number_of_Processes_Used>1) {Partition_Info->InsertValue(i,Element_Partition[Element_Map[i]]); }
 
 		vtkIdType Vertices[nnodes];
 		Cell_Type = ESSI_to_VTK_Element.find(nnodes)->second;
@@ -760,6 +802,7 @@ void pvESSI::Get_Node_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh){
 	Node_Mesh->GetCellData()->AddArray(Material_Tag);
 	Node_Mesh->GetCellData()->AddArray(Element_Tag);
 	Node_Mesh->GetCellData()->AddArray(Class_Tag);
+	if(Number_of_Processes_Used>1) Node_Mesh->GetCellData()->AddArray(Partition_Info);
 
 	Whether_Node_Mesh_build[domain_no] = true;
 
@@ -1100,6 +1143,10 @@ void pvESSI::Set_Meta_Array( int Meta_Array_Id ){
 		case 17:
 			Class_Tag->SetName("Class_Tag");
 			Class_Tag->SetNumberOfComponents(1);
+			break;
+		case 18:
+			Partition_Info->SetName("Partition_Info");
+			Partition_Info->SetNumberOfComponents(1);
 			break;
 	}
 
@@ -1877,7 +1924,8 @@ void pvESSI::Build_Meta_Array_Map(){
 	/*14 */ Meta_Array_Map["Plastic_Strain_p"] = key; key=key+1;
 	/*15 */ Meta_Array_Map["Support_Reactions"] = key; key=key+1;	
 	/*16 */ Meta_Array_Map["Boundary_Conditions"] = key; key=key+1;
-	/*16 */ Meta_Array_Map["Class_Tag"] = key; key=key+1;
+	/*17 */ Meta_Array_Map["Class_Tag"] = key; key=key+1;
+	/*18 */ Meta_Array_Map["Partition_Info"] = key; key=key+1;
 }
 
 void pvESSI::Build_Inverse_Matrices(){

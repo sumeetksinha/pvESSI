@@ -190,6 +190,10 @@ protected:
   hid_t id_Number_of_Elements_Shared;
   hid_t id_Number_of_Gauss_Elements_Shared;
 
+  /*************** Partition Info *************************/
+  hid_t id_Node_Partition;
+  hid_t id_Element_Partition;
+
   /*************** Field at Nodes ***************************/
   hid_t id_Field_at_Nodes_group;
   hid_t id_Stress_and_Strain;
@@ -404,7 +408,11 @@ private:
 
   // Energy 
   vtkSmartPointer<vtkIntArray>   Total_Energy;
-  vtkSmartPointer<vtkIntArray>   Incremental_Energy;
+  vtkSmartPointer<vtkIntArray>   Incremental_Energy;  
+
+  // Partition Information 
+  vtkSmartPointer<vtkIntArray>   Partition_Info; // For Elements
+
 
   /***************************** Mesh Building Functions ******************************************/
 
