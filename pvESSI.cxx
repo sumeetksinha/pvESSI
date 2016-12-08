@@ -1226,6 +1226,10 @@ void pvESSI::Initialize(){
 
 	ELE_TAG_DESC_ENCODING = Element_Desc_Array[0];  // Class_DESC_ENCODING
 
+	if(ELE_TAG_DESC_ENCODING==-1)
+		ELE_TAG_DESC_ENCODING = 235789180;
+
+
 	H5Fclose(id_File);		// close the file
 
 	// Initializing Time vector
