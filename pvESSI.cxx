@@ -1327,7 +1327,7 @@ void pvESSI::Domain_Initializer(int Domain_Number){
 
 	  if(id_pvESSI>0 and Enable_Building_of_Maps_Flag) { // Every thing is ready to go
 
-        cout << "<<<<pvESSI>>>> Maps are build HURRAY!!! \n" << endl;
+        cout << "<<<<pvESSI>>>>  Maps are build HURRAY!!! \n" << endl;
 
 		// Finiding Number of connectivity nodes
 		this->id_Connectivity = H5Dopen(id_File, "Model/Elements/Connectivity", H5P_DEFAULT);
@@ -1347,10 +1347,10 @@ void pvESSI::Domain_Initializer(int Domain_Number){
 	  }
 	  else{ // We need to build the pvESSI folder
 
-		cout << "<<<<pvESSI>>>> Maps Not Build, So lets go and build it first \n " << endl;
+		cout << "<<<<pvESSI>>>>  Maps Not Build, So lets go and build it first \n " << endl;
 		Build_Maps();
 		Enable_Building_of_Maps_Flag = true;
-		cout << "<<<<pvESSI>>>> Maps are now built \n " << endl;
+		cout << "<<<<pvESSI>>>>  Maps are now built \n " << endl;
 
 	  }
 
@@ -1616,15 +1616,15 @@ void pvESSI::Build_Maps(){
 
 
 	//************** Building Node Map datset *******************************//
-	int Node_Map[Number_of_Nodes];
-	int pvESSI_Number_of_DOFs[Number_of_Nodes];
-	int Inverse_Node_Map[Pseudo_Number_of_Nodes];
-	int pvESSI_Constrained_Nodes[Number_of_Constrained_Dofs];
+	int *Node_Map; Node_Map = (int*) malloc((Number_of_Nodes) * sizeof(int));
+	int *pvESSI_Number_of_DOFs; pvESSI_Number_of_DOFs = (int*) malloc((Number_of_Nodes) * sizeof(int));
+	int *Inverse_Node_Map; Inverse_Node_Map = (int*) malloc((Pseudo_Number_of_Nodes) * sizeof(int));
+	int *pvESSI_Constrained_Nodes; pvESSI_Constrained_Nodes = (int*) malloc((Number_of_Constrained_Dofs) * sizeof(int));
 
-	int Number_of_DOFs[Pseudo_Number_of_Nodes];
+    int *Number_of_DOFs; Number_of_DOFs = (int*) malloc((Pseudo_Number_of_Nodes) * sizeof(int)); 
 	H5Dread(id_Number_of_DOFs, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Number_of_DOFs);
 
-	int Constrained_Nodes[Number_of_Constrained_Dofs];
+    int *Constrained_Nodes; Constrained_Nodes = (int*) malloc((Number_of_Constrained_Dofs) * sizeof(int));
 	H5Dread(id_Constrained_Nodes, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Constrained_Nodes);
 
 	index   = -1;
@@ -1660,31 +1660,30 @@ void pvESSI::Build_Maps(){
 
 
 	//************** Building Element Map datset *******************************//
-	int Element_Map[Number_of_Elements];
-	int pvESSI_Connectivity[Number_of_Connectivity_Nodes];
-	int pvESSI_Class_Tags[Number_of_Elements];
-	int pvESSI_Material_Tags[Number_of_Elements];
-	int Inverse_Element_Map[Pseudo_Number_of_Elements];
-	int Number_of_Elements_Shared[Number_of_Nodes];
-	int Number_of_gauss_Elements_Shared[Number_of_Nodes];
+	int *Element_Map; Element_Map = (int*) malloc((Number_of_Elements) * sizeof(int));
+	int *pvESSI_Connectivity; pvESSI_Connectivity = (int*) malloc((Number_of_Connectivity_Nodes) * sizeof(int));
+	int *pvESSI_Class_Tags; pvESSI_Class_Tags = (int*) malloc((Number_of_Elements) * sizeof(int));
+	int *pvESSI_Material_Tags; pvESSI_Material_Tags = (int*) malloc((Pseudo_Number_of_Elements) * sizeof(int));
+	int *Inverse_Element_Map; Inverse_Element_Map = (int*) malloc((Number_of_Elements) * sizeof(int));
+	int *Number_of_Elements_Shared; Number_of_Elements_Shared = (int*) malloc((Number_of_Nodes) * sizeof(int));
+	int *Number_of_gauss_Elements_Shared; Number_of_gauss_Elements_Shared = (int*) malloc((Number_of_Nodes) * sizeof(int));
 
 	for (int i = 0 ; i<Number_of_Nodes; i++){
 		Number_of_Elements_Shared[i]       = 0;
 		Number_of_gauss_Elements_Shared[i] = 0;
 	}
 
-	int Element_Class_Tags[Pseudo_Number_of_Elements];
+	int *Element_Class_Tags; Element_Class_Tags = (int*) malloc((Pseudo_Number_of_Elements) * sizeof(int));
 	H5Dread(id_Class_Tags, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Element_Class_Tags);
 
-
-    int Element_Connectivity[Number_of_Connectivity_Nodes];
+	int *Element_Connectivity; Element_Connectivity = (int*) malloc((Number_of_Connectivity_Nodes) * sizeof(int));
 	H5Dread(id_Connectivity, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Element_Connectivity); 
 
 	this->id_Index_to_Connectivity = H5Dopen(id_File, "Model/Elements/Index_to_Connectivity", H5P_DEFAULT);
-    int Element_Index_to_Connectivity[Pseudo_Number_of_Elements];
+	int *Element_Index_to_Connectivity; Element_Index_to_Connectivity = (int*) malloc((Pseudo_Number_of_Elements) * sizeof(int));
 	H5Dread(id_Index_to_Connectivity, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Element_Index_to_Connectivity); 
 
-	int Material_Tags[Pseudo_Number_of_Elements];
+	int *Material_Tags; Material_Tags = (int*) malloc((Pseudo_Number_of_Elements) * sizeof(int));
 	H5Dread(id_Material_Tags, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Material_Tags); 
 
 	std::map<int,double**>::iterator it;
