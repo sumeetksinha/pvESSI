@@ -1306,6 +1306,7 @@ void pvESSI::Domain_Initializer(int Domain_Number){
 	****************************************************************************************/
 
 	  /***************** File_id **********************************/
+	  cout << filename.c_str() <<endl;
 	  this->id_File = H5Fopen(filename.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
 
 	  /***************** Read Model Information *******************/
@@ -2755,7 +2756,8 @@ std::string pvESSI::GetSourceFile(std::string filename) {
     Source_File = Source_File +std::string(pch)+".";
     if(strcmp(pch, "h5") == 0)
 		break;
-	pch = strtok (NULL, " ,.-");
+	// pch = strtok (NULL, " ,.-");
+	pch = strtok (NULL, ".");
   }
  
  // cout << "Source_File " <<  Source_File << endl;
