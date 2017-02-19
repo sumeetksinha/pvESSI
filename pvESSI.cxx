@@ -74,8 +74,11 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 	vtkInformation *Node_Mesh = outputVector->GetInformationObject(0);
 	// outInfo->Print(std::cout);
 
+  	cout << "this->Node_Mesh_Current_Time " << Node_Mesh->Get(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP()) << endl;
+
 	// Get Current Time;
   	this->Node_Mesh_Current_Time = Time_Map.find( Node_Mesh->Get(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP()))->second;
+
 
 	piece_no = Node_Mesh->Get(vtkStreamingDemandDrivenPipeline::UPDATE_PIECE_NUMBER());
 	num_of_pieces = Node_Mesh->Get(vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_PIECES());
@@ -1269,10 +1272,11 @@ void pvESSI::Initialize(){
 		eigen_mode_on = true;
 	}
 
-    this->Time = new double[Number_of_Time_Steps]; 
-	// this->id_time = H5Dopen(id_File, "/time", H5P_DEFAULT); 
-	// H5Dread(id_time, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Time);
-	// H5Dclose(id_time);
+    this->Time = new double[Number_of_Time_Steps];
+    float temp_Time [Number_of_Time_Steps];
+	this->id_time = H5Dopen(id_File, "/time", H5P_DEFAULT); 
+	H5Dread(id_time, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT,temp_Time);
+	H5Dclose(id_time);
 
     /***************** Model Info *******************************/
 	this->id_Number_of_Iterations      = H5Dopen(id_File, "/Number_of_Iterations", H5P_DEFAULT);
@@ -1308,9 +1312,8 @@ void pvESSI::Initialize(){
 	H5Fclose(id_File);		// close the file
 
 	// Initializing Time vector
-	// Need to Fix it to get actual time. Currently it takes only from 1-N
 	for(int p=0; p<Number_of_Time_Steps;p++)
-		this->Time[p]=p;
+		this->Time[p]=temp_Time[p];
 
 	Build_Time_Map(); 
 
@@ -1978,7 +1981,17 @@ void pvESSI::Build_Maps(){
 void pvESSI::Build_Time_Map(){
 
 	for (int i = 0;i<Number_of_Time_Steps ; i++){
-		Time_Map[Time[i]] = i;
+
+		// check if already in map 
+		// double store_time_step_no = 0;
+		if(Time_Map.find(Time[i])== Time_Map.end()){
+			Time_Map[Time[i]] = i;
+			// store_time_step_no = i;
+		}
+		else{
+			cout << "<<<<pvESSI>>>> Reappearance of time_step " << Time[i] << "s . Will show the visialization for original time" << endl;
+		
+		}
 	}
 
 	return;
