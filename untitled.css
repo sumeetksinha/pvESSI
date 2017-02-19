@@ -1,0 +1,27 @@
+.ggss_member_portfolio_img
+    {
+        width:200px;
+        height: 260px;
+    }
+
+.ggss_member_portfolio_left div
+	{
+		float: left;
+		width: 200px;
+		border: overflow: hidden;
+		border-left: 0px;
+		padding-left: 0px;
+		padding-top: 10px;
+	}
+
+.ggss_member_portfolio_right div
+	{
+		float: left;
+		width: 74%;
+		border: overflow: hidden;
+		padding-left: 0px;
+		padding-right: 0px;
+		padding-top: 0px;
+		font-size:82%
+	}
+

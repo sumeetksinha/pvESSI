@@ -8,8 +8,8 @@
          short_help="Read a .feioutput file produced by UCD ESSI (Earthquake Soil-Structure Interaction Simulator Program) ">
       </Documentation>
 
-       <OutputPort name="Node Mesh" index="0" />
-	   <OutputPort name="Gaush Mesh" index="1" />
+      <OutputPort name="Node Mesh" index="0" />
+	    <OutputPort name="Gaush Mesh" index="1" />
    
       <StringVectorProperty name="FileName" animateable="0" command="SetFileName" number_of_elements="1">
         <FileListDomain name="files"/>
@@ -18,54 +18,129 @@
         </Documentation>
       </StringVectorProperty>
 
-      <IntVectorProperty command="Plot_Node_Mesh" default_values="1" number_of_elements="1" name="ShowNodeMesh">
+      <IntVectorProperty command="Enable_Gauss_To_Node_Interpolation" default_values="0" number_of_elements="1" name="Enable Gauss To Node Interpolation">
         <BooleanDomain name="bool"/>
         <Documentation>
-          This property specifies specifies whether to plot the gaussian coordinates or general coordinates.
+          This property specifies whether to perform gauss to node interpolation or not.
         </Documentation>        
       </IntVectorProperty>
 
-      <IntVectorProperty command="Plot_Gauss_Mesh" default_values="0" number_of_elements="1" name="ShowGaussMesh">
+      <IntVectorProperty command="Build_pvESSI_Folder" default_values="0" number_of_elements="1" name="Build pvESSI Folder">
         <BooleanDomain name="bool"/>
         <Documentation>
-          This property specifies specifies whether to show the general coordinates.
+          This property specifies whether to regenerate pvESSI folder.
         </Documentation>        
       </IntVectorProperty>
 
-      <IntVectorProperty command="Plot_All_Mesh" default_values="0" number_of_elements="1" name="ShowGeneralMesh--currently not available">
+      <IntVectorProperty command="Enable_Relative_Displacement" default_values="0" number_of_elements="1" name="Enable Relative Displacement">
         <BooleanDomain name="bool"/>
         <Documentation>
-          This property specifies specifies whether to show the general coordinates.
+        This property specifies the whether to show relative displacements or not.
         </Documentation>        
       </IntVectorProperty>
 
-<!--       <StringVectorProperty name="CellArrayInfo" information_only="1">
-         <ArraySelectionInformationHelper attribute_name="Cell"/>
+      <IntVectorProperty command="Reference_Displacement_Index" default_values="0" number_of_elements="1" name="Reference Index">
+        <Documentation>
+        This property specifies the reference index to displacement.
+        </Documentation>        
+      </IntVectorProperty>
+
+      <IntVectorProperty command="Show_Gauss_Mesh" default_values="0" number_of_elements="1" name="Show Gauss Mesh">
+        <BooleanDomain name="bool"/>
+        <Documentation>
+          This property specifies whether to perform gauss to node interpolation or not.
+        </Documentation>        
+      </IntVectorProperty>
+
+      <IntVectorProperty command="Enable_Displacement_Probing" default_values="0" number_of_elements="1" name="Enable Displacement Probing">
+        <BooleanDomain name="bool"/>
+        <Documentation>
+        This property specifies the reference index to displacement.
+        </Documentation>        
+      </IntVectorProperty>
+
+      <PropertyGroup label="pvESSI build options" >
+        <Property name="Build pvESSI Folder" />
+        <Property name="Enable Gauss To Node Interpolation" />
+        <Property name="Enable Relative Displacement" />
+      </PropertyGroup>
+
+      <PropertyGroup label="pvESSI Gauss Mesh options" >
+        <Property name="Show Gauss Mesh"/>
+        <Property name="Enable Displacement Probing" />
+      </PropertyGroup>
+
+      <PropertyGroup label="Relative Displacement" >
+        <Property name="Reference Index" />
+      </PropertyGroup>
+
+      <IntVectorProperty command="Enable_Physical_Element_Group_Selection" default_values="0" number_of_elements="1" name="Enable Physical Element Group Selection">
+        <BooleanDomain name="bool"/>
+        <Documentation>
+        This property enables/disables Physical Element Group Selection.
+        </Documentation>        
+      </IntVectorProperty>
+
+      <!--  Array Selection GUI Component -->
+      <StringVectorProperty information_only="1"
+                            name="PhysicalElementGroupArrayInfo">
+        <ArraySelectionInformationHelper attribute_name="PhysicalElementGroup" />
       </StringVectorProperty>
 
-      <StringVectorProperty name="CellArrayStatus" command="SetCellArrayStatus" number_of_elements="0" repeat_command="1" number_of_elements_per_command="2" element_types="2 0"
-          information_property="CellArrayInfo" label="Cell Arrays">
-          <ArraySelectionDomain name="array_list">
-              <RequiredProperties>
-                  <Property name="CellArrayInfo" function="ArrayList"/>
-              </RequiredProperties>
-          </ArraySelectionDomain>
+      <StringVectorProperty command="SetPhysicalElementGroupArrayStatus"
+                            element_types="2 0"
+                            information_property="PhysicalElementGroupArrayInfo"
+                            label="Physical Element Groups"
+                            name="PhysicalElementGroupArrayStatus"
+                            number_of_elements="0"
+                            number_of_elements_per_command="2"
+                            repeat_command="1">
+        <ArraySelectionDomain name="array_list">
+          <RequiredProperties>
+            <Property function="ArrayList"
+                      name="PhysicalElementGroupArrayInfo" />
+          </RequiredProperties>
+        </ArraySelectionDomain>
+        <Documentation>This property lists which cell-centered arrays toread.</Documentation>
       </StringVectorProperty>
- -->
-      <!-- Display the number of Particles -->
-      <IntVectorProperty command="PrintX" default_values="1" number_of_elements="1" name="NumParticles"> 
-      </IntVectorProperty>
-     
-      <IntVectorProperty name="TransformMode" number_of_elements="1" default_values="1">
-        <EnumerationDomain name="enum">
-          <Entry value="6" text="RigidBody"/>
-          <Entry value="7" text="Similarity"/>
-          <Entry value="12" text="Affine"/>
-        </EnumerationDomain>
+
+      <StringVectorProperty information_only="1"
+                            name="PhysicalNodeGroupArrayInfo">
+        <ArraySelectionInformationHelper attribute_name="PhysicalNodeGroup" />
+      </StringVectorProperty>
+
+      <IntVectorProperty command="Enable_Physical_Node_Group_Selection" default_values="0" number_of_elements="1" name="Enable Physical Node Group Selection">
+        <BooleanDomain name="bool"/>
         <Documentation>
-          This property indicates which transform mode will be used.
-        </Documentation>
+        This property enables/disables Physical Node Group Selection.
+        </Documentation>        
       </IntVectorProperty>
+
+      <StringVectorProperty command="SetPhysicalNodeGroupArrayStatus"
+                            element_types="2 0"
+                            information_property="PhysicalNodeGroupArrayInfo"
+                            label="Physical Node Groups"
+                            name="PhysicalNodeGroupArrayStatus"
+                            number_of_elements="0"
+                            number_of_elements_per_command="2"
+                            repeat_command="1">
+        <ArraySelectionDomain name="array_list">
+          <RequiredProperties>
+            <Property function="ArrayList"
+                      name="PhysicalNodeGroupArrayInfo" />
+          </RequiredProperties>
+        </ArraySelectionDomain>
+        <Documentation>This property lists which cell-centered arrays toread.</Documentation>
+      </StringVectorProperty>
+
+ 
+      <PropertyGroup label="Physical Groups" >
+        <Property name="Enable Physical Element Group Selection"/>
+        <Property name="PhysicalElementGroupArrayStatus" />
+        <Property name="Enable Physical Node Group Selection"/>
+        <Property name="PhysicalNodeGroupArrayStatus" />
+      </PropertyGroup>
+
 
       <!--  For Time Step  -->
       <DoubleVectorProperty name="TimestepValues" repeatable="1" information_only="1">
@@ -75,9 +150,6 @@
         </Documentation>
      </DoubleVectorProperty>
      <!--  For Time Step  -->
-
-      <DoubleVectorProperty name="YourDoubleVectorVariable"  number_of_elements="3"  default_values="1.0 0.0 0.0">
-      </DoubleVectorProperty>
 
       <Hints>
         <ReaderFactory extensions="feioutput" file_description="pvESSI" />
@@ -94,8 +166,8 @@
   </ProxyGroup>
   <!-- End Filters Group -->
 
-    <ProxyGroup name="filters">
-   <SourceProxy name="Gauuss"  label="Gau5ss">
+  <ProxyGroup name="filters">
+<!--    <SourceProxy name="Gauuss"  label="Gau5ss">
      <Documentation
         long_help="Create point attribute array by projecting points onto an elevation vector."
         short_help="Create a point array representing elevation.">
@@ -110,7 +182,7 @@
 
           The line can be specified interactively using the 3D line widget. See
           section 7.4 for more information about this widget.
-     </Documentation>
+     </Documentation> -->
 <!--      <InputProperty  name="Input"   command="SetInputConnection">
            <ProxyGroupDomain name="groups">
              <Group name="sources"/>
@@ -148,7 +220,7 @@
         <ShowInMenu icon=":pvESSI_Icons/Icons/Solid.png" />
       </Hints>
  -->
-   </SourceProxy>
+   <!-- </SourceProxy> -->
  </ProxyGroup>
 
 
