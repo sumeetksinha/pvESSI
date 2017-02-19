@@ -32,6 +32,13 @@
         </Documentation>        
       </IntVectorProperty>
 
+      <IntVectorProperty command="Enable_uPU_Visualization" default_values="0" number_of_elements="1" name="Enable UPU Visualization">
+        <BooleanDomain name="bool"/>
+        <Documentation>
+          This property specifies whether to show upU displacements.
+        </Documentation>        
+      </IntVectorProperty>
+
       <IntVectorProperty command="Enable_Relative_Displacement" default_values="0" number_of_elements="1" name="Enable Relative Displacement">
         <BooleanDomain name="bool"/>
         <Documentation>
@@ -63,6 +70,7 @@
         <Property name="Build pvESSI Folder" />
         <Property name="Enable Gauss To Node Interpolation" />
         <Property name="Enable Relative Displacement" />
+        <Property name="Enable UPU Visualization" />
       </PropertyGroup>
 
       <PropertyGroup label="pvESSI Gauss Mesh options" >
@@ -101,7 +109,7 @@
                       name="PhysicalElementGroupArrayInfo" />
           </RequiredProperties>
         </ArraySelectionDomain>
-        <Documentation>This property lists which cell-centered arrays toread.</Documentation>
+        <Documentation>This property lists which cell-centered arrays storead.</Documentation>
       </StringVectorProperty>
 
       <StringVectorProperty information_only="1"
@@ -130,7 +138,7 @@
                       name="PhysicalNodeGroupArrayInfo" />
           </RequiredProperties>
         </ArraySelectionDomain>
-        <Documentation>This property lists which cell-centered arrays toread.</Documentation>
+        <Documentation>This property lists which cell-centered arrays storead.</Documentation>
       </StringVectorProperty>
 
  

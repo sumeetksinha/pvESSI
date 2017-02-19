@@ -60,6 +60,7 @@ public:
   void Enable_Gauss_To_Node_Interpolation(int x){ if(!(x and Enable_Gauss_To_Node_Interpolation_Flag))this->Modified();  Enable_Gauss_To_Node_Interpolation_Flag=false; if(x) Enable_Gauss_To_Node_Interpolation_Flag=true; }
   void Show_Gauss_Mesh(int x){ if(!(x and Show_Gauss_Mesh_Flag))this->Modified(); Show_Gauss_Mesh_Flag=false; if(x) Show_Gauss_Mesh_Flag=true;}
   void Build_pvESSI_Folder(int x){ if(!(x and Enable_Building_of_Maps_Flag))this->Modified(); Enable_Building_of_Maps_Flag=true; if(x) Enable_Building_of_Maps_Flag=false; Enable_Initialization_Flag=true;}
+  void Enable_uPU_Visualization(int x ){if(!(x and Enable_uPU_Visualization_Flag))this->Modified();  Enable_uPU_Visualization_Flag=false; if(x) Enable_uPU_Visualization_Flag=true;}
   void Enable_Relative_Displacement(int x ){if(!(x and Enable_Relative_Displacement_Flag))this->Modified();  Enable_Relative_Displacement_Flag=false; if(x) Enable_Relative_Displacement_Flag=true;}
   void Enable_Displacement_Probing(int x ){ if(!(x and Enable_Displacement_Probing_Flag))this->Modified();   Enable_Displacement_Probing_Flag=false; if(x) Enable_Displacement_Probing_Flag=true;}
   void Reference_Displacement_Index(int x ){if(x!=Reference_Displacement_Index_Flag)this->Modified();   Reference_Displacement_Index_Flag=x;}
@@ -231,8 +232,9 @@ protected:
   /************** Visualization Control Variables **********/
   bool Enable_Gauss_To_Node_Interpolation_Flag;
   bool Enable_Building_of_Maps_Flag;
+  bool Enable_uPU_Visualization_Flag;
   bool Enable_Relative_Displacement_Flag;
-  int Reference_Displacement_Index_Flag;
+  int  Reference_Displacement_Index_Flag;
   bool Show_Gauss_Mesh_Flag;
   bool Enable_Displacement_Probing_Flag;
   bool Whether_Physical_Group_Info_build;
@@ -391,6 +393,8 @@ private:
   vtkSmartPointer<vtkFloatArray> Generalized_Forces;
   vtkSmartPointer<vtkFloatArray> Generalized_Velocity;
   vtkSmartPointer<vtkFloatArray> Generalized_Acceleration;
+  vtkSmartPointer<vtkFloatArray> Fluid_Displacements;
+  vtkSmartPointer<vtkFloatArray> Pore_Pressure;
 
   // Stress-Strain 
   vtkSmartPointer<vtkFloatArray> Elastic_Strain;
