@@ -1876,7 +1876,7 @@ void pvESSI::Build_Maps(){
     int Length_of_individual_physical_group=0;
 
 	//**********/ Physical Element Groups **********************//
-
+    Physical_Group_Container.clear();
     status = H5Ovisit (id_Physical_Element_Groups, H5_INDEX_NAME, H5_ITER_NATIVE, op_func, NULL);
 
     for(int i=0; i<Physical_Group_Container.size(); ++i){
