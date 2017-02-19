@@ -10,6 +10,7 @@
 #include "vtkInformationQuadratureSchemeDefinitionVectorKey.h"
 #include "vtkIdTypeArray.h"
 #include "vtkInformationVector.h"
+#include "vtkDataArray.h"
 #include "vtkFloatArray.h"
 #include "vtkInformation.h"
 #include "vtkDataObject.h"
@@ -307,6 +308,28 @@ void pvESSI::Build_Node_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Node_Mes
 	Generalized_Displacements->Allocate(Number_of_Nodes*3);
 	Generalized_Displacements->SetNumberOfValues(Number_of_Nodes*3);
 
+ 	if(Enable_uPU_Visualization_Flag)
+ 	{
+	 	Fluid_Displacements = vtkSmartPointer<vtkFloatArray>::New(); 
+		this->Set_Meta_Array(Meta_Array_Map["Fluid_Displacements"]);
+		Fluid_Displacements->Allocate(3);
+		Fluid_Displacements->SetNumberOfValues(3);
+
+		// initializing all components to zero 
+		Fluid_Displacements->FillComponent (0, 0);
+		Fluid_Displacements->FillComponent (1, 0);
+		Fluid_Displacements->FillComponent (2, 0);
+
+	 	Pore_Pressure = vtkSmartPointer<vtkFloatArray>::New(); 
+		this->Set_Meta_Array (Meta_Array_Map["Pore_Pressure"]);
+		Pore_Pressure->Allocate(Number_of_Nodes);
+		Pore_Pressure->SetNumberOfValues(Number_of_Nodes);
+
+		// initializing all components to zero 
+		Pore_Pressure->FillComponent (0, 0);
+	}
+
+
 	int index_to_generalized_displacement=0;
 	
 	if(Enable_Relative_Displacement_Flag==false)
@@ -322,8 +345,6 @@ void pvESSI::Build_Node_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Node_Mes
 
 			Generalized_Displacements->InsertTypedTuple(i,disp);
 
-			index_to_generalized_displacement = index_to_generalized_displacement + Number_of_DOFs[i];
-
 			// ************************************************************** Displacement, Acceleration and Velocity -> Calculation Formulae *********************************************************
 
 			// Displacement(t) = D_t;
@@ -331,6 +352,23 @@ void pvESSI::Build_Node_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Node_Mes
 			// Acceleration(t) = 1/2/del.t*{ D_(t+del.t) - D_(t-del.t)};
 
 			/***************************************************************** Add Acceleration and Velocity Arrays Here ****************************************/
+
+			// uPU Visualization Mode
+
+		 	if(Enable_uPU_Visualization_Flag and  Number_of_DOFs[i]==7){
+		 		
+		 		float disp[3]={
+					Node_Generalized_Displacements[index_to_generalized_displacement+4],
+					Node_Generalized_Displacements[index_to_generalized_displacement+5],
+					Node_Generalized_Displacements[index_to_generalized_displacement+6]
+				};
+
+				Fluid_Displacements->InsertTypedTuple(i,disp);
+				Pore_Pressure->InsertValue(i,Node_Generalized_Displacements[index_to_generalized_displacement+3]);
+		 	}
+
+
+		 	index_to_generalized_displacement = index_to_generalized_displacement + Number_of_DOFs[i];
 
 		}
 	}
@@ -348,12 +386,33 @@ void pvESSI::Build_Node_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Node_Mes
 
 			Generalized_Displacements->InsertTypedTuple(i,disp);
 
-			index_to_generalized_displacement = index_to_generalized_displacement + Number_of_DOFs[i];
+
+			// uPU Visualization Mode
+
+		 	if(Enable_uPU_Visualization_Flag and Number_of_DOFs[i]==7){		
+
+		 		float disp[3]={
+					Node_Generalized_Displacements[index_to_generalized_displacement+4] - Reference_Node_Generalized_Displacements[index_to_generalized_displacement+4],
+					Node_Generalized_Displacements[index_to_generalized_displacement+5] - Reference_Node_Generalized_Displacements[index_to_generalized_displacement+5],
+					Node_Generalized_Displacements[index_to_generalized_displacement+6] - Reference_Node_Generalized_Displacements[index_to_generalized_displacement+6]
+				};
+
+				Fluid_Displacements->InsertTypedTuple(i,disp);
+				Pore_Pressure->InsertValue(i,Node_Generalized_Displacements[index_to_generalized_displacement+3] - Reference_Node_Generalized_Displacements[index_to_generalized_displacement+3]);
+		 	}
+
+		 	index_to_generalized_displacement = index_to_generalized_displacement + Number_of_DOFs[i];
 
 		}
 	}
 
 	Node_Mesh->GetPointData()->AddArray(Generalized_Displacements);
+
+
+	if(Enable_uPU_Visualization_Flag){	
+		Node_Mesh->GetPointData()->AddArray(Fluid_Displacements);
+		Node_Mesh->GetPointData()->AddArray(Pore_Pressure);
+	}
 
 	/////////////////////////////////////////////////////////////// Support Reactions  //////////////////////////////////////////////////////////////////////////////////////
 
@@ -1138,6 +1197,7 @@ void pvESSI::Set_Meta_Array( int Meta_Array_Id ){
 			Support_Reactions->SetComponentName(1,"FY");
 			Support_Reactions->SetComponentName(2,"FZ");
 			break;
+
 		case 16:
 			Boundary_Conditions->SetName("Boundary_Conditions");
 			Boundary_Conditions->SetNumberOfComponents(3);
@@ -1145,13 +1205,28 @@ void pvESSI::Set_Meta_Array( int Meta_Array_Id ){
 			Boundary_Conditions->SetComponentName(1,"UY");
 			Boundary_Conditions->SetComponentName(2,"UZ");
 			break;
+
 		case 17:
 			Class_Tag->SetName("Class_Tag");
 			Class_Tag->SetNumberOfComponents(1);
 			break;
+
 		case 18:
 			Partition_Info->SetName("Partition_Info");
 			Partition_Info->SetNumberOfComponents(1);
+			break;
+
+		case 19:
+			Fluid_Displacements->SetName("Fluid_Displacements");
+			Fluid_Displacements->SetNumberOfComponents(3);
+			Fluid_Displacements->SetComponentName(0,"UX");
+			Fluid_Displacements->SetComponentName(1,"UY");
+			Fluid_Displacements->SetComponentName(2,"UZ");
+			break;
+
+		case 20:
+			Pore_Pressure->SetName("Pore_Pressure");
+			Pore_Pressure->SetNumberOfComponents(1);
 			break;
 	}
 
@@ -1937,6 +2012,8 @@ void pvESSI::Build_Meta_Array_Map(){
 	/*16 */ Meta_Array_Map["Boundary_Conditions"] = key; key=key+1;
 	/*17 */ Meta_Array_Map["Class_Tag"] = key; key=key+1;
 	/*18 */ Meta_Array_Map["Partition_Info"] = key; key=key+1;
+	/*19 */ Meta_Array_Map["Fluid_Displacements"] = key; key=key+1;
+	/*20 */ Meta_Array_Map["Pore_Pressure"] = key; key=key+1;
 }
 
 void pvESSI::Build_Inverse_Matrices(){
