@@ -297,7 +297,7 @@ void pvESSI::Build_Node_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Node_Mes
 		H5Sget_simple_extent_dims(DataSpace, dims2_out, NULL);	
 		offset2[0]=0; 					              count2[0] = dims2_out[0];		dims1_out[0]=dims2_out[0];
 		offset2[1]=reference_node_mesh_time; 		  count2[1] = 1;				MemSpace = H5Screate_simple(1,dims1_out,NULL);
-		Reference_Node_Generalized_Displacements = (float*) malloc((dims2_out[0]) * sizeof(float));
+		Reference_Node_Generalized_Displacements = new float[dims2_out[0]];
 		H5Sselect_hyperslab(DataSpace,H5S_SELECT_SET,offset2,NULL,count2,NULL);
 		H5Dread(id_Generalized_Displacements, H5T_NATIVE_FLOAT, MemSpace, DataSpace, H5P_DEFAULT, Reference_Node_Generalized_Displacements); 
 		H5Sclose(MemSpace);
@@ -529,7 +529,7 @@ void pvESSI::Build_Gauss_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Gauss_M
 	///////////////////////////////////////////  Gauss Output Dataset for a particular time /////////////////////////////////////////////////////////////////////////////	
 	DataSpace = H5Dget_space(id_Gauss_Outputs);
 	H5Sget_simple_extent_dims(DataSpace, dims2_out, NULL);
-	float *Gauss_Outputs; Gauss_Outputs = (float*) malloc((dims2_out[0]) * sizeof(float)); 
+	float *Gauss_Outputs; Gauss_Outputs = new float[dims2_out[0]];
 	offset2[0]=0; 					    count2[0] = dims2_out[0];		dims1_out[0]=dims2_out[0];
 	offset2[1]=Current_Time;            count2[1] = 1;					MemSpace = H5Screate_simple(1,dims1_out,NULL);
 	H5Sselect_hyperslab(DataSpace,H5S_SELECT_SET,offset2,NULL,count2,NULL);
@@ -721,7 +721,7 @@ void pvESSI::Get_Node_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh){
 
 		DataSpace = H5Dget_space(id_Inverse_Element_Map);
 		H5Sget_simple_extent_dims(DataSpace, dims1_out, NULL);
-		Inverse_Element_Map = (int*) malloc((dims1_out[0]) * sizeof(int)); 
+		Inverse_Element_Map = new int[dims1_out[0]];
 		offset1[0]=0;   	MemSpace = H5Screate_simple(1,dims1_out,NULL);
 		H5Sselect_hyperslab(DataSpace,H5S_SELECT_SET,offset1,NULL,dims1_out,NULL);
 		H5Dread(id_Inverse_Element_Map, H5T_NATIVE_INT, MemSpace, DataSpace, H5P_DEFAULT, Inverse_Element_Map); 
@@ -735,7 +735,7 @@ void pvESSI::Get_Node_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh){
 
 		DataSpace = H5Dget_space(id_Element_Partition);
 		H5Sget_simple_extent_dims(DataSpace, dims1_out, NULL);
-		Element_Partition = (int*) malloc((dims1_out[0]) * sizeof(int)); 
+		Element_Partition = new int[dims1_out[0]]; 
 		offset1[0]=0;   	MemSpace = H5Screate_simple(1,dims1_out,NULL);
 		H5Sselect_hyperslab(DataSpace,H5S_SELECT_SET,offset1,NULL,dims1_out,NULL);
 		H5Dread(id_Element_Partition, H5T_NATIVE_INT, MemSpace, DataSpace, H5P_DEFAULT, Element_Partition); 
@@ -1313,8 +1313,8 @@ void pvESSI::Initialize(){
 
 	// Initializing Time vector
 	for(int p=0; p<Number_of_Time_Steps;p++)
-		// this->Time[p]=temp_Time[p];
-		this->Time[p] = p;
+		this->Time[p]=temp_Time[p];
+		// this->Time[p] = p;
 
 	Build_Time_Map(); 
 
@@ -1696,15 +1696,15 @@ void pvESSI::Build_Maps(){
 
 
 	//************** Building Node Map datset *******************************//
-	int *Node_Map; Node_Map = (int*) malloc((Number_of_Nodes) * sizeof(int));
-	int *pvESSI_Number_of_DOFs; pvESSI_Number_of_DOFs = (int*) malloc((Number_of_Nodes) * sizeof(int));
-	int *Inverse_Node_Map; Inverse_Node_Map = (int*) malloc((Pseudo_Number_of_Nodes) * sizeof(int));
-	int *pvESSI_Constrained_Nodes; pvESSI_Constrained_Nodes = (int*) malloc((Number_of_Constrained_Dofs) * sizeof(int));
+	int *Node_Map = new int[Number_of_Nodes];
+	int *pvESSI_Number_of_DOFs = new int[Number_of_Nodes];
+	int *Inverse_Node_Map = new int[Pseudo_Number_of_Nodes];
+	int *pvESSI_Constrained_Nodes = new int[Number_of_Constrained_Dofs];
 
-    int *Number_of_DOFs; Number_of_DOFs = (int*) malloc((Pseudo_Number_of_Nodes) * sizeof(int)); 
+    int *Number_of_DOFs; Number_of_DOFs  = new int[Pseudo_Number_of_Nodes];
 	H5Dread(id_Number_of_DOFs, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Number_of_DOFs);
 
-    int *Constrained_Nodes; Constrained_Nodes = (int*) malloc((Number_of_Constrained_Dofs) * sizeof(int));
+    int *Constrained_Nodes; Constrained_Nodes = new int[Number_of_Constrained_Dofs];
 	H5Dread(id_Constrained_Nodes, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Constrained_Nodes);
 
 	index   = -1;
@@ -1740,30 +1740,30 @@ void pvESSI::Build_Maps(){
 
 
 	//************** Building Element Map datset *******************************//
-	int *Element_Map; Element_Map = (int*) malloc((Number_of_Elements) * sizeof(int));
-	int *pvESSI_Connectivity; pvESSI_Connectivity = (int*) malloc((Number_of_Connectivity_Nodes) * sizeof(int));
-	int *pvESSI_Class_Tags; pvESSI_Class_Tags = (int*) malloc((Number_of_Elements) * sizeof(int));
-	int *pvESSI_Material_Tags; pvESSI_Material_Tags = (int*) malloc((Pseudo_Number_of_Elements) * sizeof(int));
-	int *Inverse_Element_Map; Inverse_Element_Map = (int*) malloc((Number_of_Elements) * sizeof(int));
-	int *Number_of_Elements_Shared; Number_of_Elements_Shared = (int*) malloc((Number_of_Nodes) * sizeof(int));
-	int *Number_of_gauss_Elements_Shared; Number_of_gauss_Elements_Shared = (int*) malloc((Number_of_Nodes) * sizeof(int));
+	int *Element_Map = new int[Number_of_Elements];
+	int *pvESSI_Connectivity = new int[Number_of_Connectivity_Nodes];
+	int *pvESSI_Class_Tags = new int[Number_of_Elements];
+	int *pvESSI_Material_Tags = new int[Pseudo_Number_of_Elements];
+	int *Inverse_Element_Map = new int[Pseudo_Number_of_Elements];
+	int *Number_of_Elements_Shared = new int[Number_of_Nodes];
+	int *Number_of_gauss_Elements_Shared =  new int[Number_of_Nodes];
 
 	for (int i = 0 ; i<Number_of_Nodes; i++){
 		Number_of_Elements_Shared[i]       = 0;
 		Number_of_gauss_Elements_Shared[i] = 0;
 	}
 
-	int *Element_Class_Tags; Element_Class_Tags = (int*) malloc((Pseudo_Number_of_Elements) * sizeof(int));
+	int *Element_Class_Tags = new int[Pseudo_Number_of_Elements];
 	H5Dread(id_Class_Tags, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Element_Class_Tags);
 
-	int *Element_Connectivity; Element_Connectivity = (int*) malloc((Number_of_Connectivity_Nodes) * sizeof(int));
+	int *Element_Connectivity = new int[Number_of_Connectivity_Nodes];
 	H5Dread(id_Connectivity, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Element_Connectivity); 
 
 	this->id_Index_to_Connectivity = H5Dopen(id_File, "Model/Elements/Index_to_Connectivity", H5P_DEFAULT);
-	int *Element_Index_to_Connectivity; Element_Index_to_Connectivity = (int*) malloc((Pseudo_Number_of_Elements) * sizeof(int));
+	int *Element_Index_to_Connectivity = new int[Pseudo_Number_of_Elements];
 	H5Dread(id_Index_to_Connectivity, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Element_Index_to_Connectivity); 
 
-	int *Material_Tags; Material_Tags = (int*) malloc((Pseudo_Number_of_Elements) * sizeof(int));
+	int *Material_Tags = new int[Pseudo_Number_of_Elements];
 	H5Dread(id_Material_Tags, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Material_Tags); 
 
 	std::map<int,double**>::iterator it;
@@ -1887,8 +1887,8 @@ void pvESSI::Build_Maps(){
     	id_Physical_Group_Id =  H5Dopen(id_Physical_Element_Groups,name, H5P_DEFAULT);
     	DataSpace = H5Dget_space(id_Physical_Group_Id);
     	H5Sget_simple_extent_dims(DataSpace, dims1_out, NULL);
-    	int *Individual_Physical_group; Individual_Physical_group = (int*) malloc((dims1_out[0]) * sizeof(int)); 
-    	int *pvESSI_Individual_Physical_group; pvESSI_Individual_Physical_group = (int*) malloc((dims1_out[0]) * sizeof(int)); 
+    	int *Individual_Physical_group = new int[dims1_out[0]];
+    	int *pvESSI_Individual_Physical_group = new int[dims1_out[0]]; 
     	offset1[0]=0;   	MemSpace = H5Screate_simple(1,dims1_out,NULL);
 		H5Sselect_hyperslab(DataSpace,H5S_SELECT_SET,offset1,NULL,dims1_out,NULL);
 		H5Dread(id_Physical_Group_Id, H5T_NATIVE_INT, MemSpace, DataSpace, H5P_DEFAULT, Individual_Physical_group); 
@@ -1931,8 +1931,8 @@ void pvESSI::Build_Maps(){
     	id_Physical_Group_Id =  H5Dopen(id_Physical_Node_Groups,name, H5P_DEFAULT);
     	DataSpace = H5Dget_space(id_Physical_Group_Id);
     	H5Sget_simple_extent_dims(DataSpace, dims1_out, NULL);
-    	int *Individual_Physical_group; Individual_Physical_group = (int*) malloc((dims1_out[0]) * sizeof(int)); 
-    	int *pvESSI_Individual_Physical_group; pvESSI_Individual_Physical_group = (int*) malloc((dims1_out[0]) * sizeof(int)); 
+    	int *Individual_Physical_group = new int[dims1_out[0]];
+    	int *pvESSI_Individual_Physical_group = new int[dims1_out[0]];
     	offset1[0]=0;   	MemSpace = H5Screate_simple(1,dims1_out,NULL);
 		H5Sselect_hyperslab(DataSpace,H5S_SELECT_SET,offset1,NULL,dims1_out,NULL);
 		H5Dread(id_Physical_Group_Id, H5T_NATIVE_INT, MemSpace, DataSpace, H5P_DEFAULT, Individual_Physical_group); 
@@ -2586,7 +2586,7 @@ void pvESSI::Build_Stress_Field_At_Nodes(vtkSmartPointer<vtkUnstructuredGrid> No
 		///////////////////////////////////////////  Gauss Output Dataset for a particular time /////////////////////////////////////////////////////////////////////////////	
 		DataSpace = H5Dget_space(id_Gauss_Outputs);
 		H5Sget_simple_extent_dims(DataSpace, dims2_out, NULL);
- 		float *Gauss_Outputs; Gauss_Outputs = (float*) malloc((dims2_out[0]) * sizeof(float)); 
+ 		float *Gauss_Outputs; Gauss_Outputs =  new float[dims2_out[0]];
 		offset2[0]=0; 					    count2[0] = dims2_out[0];		dims1_out[0]=dims2_out[0];
 		offset2[1]=Node_Mesh_Current_Time;  count2[1] = 1;					MemSpace = H5Screate_simple(1,dims1_out,NULL);
 		H5Sselect_hyperslab(DataSpace,H5S_SELECT_SET,offset2,NULL,count2,NULL);
