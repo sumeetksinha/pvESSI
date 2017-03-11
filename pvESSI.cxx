@@ -1313,7 +1313,8 @@ void pvESSI::Initialize(){
 
 	// Initializing Time vector
 	for(int p=0; p<Number_of_Time_Steps;p++)
-		this->Time[p]=temp_Time[p];
+		// this->Time[p]=temp_Time[p];
+		this->Time[p] = p;
 
 	Build_Time_Map(); 
 
