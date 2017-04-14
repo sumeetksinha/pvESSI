@@ -315,8 +315,8 @@ void pvESSI::Build_Node_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Node_Mes
  	{
 	 	Fluid_Displacements = vtkSmartPointer<vtkFloatArray>::New(); 
 		this->Set_Meta_Array(Meta_Array_Map["Fluid_Displacements"]);
-		Fluid_Displacements->Allocate(3);
-		Fluid_Displacements->SetNumberOfValues(3);
+		Fluid_Displacements->Allocate(Number_of_Nodes*3);
+		Fluid_Displacements->SetNumberOfValues(Number_of_Nodes*3);
 
 		// initializing all components to zero 
 		Fluid_Displacements->FillComponent (0, 0);
