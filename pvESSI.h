@@ -42,15 +42,15 @@
 #include "hdf5.h"
 #include <boost/regex.hpp>
 #include <vtkAppendFilter.h>
-#include <QApplication>
-#include <QStyle>
+// #include <QApplication>
+// #include <QStyle>
 #include "vtkDataArraySelection.h"
 
-#include "pqApplicationCore.h"
-#include "pqObjectBuilder.h"
-#include "pqServer.h"
-#include "pqServerManagerModel.h"
-#include "pqUndoStack.h"
+// // #include "pqApplicationCore.h"
+// #include "pqObjectBuilder.h"
+// #include "pqServer.h"
+// #include "pqServerManagerModel.h"
+// #include "pqUndoStack.h"
 
 class pvESSI : public vtkUnstructuredGridAlgorithm{
 
