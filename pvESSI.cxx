@@ -730,7 +730,7 @@ void pvESSI::Get_Node_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh){
 
 		// getting the master file containing physical group
 		std::string Source_File = GetSourceFile(this->FileName)+"feioutput";
-		hid_t id_Source_File = H5Fopen(Source_File.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
+		hid_t id_Source_File = H5Fopen(Source_File.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
 		id_Element_Partition = H5Dopen(id_Source_File, "/Model/Elements/Partition", H5P_DEFAULT);
 
 		DataSpace = H5Dget_space(id_Element_Partition);
@@ -1254,7 +1254,7 @@ void pvESSI::Initialize(){
 	this->single_file_visualization_mode = false;
 
     /***************** File_id **********************************/
-    this->id_File = H5Fopen(this->FileName, H5F_ACC_RDWR, H5P_DEFAULT);;  
+    this->id_File = H5Fopen(this->FileName, H5F_ACC_RDONLY, H5P_DEFAULT);;  
 
 	/***************** Time Steps *******************************/
     this->id_Number_of_Time_Steps = H5Dopen(id_File, "/Number_of_Time_Steps", H5P_DEFAULT);   
@@ -1309,7 +1309,7 @@ void pvESSI::Initialize(){
 		ELE_TAG_DESC_ENCODING = 235789180;
 
 
-	H5Fclose(id_File);		// close the file
+	H5Fclose(this->id_File);		// close the file
 
 	// Initializing Time vector
 	for(int p=0; p<Number_of_Time_Steps;p++)
@@ -1359,7 +1359,7 @@ void pvESSI::Domain_Initializer(int Domain_Number){
 		//********************* Building Avialable Physical Groups ***************************************************************/
 		// getting the master file containing physical group
 		std::string Source_File = GetSourceFile(this->FileName)+"feioutput";
-		hid_t id_Source_File = H5Fopen(Source_File.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
+		hid_t id_Source_File = H5Fopen(Source_File.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
 
 	    this->id_Physical_Element_Groups = H5Gopen(id_Source_File, "/Model/Physical_Groups/Physical_Element_Groups", H5P_DEFAULT);
 	    this->id_Physical_Node_Groups    = H5Gopen(id_Source_File, "/Model/Physical_Groups/Physical_Node_Groups", H5P_DEFAULT);
@@ -1386,7 +1386,7 @@ void pvESSI::Domain_Initializer(int Domain_Number){
 
 	  /***************** File_id **********************************/
 	  cout << filename.c_str() <<endl;
-	  this->id_File = H5Fopen(filename.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
+	  this->id_File = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
 
 	  /***************** Read Model Information *******************/
       this->id_Number_of_Elements       = H5Dopen(id_File, "/Number_of_Elements", H5P_DEFAULT); 
@@ -1428,7 +1428,11 @@ void pvESSI::Domain_Initializer(int Domain_Number){
 	  else{ // We need to build the pvESSI folder
 
 		cout << "<<<<pvESSI>>>>  Maps Not Build, So lets go and build it first \n " << endl;
+		H5Fclose(this->id_File);
+		this->id_File = H5Fopen(filename.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
 		Build_Maps();
+		H5Fclose(this->id_File);
+		this->id_File = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
 		Enable_Building_of_Maps_Flag = true;
 		cout << "<<<<pvESSI>>>>  Maps are now built \n " << endl;
 
@@ -1480,6 +1484,10 @@ void pvESSI::Domain_Initializer(int Domain_Number){
 
 }
 
+
+pvESSI:: ~pvESSI(){
+	this->Close_File();
+}
 
 void pvESSI::Close_File(){
 
