@@ -1485,9 +1485,9 @@ void pvESSI::Domain_Initializer(int Domain_Number){
 }
 
 
-pvESSI:: ~pvESSI(){
-	this->Close_File();
-}
+// pvESSI:: ~pvESSI(){
+// 	this->Close_File();
+// }
 
 void pvESSI::Close_File(){
 

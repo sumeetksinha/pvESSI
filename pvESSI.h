@@ -100,7 +100,7 @@ public:
 
 protected:
   pvESSI();
-  ~pvESSI(){}
+  ~pvESSI(){this->Close_File();}
  
   int RequestData(vtkInformation *, vtkInformationVector **, vtkInformationVector *);
   int RequestInformation( vtkInformation *, vtkInformationVector **, vtkInformationVector* );
