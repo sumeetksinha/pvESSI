@@ -272,18 +272,18 @@ void pvESSI::Build_Node_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Node_Mes
 	int reference_node_mesh_time = Reference_Displacement_Index_Flag;
 	if(Reference_Displacement_Index_Flag>=Number_of_Time_Steps) reference_node_mesh_time=Number_of_Time_Steps;
 	else if(Reference_Displacement_Index_Flag<=0) reference_node_mesh_time=0;
-	float *Reference_Node_Generalized_Displacements;
+	float *Node_Generalized_Displacements,*Reference_Node_Generalized_Displacements;
 
 	////////////////////////////////////////////////////// Reading Node Attributes /////////////////////////////////////////////////////////////////////////////
 
-	int Number_of_DOFs[Number_of_Nodes];
+	int *Number_of_DOFs; Number_of_DOFs = new int [Number_of_Nodes];
 	H5Dread(id_Number_of_DOFs, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Number_of_DOFs); 
 
 	///////////////////////////////////////////  Output Dataset for a particular time /////////////////////////////////////////////////////////////////////////////	
 
 	DataSpace = H5Dget_space(id_Generalized_Displacements);
 	H5Sget_simple_extent_dims(DataSpace, dims2_out, NULL);	
-	float Node_Generalized_Displacements[dims2_out[0]];	
+	Node_Generalized_Displacements = new float[dims2_out[0]];	
 	offset2[0]=0; 					  count2[0] = dims2_out[0];		dims1_out[0]=dims2_out[0];
 	offset2[1]=Current_Time; 		  count2[1] = 1;				MemSpace = H5Screate_simple(1,dims1_out,NULL);
 	H5Sselect_hyperslab(DataSpace,H5S_SELECT_SET,offset2,NULL,count2,NULL);
@@ -374,6 +374,7 @@ void pvESSI::Build_Node_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Node_Mes
 		 	index_to_generalized_displacement = index_to_generalized_displacement + Number_of_DOFs[i];
 
 		}
+
 	}
 	else{
 
@@ -401,10 +402,63 @@ void pvESSI::Build_Node_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Node_Mes
 				};
 
 				Fluid_Displacements->InsertTypedTuple(i,disp);
-				Pore_Pressure->InsertValue(i,Node_Generalized_Displacements[index_to_generalized_displacement+3] - Reference_Node_Generalized_Displacements[index_to_generalized_displacement+3]);
+				Pore_Pressure->InsertValue(i,Node_Generalized_Displacements[index_to_generalized_displacement+3]);
 		 	}
 
 		 	index_to_generalized_displacement = index_to_generalized_displacement + Number_of_DOFs[i];
+
+		}
+
+		if(Disable_Contact_Relative_Displacement_Flag){
+
+			int *Element_Class_Tags; Element_Class_Tags = new int[Number_of_Elements];
+			H5Dread(id_Class_Tags, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, Element_Class_Tags); 
+
+			int *Element_Connectivity; Element_Connectivity = new int[Number_of_Connectivity_Nodes];
+			H5Dread(id_Connectivity, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, Element_Connectivity);
+
+			int *Index_to_Displacements; Index_to_Displacements = new int[Number_of_Nodes];
+			H5Dread(id_Index_to_Displacements, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, Index_to_Displacements);
+
+			int index_to_connectivity = 0;			
+			for (int i=0;i<Number_of_Elements;i++)
+			{
+				if(Element_Class_Tags[i]==86 or Element_Class_Tags[i]==87)
+				{
+					cout << "Contact Nodes Found :: ";
+					for (int j = 0; j < NUMBER_OF_NODES(Element_Desc_Array[Element_Class_Tags[i]]); ++j)
+					{
+						int node_no = Element_Connectivity[index_to_connectivity+j];
+						int index_to_generalized_displacement = Index_to_Displacements[node_no];
+
+						cout << node_no << " " ;
+
+						float disp[3]={
+							Node_Generalized_Displacements[index_to_generalized_displacement  ],
+							Node_Generalized_Displacements[index_to_generalized_displacement+1],
+							Node_Generalized_Displacements[index_to_generalized_displacement+2]
+						};
+
+						Generalized_Displacements->InsertTypedTuple(node_no,disp);
+
+						if(Enable_uPU_Visualization_Flag and Number_of_DOFs[i]==7){		
+
+					 		float disp[3]={
+								Node_Generalized_Displacements[index_to_generalized_displacement+4],
+								Node_Generalized_Displacements[index_to_generalized_displacement+5],
+								Node_Generalized_Displacements[index_to_generalized_displacement+6]
+							};
+
+							Fluid_Displacements->InsertTypedTuple(node_no,disp);
+				 		}
+
+					}
+					cout << "\n" ;
+				}
+				index_to_connectivity=index_to_connectivity+ Number_of_DOFs[i];
+			}
+
+			//86 and 87
 
 		}
 	}
@@ -1386,7 +1440,7 @@ void pvESSI::Domain_Initializer(int Domain_Number){
 
 	  /***************** File_id **********************************/
 	  cout << filename.c_str() <<endl;
-	  this->id_File = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
+	  this->id_File = H5Fopen(filename.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
 
 	  /***************** Read Model Information *******************/
       this->id_Number_of_Elements       = H5Dopen(id_File, "/Number_of_Elements", H5P_DEFAULT); 
@@ -1428,11 +1482,7 @@ void pvESSI::Domain_Initializer(int Domain_Number){
 	  else{ // We need to build the pvESSI folder
 
 		cout << "<<<<pvESSI>>>>  Maps Not Build, So lets go and build it first \n " << endl;
-		H5Fclose(this->id_File);
-		this->id_File = H5Fopen(filename.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
 		Build_Maps();
-		H5Fclose(this->id_File);
-		this->id_File = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
 		Enable_Building_of_Maps_Flag = true;
 		cout << "<<<<pvESSI>>>>  Maps are now built \n " << endl;
 
@@ -1479,15 +1529,12 @@ void pvESSI::Domain_Initializer(int Domain_Number){
 	  this->id_Constrained_DOFs = H5Dopen(id_File, "Model/Nodes/Constrained_DOFs", H5P_DEFAULT);
 	  this->id_Coordinates = H5Dopen(id_File, "Model/Nodes/Coordinates", H5P_DEFAULT);
 	  this->id_Generalized_Displacements = H5Dopen(id_File, "Model/Nodes/Generalized_Displacements", H5P_DEFAULT);
+	  this->id_Index_to_Displacements = H5Dopen(id_File, "Model/Nodes/Index_to_Generalized_Displacements", H5P_DEFAULT);
 	  this->id_Support_Reactions = H5Dopen(id_File,"/Model/Nodes/Support_Reactions", H5P_DEFAULT);
 	  if(id_Support_Reactions>0) enable_support_reactions=true; else enable_support_reactions=false;
 
 }
 
-
-pvESSI:: ~pvESSI(){
-	this->Close_File();
-}
 
 void pvESSI::Close_File(){
 

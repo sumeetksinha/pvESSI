@@ -66,6 +66,8 @@ public:
   void Reference_Displacement_Index(int x ){if(x!=Reference_Displacement_Index_Flag)this->Modified();   Reference_Displacement_Index_Flag=x;}
   void Enable_Physical_Node_Group_Selection(int x ){ if(!(x and Enable_Physical_Node_Group_Selection_Flag))this->Modified();  Enable_Physical_Node_Group_Selection_Flag=false; if(x) Enable_Physical_Node_Group_Selection_Flag=true;}
   void Enable_Physical_Element_Group_Selection(int x ){ if(!(x and Enable_Physical_Element_Group_Selection_Flag))this->Modified();  Enable_Physical_Element_Group_Selection_Flag=false; if(x) Enable_Physical_Element_Group_Selection_Flag=true;}
+  void Disable_Contact_Relative_Displacement(int x ){ if(!(x and Disable_Contact_Relative_Displacement_Flag))this->Modified();  Disable_Contact_Relative_Displacement_Flag=false; if(x) Disable_Contact_Relative_Displacement_Flag=true;}
+
 
   void PrintX(int x){}
 
@@ -184,6 +186,7 @@ protected:
   hid_t id_Generalized_Displacements;
   hid_t id_Support_Reactions;
   hid_t id_Number_of_DOFs;
+  hid_t id_Index_to_Displacements;
 
   /**************** Maps ***********************************/
   hid_t id_pvESSI; 
@@ -240,6 +243,7 @@ protected:
   bool Whether_Physical_Group_Info_build;
   bool Enable_Physical_Element_Group_Selection_Flag;
   bool Enable_Physical_Node_Group_Selection_Flag;
+  bool Disable_Contact_Relative_Displacement_Flag;
   vtkSmartPointer<vtkDataArraySelection> Physical_Node_Group;
   vtkSmartPointer<vtkDataArraySelection> Physical_Element_Group;
 
