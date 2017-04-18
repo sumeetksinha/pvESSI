@@ -39,6 +39,13 @@
         </Documentation>        
       </IntVectorProperty>
 
+      <IntVectorProperty command="Show_Hide_Contact" default_values="0" number_of_elements="1" name="Show/Hide Contact">
+        <BooleanDomain name="bool"/>
+        <Documentation>
+          This property specifies whether to show or hide Contacts. By Default, it hides contact.
+        </Documentation>        
+      </IntVectorProperty>
+
       <IntVectorProperty command="Enable_Relative_Displacement" default_values="0" number_of_elements="1" name="Enable Relative Displacement">
         <BooleanDomain name="bool"/>
         <Documentation>
@@ -49,6 +56,13 @@
       <IntVectorProperty command="Reference_Displacement_Index" default_values="0" number_of_elements="1" name="Reference Index">
         <Documentation>
         This property specifies the reference index to displacement.
+        </Documentation>        
+      </IntVectorProperty>
+
+      <IntVectorProperty command="Disable_Contact_Relative_Displacement" default_values="0" number_of_elements="1" name="Disable Contact Relative Displacement">
+        <BooleanDomain name="bool"/>
+        <Documentation>
+        This property specifies whether to disable the relative displacemnt for contact elements.
         </Documentation>        
       </IntVectorProperty>
 
@@ -71,6 +85,7 @@
         <Property name="Enable Gauss To Node Interpolation" />
         <Property name="Enable Relative Displacement" />
         <Property name="Enable UPU Visualization" />
+        <Property name="Show/Hide Contact" />
       </PropertyGroup>
 
       <PropertyGroup label="pvESSI Gauss Mesh options" >
@@ -80,6 +95,7 @@
 
       <PropertyGroup label="Relative Displacement" >
         <Property name="Reference Index" />
+        <!-- <Property name="Disable Contact Relative Displacement" /> -->
       </PropertyGroup>
 
       <IntVectorProperty command="Enable_Physical_Element_Group_Selection" default_values="0" number_of_elements="1" name="Enable Physical Element Group Selection">
