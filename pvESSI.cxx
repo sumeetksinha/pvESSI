@@ -2076,12 +2076,12 @@ void pvESSI::Build_Maps(){
 	delete[] Element_Index_to_Connectivity; Element_Index_to_Connectivity = NULL;
 	delete[] Material_Tags; Material_Tags = NULL;
 
-	delete [] Node_Map; Node_Map = NULL;
-	delete [] pvESSI_Number_of_DOFs; pvESSI_Number_of_DOFs = NULL;
-	delete [] Inverse_Node_Map; Inverse_Node_Map = NULL;
-	delete [] pvESSI_Constrained_Nodes; pvESSI_Constrained_Nodes = NULL;
-	delete [] Number_of_DOFs; Number_of_DOFs = NULL;
-	delete [] Constrained_Nodes; Constrained_Nodes = NULL;
+	delete[] Node_Map; Node_Map = NULL;
+	delete[] pvESSI_Number_of_DOFs; pvESSI_Number_of_DOFs = NULL;
+	delete[] Inverse_Node_Map; Inverse_Node_Map = NULL;
+	delete[] pvESSI_Constrained_Nodes; pvESSI_Constrained_Nodes = NULL;
+	delete[] Number_of_DOFs; Number_of_DOFs = NULL;
+	delete[] Constrained_Nodes; Constrained_Nodes = NULL;
 
 }
 
@@ -2649,7 +2649,8 @@ void pvESSI::Build_Stress_Field_At_Nodes(vtkSmartPointer<vtkUnstructuredGrid> No
 	                         NULL,
 	                         &Whether_Stress_Strain_Build); // Whether_Stress_Strain_Build
 
-	double Node_Stress_And_Strain_Field[this->Number_of_Nodes][Number_of_Strain_Strain_Info];
+	int GlobalSize = this->Number_of_Strain_Strain_Info * this->Number_of_Nodes;
+    float *Node_Stress_And_Strain_Field = new float[this->Number_of_Nodes * this->Number_of_Strain_Strain_Info];					
 
 	if(Whether_Stress_Strain_Build==-1){
 
@@ -2663,9 +2664,8 @@ void pvESSI::Build_Stress_Field_At_Nodes(vtkSmartPointer<vtkUnstructuredGrid> No
 		// H5Sclose(DataSpace);
 
 		// initializing the Node_Stress_And_Strain_Field matrix to zero
-		for(int i =0; i<this->Number_of_Nodes;i++)
-			for(int j =0; j<Number_of_Strain_Strain_Info; j++)
-				Node_Stress_And_Strain_Field[i][j]=0.0;
+		for(int i =0; i<GlobalSize;i++)
+			Node_Stress_And_Strain_Field[i]=0.0;
 		
 	    // dims3[0] = this->Number_of_Nodes;
 	    // dims3[1] = dims3[1]<Number_of_Time_Steps?(dims3[1]+1):dims3[1];
@@ -2679,9 +2679,10 @@ void pvESSI::Build_Stress_Field_At_Nodes(vtkSmartPointer<vtkUnstructuredGrid> No
 	    DataSpace = H5Dget_space(id_Stress_and_Strain);
 	    MemSpace = H5Screate_simple(2,dims2_out,NULL);
 	    H5Sselect_hyperslab(DataSpace,H5S_SELECT_SET,offset3,NULL,count3,NULL);
-	    H5Dwrite(id_Stress_and_Strain, H5T_NATIVE_DOUBLE, MemSpace, DataSpace, H5P_DEFAULT, Node_Stress_And_Strain_Field); 
+	    H5Dwrite(id_Stress_and_Strain, H5T_NATIVE_FLOAT, MemSpace, DataSpace, H5P_DEFAULT, Node_Stress_And_Strain_Field); 
 	    H5Sclose(MemSpace); status=H5Sclose(DataSpace);
-		
+
+	
 		////////////////////////////////////////////////// Reading Map Data ///////////////////////////////////////////////////////////////////////////////////////////
 
 	    int *Number_of_Gauss_Elements_Shared;Number_of_Gauss_Elements_Shared = new int[Number_of_Nodes];
@@ -2814,13 +2815,15 @@ void pvESSI::Build_Stress_Field_At_Nodes(vtkSmartPointer<vtkUnstructuredGrid> No
 
 					vtkMath::MultiplyMatrix	(it->second,Stress_Strain_At_Gauss_Points,nnodes,nnodes,nnodes,this->Number_of_Strain_Strain_Info,Stress_Strain_At_Nodes);
 
+	
+
 					///////////////////////// Adding the Calculated Stresses at Nodes //////////////////////////
 					int node_no=0;
 					for(int j=0; j< nnodes ; j++){
 						node_no = Element_Connectivity[connectivity_index+j];
 						// cout << "connectivity_index " << connectivity_index <<" node_no " << node_no  << " class_tag " << class_tag<< endl;
 						for(int k=0; k< this->Number_of_Strain_Strain_Info ; k++){
-							Node_Stress_And_Strain_Field[node_no][k] = Node_Stress_And_Strain_Field[node_no][k] + Stress_Strain_At_Nodes[j][k] ;
+							Node_Stress_And_Strain_Field[node_no*this->Number_of_Strain_Strain_Info+k] = Node_Stress_And_Strain_Field[node_no*this->Number_of_Strain_Strain_Info+k] + Stress_Strain_At_Nodes[j][k] ;
 						}
 					}
 
@@ -2853,7 +2856,7 @@ void pvESSI::Build_Stress_Field_At_Nodes(vtkSmartPointer<vtkUnstructuredGrid> No
 		double epsilon = 1e-6;
 		for(int i =0; i<this->Number_of_Nodes ; i++ ){
 			for(int j=0; j<this->Number_of_Strain_Strain_Info; j++)
-				Node_Stress_And_Strain_Field[i][j] =  Node_Stress_And_Strain_Field[i][j]/((double)Number_of_Gauss_Elements_Shared[i]+epsilon);
+				Node_Stress_And_Strain_Field[i*this->Number_of_Strain_Strain_Info+j] =  Node_Stress_And_Strain_Field[i*this->Number_of_Strain_Strain_Info+j]/((double)Number_of_Gauss_Elements_Shared[i]+epsilon);
 		}
 
 		delete [] Number_of_Gauss_Elements_Shared; Number_of_Gauss_Elements_Shared=NULL;
@@ -2865,7 +2868,7 @@ void pvESSI::Build_Stress_Field_At_Nodes(vtkSmartPointer<vtkUnstructuredGrid> No
 	    DataSpace = H5Dget_space(id_Stress_and_Strain);
 	    MemSpace = H5Screate_simple(2,dims2_out,NULL);
 	    H5Sselect_hyperslab(DataSpace,H5S_SELECT_SET,offset3,NULL,count3,NULL);
-	    H5Dwrite(id_Stress_and_Strain, H5T_NATIVE_DOUBLE, MemSpace, DataSpace, H5P_DEFAULT, Node_Stress_And_Strain_Field); 
+	    H5Dwrite(id_Stress_and_Strain, H5T_NATIVE_FLOAT, MemSpace, DataSpace, H5P_DEFAULT, Node_Stress_And_Strain_Field); 
 	    H5Sclose(MemSpace); status=H5Sclose(DataSpace);
 
 
@@ -2894,49 +2897,50 @@ void pvESSI::Build_Stress_Field_At_Nodes(vtkSmartPointer<vtkUnstructuredGrid> No
     DataSpace = H5Dget_space(id_Stress_and_Strain);
     MemSpace = H5Screate_simple(2,dims2_out,NULL);
     H5Sselect_hyperslab(DataSpace,H5S_SELECT_SET,offset3,NULL,count3,NULL);
-    H5Dread(id_Stress_and_Strain, H5T_NATIVE_DOUBLE, MemSpace, DataSpace, H5P_DEFAULT, Node_Stress_And_Strain_Field); 
+
+    H5Dread(id_Stress_and_Strain, H5T_NATIVE_FLOAT, MemSpace, DataSpace, H5P_DEFAULT, Node_Stress_And_Strain_Field); 
     H5Sclose(MemSpace); status=H5Sclose(DataSpace);
 
     float Var_q, Var_p, Var_Plastic_q, Var_Plastic_p;
 
-
 	for(int i=0; i< this->Number_of_Nodes; i++){	
 
 		float El_Strain_Tuple[6] ={
-			Node_Stress_And_Strain_Field[i][0],
-			Node_Stress_And_Strain_Field[i][3],
-			Node_Stress_And_Strain_Field[i][4],
-			Node_Stress_And_Strain_Field[i][1],
-			Node_Stress_And_Strain_Field[i][5],
-			Node_Stress_And_Strain_Field[i][2]
+			Node_Stress_And_Strain_Field[i*this->Number_of_Strain_Strain_Info+0],
+			Node_Stress_And_Strain_Field[i*this->Number_of_Strain_Strain_Info+3],
+			Node_Stress_And_Strain_Field[i*this->Number_of_Strain_Strain_Info+4],
+			Node_Stress_And_Strain_Field[i*this->Number_of_Strain_Strain_Info+1],
+			Node_Stress_And_Strain_Field[i*this->Number_of_Strain_Strain_Info+5],
+			Node_Stress_And_Strain_Field[i*this->Number_of_Strain_Strain_Info+2]
 		};
 
 		float Pl_Strain_Tuple[6] ={
-			Node_Stress_And_Strain_Field[i][6],
-			Node_Stress_And_Strain_Field[i][9],
-			Node_Stress_And_Strain_Field[i][10],
-			Node_Stress_And_Strain_Field[i][7],
-			Node_Stress_And_Strain_Field[i][11],
-			Node_Stress_And_Strain_Field[i][8]
+			Node_Stress_And_Strain_Field[i*this->Number_of_Strain_Strain_Info+6],
+			Node_Stress_And_Strain_Field[i*this->Number_of_Strain_Strain_Info+9],
+			Node_Stress_And_Strain_Field[i*this->Number_of_Strain_Strain_Info+10],
+			Node_Stress_And_Strain_Field[i*this->Number_of_Strain_Strain_Info+7],
+			Node_Stress_And_Strain_Field[i*this->Number_of_Strain_Strain_Info+11],
+			Node_Stress_And_Strain_Field[i*this->Number_of_Strain_Strain_Info+8]
 		};
 
 		float Stress_Tuple[6] ={
-			Node_Stress_And_Strain_Field[i][12],
-			Node_Stress_And_Strain_Field[i][15],
-			Node_Stress_And_Strain_Field[i][16],
-			Node_Stress_And_Strain_Field[i][13],
-			Node_Stress_And_Strain_Field[i][17],
-			Node_Stress_And_Strain_Field[i][14]
+			Node_Stress_And_Strain_Field[i*this->Number_of_Strain_Strain_Info+12],
+			Node_Stress_And_Strain_Field[i*this->Number_of_Strain_Strain_Info+15],
+			Node_Stress_And_Strain_Field[i*this->Number_of_Strain_Strain_Info+16],
+			Node_Stress_And_Strain_Field[i*this->Number_of_Strain_Strain_Info+13],
+			Node_Stress_And_Strain_Field[i*this->Number_of_Strain_Strain_Info+17],
+			Node_Stress_And_Strain_Field[i*this->Number_of_Strain_Strain_Info+14]
 		};
 
 		Elastic_Strain->InsertTypedTuple (i,El_Strain_Tuple);
 		Plastic_Strain->InsertTypedTuple (i,Pl_Strain_Tuple);
 		Stress->InsertTypedTuple (i,Stress_Tuple);
 
-		q->InsertValue(i,Node_Stress_And_Strain_Field[i][18]);
-		p->InsertValue(i,Node_Stress_And_Strain_Field[i][19]);
-		Plastic_Strain_q->InsertValue(i,Node_Stress_And_Strain_Field[i][20]);
-		Plastic_Strain_p->InsertValue(i,Node_Stress_And_Strain_Field[i][21]);
+		q->InsertValue(i,Node_Stress_And_Strain_Field[i*this->Number_of_Strain_Strain_Info+18]);
+		p->InsertValue(i,Node_Stress_And_Strain_Field[i*this->Number_of_Strain_Strain_Info+19]);
+		Plastic_Strain_q->InsertValue(i,Node_Stress_And_Strain_Field[i*this->Number_of_Strain_Strain_Info+20]);
+		Plastic_Strain_p->InsertValue(i,Node_Stress_And_Strain_Field[i*this->Number_of_Strain_Strain_Info+21]);
+
 	}
 
 	Node_Mesh->GetPointData()->AddArray(Elastic_Strain);
@@ -2947,7 +2951,10 @@ void pvESSI::Build_Stress_Field_At_Nodes(vtkSmartPointer<vtkUnstructuredGrid> No
 	Node_Mesh->GetPointData()->AddArray(p);
 	Node_Mesh->GetPointData()->AddArray(Plastic_Strain_q);
 	Node_Mesh->GetPointData()->AddArray(Plastic_Strain_p);
+
 	cout << "<<<<pvESSI>>>> Build_Stress_Field_At_Nodes:: Calculation done for the step no  " << Node_Mesh_Current_Time << endl;
+
+	delete [] Node_Stress_And_Strain_Field; Node_Stress_And_Strain_Field = NULL;
 
 	return;
 }
