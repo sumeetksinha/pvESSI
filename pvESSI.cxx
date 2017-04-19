@@ -487,7 +487,7 @@ void pvESSI::Build_Node_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Node_Mes
 
 		DataSpace = H5Dget_space(id_Support_Reactions);
 		H5Sget_simple_extent_dims(DataSpace, dims2_out, NULL);	
-		float Reaction_Forces[Number_of_Constrained_Dofs];
+		float *Reaction_Forces = new float [Number_of_Constrained_Dofs];
 		offset2[0]=0; 					  count2[0] = dims2_out[0];		dims1_out[0]=dims2_out[0];
 		offset2[1]=Current_Time; 		  count2[1] = 1;				MemSpace = H5Screate_simple(1,dims1_out,NULL);
 		H5Sselect_hyperslab(DataSpace,H5S_SELECT_SET,offset2,NULL,count2,NULL);
@@ -518,8 +518,13 @@ void pvESSI::Build_Node_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Node_Mes
 		}
 
 		Node_Mesh->GetPointData()->AddArray(Support_Reactions);
+		delete [] Reaction_Forces; Reaction_Forces=NULL;
 
 	}
+
+	delete [] Node_Generalized_Displacements; Node_Generalized_Displacements;
+	if(Enable_Relative_Displacement_Flag==true)	delete [] Reference_Node_Generalized_Displacements; Reference_Node_Generalized_Displacements;
+	delete [] Number_of_DOFs; Number_of_DOFs;
 
  	return;
 }
@@ -536,7 +541,7 @@ void pvESSI::Build_Eigen_Modes_Node_Attributes(vtkSmartPointer<vtkUnstructuredGr
 
 	DataSpace = H5Dget_space(id_modes);
 	H5Sget_simple_extent_dims(DataSpace, dims2_out, NULL);	
-	float Node_Generalized_Displacements[dims2_out[0]];
+	float *Node_Generalized_Displacements; Node_Generalized_Displacements = new float [dims2_out[0]];
 	offset2[0]=0; 					  count2[0] = dims2_out[0];		dims1_out[0]=dims2_out[0];
 	offset2[1]=Current_Time; 		  count2[1] = 1;				MemSpace = H5Screate_simple(1,dims1_out,NULL);
 	H5Sselect_hyperslab(DataSpace,H5S_SELECT_SET,offset2,NULL,count2,NULL);
@@ -570,6 +575,7 @@ void pvESSI::Build_Eigen_Modes_Node_Attributes(vtkSmartPointer<vtkUnstructuredGr
 	}
 
 	Node_Mesh->GetPointData()->AddArray(Generalized_Displacements);
+	delete [] Node_Generalized_Displacements; Node_Generalized_Displacements=NULL;
 
  	return;
 }
@@ -712,6 +718,8 @@ void pvESSI::Build_Gauss_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Gauss_M
   	Gauss_Mesh->GetCellData()->AddArray(Plastic_Strain_q);
   	Gauss_Mesh->GetCellData()->AddArray(p);
   	Gauss_Mesh->GetCellData()->AddArray(q);
+
+	delete [] Gauss_Outputs; Gauss_Outputs=NULL;
 
 	return;
 }
@@ -942,7 +950,15 @@ void pvESSI::Get_Node_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh){
 	Node_Mesh->GetCellData()->AddArray(Class_Tag);
 	if(Number_of_Processes_Used>1) Node_Mesh->GetCellData()->AddArray(Partition_Info);
 
+	if(Number_of_Processes_Used>1)
+	{
+		delete [] Element_Partition; Element_Partition=NULL;
+		delete [] Inverse_Element_Map; Inverse_Element_Map=NULL;
+	}
+
 	Whether_Node_Mesh_build[domain_no] = true;
+
+	cout << " Returned from Node Mesh " << endl;
 
 	return;
 	
@@ -1995,8 +2011,8 @@ void pvESSI::Build_Maps(){
 
 		H5Dclose(id_Physical_Group_Id);
 
-		delete [] pvESSI_Individual_Physical_group;
-		delete [] Individual_Physical_group;
+		delete [] pvESSI_Individual_Physical_group;pvESSI_Individual_Physical_group=NULL;
+		delete [] Individual_Physical_group;Individual_Physical_group=NULL;
     }
 
 	//**********/ Physical Node Groups **********************//
@@ -2020,7 +2036,7 @@ void pvESSI::Build_Maps(){
 		Length_of_individual_physical_group =0;
 		for(int j=0; j<dims1_out[0];j++){
 			node_no = Individual_Physical_group[j];
-			if(Number_of_DOFs[node_no]!=-1){
+			if(Element_Class_Tags[node_no]!=-1){
 				// cout << Individual_Physical_group[j] << endl;;
 				// cout << Inverse_Node_Map[node_no] << endl;
 				pvESSI_Individual_Physical_group[Length_of_individual_physical_group++]=node_no;
@@ -2040,8 +2056,8 @@ void pvESSI::Build_Maps(){
 
 		H5Dclose(id_Physical_Group_Id);
 
-		delete [] pvESSI_Individual_Physical_group;
-		delete [] Individual_Physical_group;
+		delete [] pvESSI_Individual_Physical_group;pvESSI_Individual_Physical_group = NULL;
+		delete [] Individual_Physical_group;Individual_Physical_group = NULL;
     }
 
 	H5Gclose(pvESSI_id_Physical_Groups); 
@@ -2049,6 +2065,26 @@ void pvESSI::Build_Maps(){
 	H5Gclose(pvESSI_id_Physical_Node_Groups); 
 	H5Gclose(id_Physical_Element_Groups); 
 	H5Gclose(id_Physical_Node_Groups); 
+
+	delete[] Element_Class_Tags; Element_Class_Tags = NULL;
+	delete[] Element_Map; Element_Map = NULL;
+	delete[] pvESSI_Connectivity; pvESSI_Connectivity = NULL;
+	delete[] pvESSI_Class_Tags; pvESSI_Class_Tags = NULL;
+	delete[] pvESSI_Material_Tags; pvESSI_Material_Tags = NULL;
+	delete[] Inverse_Element_Map; Inverse_Element_Map = NULL;
+	delete[] Number_of_Elements_Shared; Number_of_Elements_Shared = NULL;
+	delete[] Number_of_gauss_Elements_Shared; Number_of_gauss_Elements_Shared = NULL;
+	delete[] Element_Connectivity; Element_Connectivity = NULL;
+	delete[] Element_Index_to_Connectivity; Element_Index_to_Connectivity = NULL;
+	delete[] Material_Tags; Material_Tags = NULL;
+
+	delete [] Node_Map; Node_Map = NULL;
+	delete [] pvESSI_Number_of_DOFs; pvESSI_Number_of_DOFs = NULL;
+	delete [] Inverse_Node_Map; Inverse_Node_Map = NULL;
+	delete [] pvESSI_Constrained_Nodes; pvESSI_Constrained_Nodes = NULL;
+	delete [] Number_of_DOFs; Number_of_DOFs = NULL;
+	delete [] Constrained_Nodes; Constrained_Nodes = NULL;
+
 }
 
 /*****************************************************************************
@@ -2279,10 +2315,9 @@ void pvESSI::Build_Inverse_Matrices(){
 	// 	cout << endl;
 	// }
 
-	free(Temp_Twenty_Seven_Brick);
-	free(Temp_Twenty_Node_Brick);
-	free(Temp_Eight_Node_Brick);
-
+	delete [] Temp_Twenty_Seven_Brick;Temp_Twenty_Seven_Brick=NULL;
+	delete [] Temp_Twenty_Node_Brick;Temp_Twenty_Node_Brick=NULL;
+	delete [] Temp_Eight_Node_Brick;Temp_Eight_Node_Brick=NULL;
 
 	return;
   }
@@ -2651,15 +2686,15 @@ void pvESSI::Build_Stress_Field_At_Nodes(vtkSmartPointer<vtkUnstructuredGrid> No
 		
 		////////////////////////////////////////////////// Reading Map Data ///////////////////////////////////////////////////////////////////////////////////////////
 
-		int Number_of_Gauss_Elements_Shared[Number_of_Nodes];
+	    int *Number_of_Gauss_Elements_Shared;Number_of_Gauss_Elements_Shared = new int[Number_of_Nodes];
 		H5Dread(id_Number_of_Gauss_Elements_Shared, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Number_of_Gauss_Elements_Shared);
 
 		////////////////////////////////////////////////// Reading Element Data ///////////////////////////////////////////////////////////////////////////////////////////
 
-	    int Element_Class_Tags[Number_of_Elements]; 
+	    int* Element_Class_Tags = new int[Number_of_Elements]; 
 		H5Dread(id_Class_Tags, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Element_Class_Tags);
 
-		int Element_Connectivity[Number_of_Connectivity_Nodes];
+		int* Element_Connectivity = new int[Number_of_Connectivity_Nodes];
 		H5Dread(id_Connectivity, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Element_Connectivity); 
 
 		///////////////////////////////////////////  Gauss Output Dataset for a particular time /////////////////////////////////////////////////////////////////////////////	
@@ -2791,6 +2826,12 @@ void pvESSI::Build_Stress_Field_At_Nodes(vtkSmartPointer<vtkUnstructuredGrid> No
 						}
 					}
 
+					for(int j = 0; j < nnodes; ++j){
+				    	delete [] Stress_Strain_At_Nodes[j];
+				    	delete [] Stress_Strain_At_Gauss_Points[j];
+					}
+					delete [] Stress_Strain_At_Gauss_Points;Stress_Strain_At_Gauss_Points=NULL;
+					delete [] Stress_Strain_At_Nodes;Stress_Strain_At_Nodes=NULL;
 				}
 				else{
 
@@ -2803,7 +2844,11 @@ void pvESSI::Build_Stress_Field_At_Nodes(vtkSmartPointer<vtkUnstructuredGrid> No
 			connectivity_index = connectivity_index + nnodes;
 		}
 
-		// free(Gauss_Outputs);	
+		// free gauss outputs 
+		delete [] Gauss_Outputs;Gauss_Outputs=NULL;
+		delete [] Element_Class_Tags;  Element_Class_Tags = NULL;
+		delete [] Element_Connectivity; Element_Connectivity = NULL;
+
 
 		// Now take average of contributions from gauss points 
 		
@@ -2812,6 +2857,8 @@ void pvESSI::Build_Stress_Field_At_Nodes(vtkSmartPointer<vtkUnstructuredGrid> No
 			for(int j=0; j<this->Number_of_Strain_Strain_Info; j++)
 				Node_Stress_And_Strain_Field[i][j] =  Node_Stress_And_Strain_Field[i][j]/((double)Number_of_Gauss_Elements_Shared[i]+epsilon);
 		}
+
+		delete [] Number_of_Gauss_Elements_Shared; Number_of_Gauss_Elements_Shared=NULL;
 
 		offset3[0] = 0;  					     offset3[1] = Node_Mesh_Current_Time;    offset3[2] = 0;
 	    count3 [0] = this->Number_of_Nodes;		 count3 [1] = 1;		    count3 [2] = this->Number_of_Strain_Strain_Info;
