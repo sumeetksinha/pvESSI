@@ -958,8 +958,6 @@ void pvESSI::Get_Node_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh){
 
 	Whether_Node_Mesh_build[domain_no] = true;
 
-	cout << " Returned from Node Mesh " << endl;
-
 	return;
 	
 }
@@ -1472,7 +1470,7 @@ void pvESSI::Domain_Initializer(int Domain_Number){
 	****************************************************************************************/
 
 	  /***************** File_id **********************************/
-	  cout << filename.c_str() <<endl;
+	  cout << filename.c_str() << "Time_Step " << Node_Mesh_Current_Time << endl;
 	  this->id_File = H5Fopen(filename.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
 
 	  /***************** Read Model Information *******************/
