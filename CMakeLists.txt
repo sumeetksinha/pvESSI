@@ -1,5 +1,14 @@
 cmake_minimum_required(VERSION 2.8)
 
+if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+    # require at least gcc 4.9
+    if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 4.9)
+        message(FATAL_ERROR "GCC version must be at least 4.9!")
+    endif() 
+else()
+    message(WARNING "You are using an unsupported compiler! Compilation has only been tested with GCC.")
+endif()
+
 IF (ParaView_SOURCE_DIR)
   INCLUDE_DIRECTORIES(
     ${VTK_INCLUDE_DIRS}
