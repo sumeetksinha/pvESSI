@@ -29,19 +29,3 @@ ADD_PARAVIEW_PLUGIN(pvESSI "1.0"
    SERVER_MANAGER_SOURCES pvESSI.cxx)
 
 target_link_libraries(pvESSI ${deps})
-
-#if(VTK_WRAP_PYTHON)
-#       wrap_python(pvESSI "${sources}")
-#endif()
-
-#vtk_module_library(vtkPvESSI ${Module_SRCS})
-
-
-#from paraview.simple import *
-#LoadPlugin("libpvESSI.so",ns=globals())
-#from paraview.simple import *
-#pvESSI(FileName="/home/sumeet/Desktop/ShearBox_Sequential.feioutput")
-#Show()
-#Render()
-#viewLayout = GetLayout()
-                          
