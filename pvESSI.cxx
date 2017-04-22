@@ -58,12 +58,19 @@ pvESSI::pvESSI(){
 	this->eigen_mode_on = false;
 	this->Enable_Initialization_Flag=true;
 	this->Whether_Physical_Group_Info_build=false;
+	this->Whether_Node_Tag_Initialized=false;
 	this->SetNumberOfInputPorts(0);
 	this->SetNumberOfOutputPorts(1);
 	this->set_VTK_To_ESSI_Elements_Connectivity();
 	this->Build_Meta_Array_Map();
 	this->Physical_Element_Group=vtkSmartPointer<vtkDataArraySelection>::New();
 	this->Physical_Node_Group=vtkSmartPointer<vtkDataArraySelection>::New();
+	Global_UGrid_Node_Mesh= vtkSmartPointer<vtkUnstructuredGrid>::New();
+	Global_UGrid_Gauss_Mesh= vtkSmartPointer<vtkUnstructuredGrid>::New();
+	Global_UGrid_Current_Node_Mesh= vtkSmartPointer<vtkUnstructuredGrid>::New();
+	Global_UGrid_Current_Gauss_Mesh= vtkSmartPointer<vtkUnstructuredGrid>::New();
+		Node_Tag = vtkSmartPointer<vtkIntArray> ::New();
+		points = vtkSmartPointer<vtkPoints>::New();
 	Build_Inverse_Matrices();
 	Build_Gauss_To_Node_Interpolation_Map();
 }
@@ -139,36 +146,39 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 		// cout << "Pseudo_Number_of_Elements"  << " " << Pseudo_Number_of_Elements << endl;
 		// ///////////////////////////////////////////////////////////////////////////////////////
 
-		if(eigen_mode_on){
-			Build_Eigen_Modes_Node_Attributes(UGrid_Current_Node_Mesh[domain_no], this->Node_Mesh_Current_Time );	
-		}
+		// if(eigen_mode_on){
+		// 	Build_Eigen_Modes_Node_Attributes(UGrid_Current_Node_Mesh[domain_no], this->Node_Mesh_Current_Time );	
+		// }
 
-		else{
-			if(!Show_Gauss_Mesh_Flag){
-				Build_Node_Attributes(UGrid_Current_Node_Mesh[domain_no], this->Node_Mesh_Current_Time );
-				if(Enable_Gauss_To_Node_Interpolation_Flag) Build_Stress_Field_At_Nodes(UGrid_Current_Node_Mesh[domain_no], this->Node_Mesh_Current_Time);
-				if(Enable_Physical_Node_Group_Selection_Flag or Enable_Physical_Element_Group_Selection_Flag) Build_Physical_Element_Group_Mesh(UGrid_Current_Node_Mesh[domain_no]);
-			}
-			else if(Show_Gauss_Mesh_Flag){
-				Build_Gauss_Attributes(UGrid_Current_Node_Mesh[domain_no], this->Node_Mesh_Current_Time );
-			}
-		}
+		// else{
+		// 	if(!Show_Gauss_Mesh_Flag){
+		// 		Build_Node_Attributes(UGrid_Current_Node_Mesh[domain_no], this->Node_Mesh_Current_Time );
+		// 		if(Enable_Gauss_To_Node_Interpolation_Flag) Build_Stress_Field_At_Nodes(UGrid_Current_Node_Mesh[domain_no], this->Node_Mesh_Current_Time);
+		// 		if(Enable_Physical_Node_Group_Selection_Flag or Enable_Physical_Element_Group_Selection_Flag) Build_Physical_Element_Group_Mesh(UGrid_Current_Node_Mesh[domain_no]);
+		// 	}
+		// 	else if(Show_Gauss_Mesh_Flag){
+		// 		Build_Gauss_Attributes(UGrid_Current_Node_Mesh[domain_no], this->Node_Mesh_Current_Time );
+		// 	}
+		// }
 
 	}
 
-	vtkSmartPointer<vtkUnstructuredGrid>  Chunk_Node_mesh =  vtkSmartPointer<vtkUnstructuredGrid>::New();;
+	// vtkSmartPointer<vtkUnstructuredGrid>  Chunk_Node_mesh =  vtkSmartPointer<vtkUnstructuredGrid>::New();;
 
-	if(single_file_visualization_mode){
-		Chunk_Node_mesh->ShallowCopy(UGrid_Current_Node_Mesh[0]);
-	}
-	else{
-		Merge_Mesh(start,end, Chunk_Node_mesh);
-	}
+	// if(single_file_visualization_mode){
+	// 	Chunk_Node_mesh->ShallowCopy(UGrid_Current_Node_Mesh[0]);
+	// }
+	// else{
+	// 	Merge_Mesh(start,end, Chunk_Node_mesh);
+	// }
 
-	// get the ouptut pointer to paraview 
+	// // get the ouptut pointer to paraview 
 	vtkUnstructuredGrid *Output_Node_Mesh = vtkUnstructuredGrid::SafeDownCast(Node_Mesh->Get(vtkDataObject::DATA_OBJECT()));
 
-	Output_Node_Mesh->ShallowCopy(Chunk_Node_mesh);
+	vtkIndent indent;
+	Global_UGrid_Node_Mesh->PrintSelf(std::cout, indent);
+
+	Output_Node_Mesh->ShallowCopy(Global_UGrid_Node_Mesh);
 
 
 	return 1;
@@ -777,186 +787,233 @@ void pvESSI::Build_ProbeFilter_Gauss_Mesh(vtkSmartPointer<vtkUnstructuredGrid> P
 *****************************************************************************/
 void pvESSI::Get_Node_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh){
 
-	//////////////////////////////////////////////////// Reading Map Data ///////////////////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////// Reading Mesh Data ///////////////////////////////////////////////////////////////////////////////////////////
 
-	int Node_Map[Number_of_Nodes];
-	H5Dread(id_Node_Map, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Node_Map); 
+	int Global_Number_of_Elements, Global_Number_of_Nodes;
+	int This_File_Number_of_nodes, This_File_Number_of_elements;
 
-	int Element_Map[Number_of_Elements];
-	H5Dread(id_Element_Map, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Element_Map); 
+	// getting the master file containing physical group
+	std::string Source_File = GetSourceFile(this->FileName)+"feioutput";
+	hid_t id_Source_File = H5Fopen(Source_File.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
+	id_Element_Partition = H5Dopen(id_Source_File, "/Model/Elements/Partition", H5P_DEFAULT);
 
-	/////////////////////////////////////////////////// Reading Element Partitioning Information ///////////////////////////////////////////////////////////////////
+	DataSpace = H5Dget_space(id_Element_Partition);
+	H5Sget_simple_extent_dims(DataSpace, dims1_out, NULL);
+	Global_Number_of_Elements = dims1_out[0];
+	int *Element_Partition;  Element_Partition= new int[Global_Number_of_Elements]; 
+	offset1[0]=0;   	MemSpace = H5Screate_simple(1,dims1_out,NULL);
+	H5Sselect_hyperslab(DataSpace,H5S_SELECT_SET,offset1,NULL,dims1_out,NULL);
+	H5Dread(id_Element_Partition, H5T_NATIVE_INT, MemSpace, DataSpace, H5P_DEFAULT, Element_Partition); 
+	H5Sclose(MemSpace); status=H5Sclose(DataSpace); H5Dclose(id_Element_Partition);
 
-	int *Element_Partition;
-	int *Inverse_Element_Map;
+	id_Node_Partition = H5Dopen(id_Source_File, "/Model/Nodes/Partition", H5P_DEFAULT);
+	DataSpace = H5Dget_space(id_Node_Partition);
+	H5Sget_simple_extent_dims(DataSpace, dims1_out, NULL);
+	Global_Number_of_Nodes = dims1_out[0];
+	int *Node_Partition;	Node_Partition = new int[Global_Number_of_Nodes];
+	offset1[0]=0;   	MemSpace = H5Screate_simple(1,dims1_out,NULL);
+	H5Sselect_hyperslab(DataSpace,H5S_SELECT_SET,offset1,NULL,dims1_out,NULL);
+	H5Dread(id_Node_Partition, H5T_NATIVE_INT, MemSpace, DataSpace, H5P_DEFAULT, Node_Partition); 
+	H5Sclose(MemSpace); status=H5Sclose(DataSpace); H5Dclose(id_Node_Partition);
 
-	if(Number_of_Processes_Used>1)
-	{
-
-		DataSpace = H5Dget_space(id_Inverse_Element_Map);
-		H5Sget_simple_extent_dims(DataSpace, dims1_out, NULL);
-		Inverse_Element_Map = new int[dims1_out[0]];
-		offset1[0]=0;   	MemSpace = H5Screate_simple(1,dims1_out,NULL);
-		H5Sselect_hyperslab(DataSpace,H5S_SELECT_SET,offset1,NULL,dims1_out,NULL);
-		H5Dread(id_Inverse_Element_Map, H5T_NATIVE_INT, MemSpace, DataSpace, H5P_DEFAULT, Inverse_Element_Map); 
-		H5Sclose(MemSpace); status=H5Sclose(DataSpace); H5Dclose(id_Inverse_Element_Map);
+	H5Fclose(id_Source_File);
 
 
-		// getting the master file containing physical group
-		std::string Source_File = GetSourceFile(this->FileName)+"feioutput";
-		hid_t id_Source_File = H5Fopen(Source_File.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
-		id_Element_Partition = H5Dopen(id_Source_File, "/Model/Elements/Partition", H5P_DEFAULT);
+	id_Coordinates = H5Dopen(id_File, "/Model/Nodes/Coordinates", H5P_DEFAULT);	
+	DataSpace = H5Dget_space(id_Coordinates);
+	H5Sget_simple_extent_dims(DataSpace, dims1_out, NULL);
+	float *Node_Coordinates; Node_Coordinates= new float[dims1_out[0]];
+	offset1[0]=0;   	MemSpace = H5Screate_simple(1,dims1_out,NULL);
+	H5Sselect_hyperslab(DataSpace,H5S_SELECT_SET,offset1,NULL,dims1_out,NULL);
+	H5Dread(id_Coordinates, H5T_NATIVE_FLOAT, MemSpace, DataSpace, H5P_DEFAULT, Node_Coordinates); 
+	H5Sclose(MemSpace); status=H5Sclose(DataSpace); H5Dclose(id_Coordinates);
 
-		DataSpace = H5Dget_space(id_Element_Partition);
-		H5Sget_simple_extent_dims(DataSpace, dims1_out, NULL);
-		Element_Partition = new int[dims1_out[0]]; 
-		offset1[0]=0;   	MemSpace = H5Screate_simple(1,dims1_out,NULL);
-		H5Sselect_hyperslab(DataSpace,H5S_SELECT_SET,offset1,NULL,dims1_out,NULL);
-		H5Dread(id_Element_Partition, H5T_NATIVE_INT, MemSpace, DataSpace, H5P_DEFAULT, Element_Partition); 
-		H5Sclose(MemSpace); status=H5Sclose(DataSpace); H5Dclose(id_Element_Partition);
 
-	}
+	id_Connectivity = H5Dopen(id_File, "/Model/Elements/Connectivity", H5P_DEFAULT);	
+	DataSpace = H5Dget_space(id_Connectivity);
+	H5Sget_simple_extent_dims(DataSpace, dims1_out, NULL);
+	int *Element_Connectivity; Element_Connectivity= new int[dims1_out[0]];
+	offset1[0]=0;   	MemSpace = H5Screate_simple(1,dims1_out,NULL);
+	H5Sselect_hyperslab(DataSpace,H5S_SELECT_SET,offset1,NULL,dims1_out,NULL);
+	H5Dread(id_Connectivity, H5T_NATIVE_INT, MemSpace, DataSpace, H5P_DEFAULT, Element_Connectivity); 
+	H5Sclose(MemSpace); status=H5Sclose(DataSpace); H5Dclose(id_Connectivity);
+
+	id_Index_to_Connectivity = H5Dopen(id_File, "/Model/Elements/Index_to_Connectivity", H5P_DEFAULT);	
+	DataSpace = H5Dget_space(id_Index_to_Connectivity);
+	H5Sget_simple_extent_dims(DataSpace, dims1_out, NULL);
+	int *Element_Index_To_Connectivity; Element_Index_To_Connectivity= new int[dims1_out[0]]; This_File_Number_of_elements = dims1_out[0];
+	offset1[0]=0;   	MemSpace = H5Screate_simple(1,dims1_out,NULL);
+	H5Sselect_hyperslab(DataSpace,H5S_SELECT_SET,offset1,NULL,dims1_out,NULL);
+	H5Dread(id_Index_to_Connectivity, H5T_NATIVE_INT, MemSpace, DataSpace, H5P_DEFAULT, Element_Index_To_Connectivity); 
+	H5Sclose(MemSpace); status=H5Sclose(DataSpace); H5Dclose(id_Index_to_Connectivity);
+
+	id_Class_Tags = H5Dopen(id_File, "/Model/Elements/Class_Tags", H5P_DEFAULT);	
+	DataSpace = H5Dget_space(id_Class_Tags);
+	H5Sget_simple_extent_dims(DataSpace, dims1_out, NULL);
+	int *Class_Tags; Class_Tags= new int[dims1_out[0]];
+	offset1[0]=0;   	MemSpace = H5Screate_simple(1,dims1_out,NULL);
+	H5Sselect_hyperslab(DataSpace,H5S_SELECT_SET,offset1,NULL,dims1_out,NULL);
+	H5Dread(id_Class_Tags, H5T_NATIVE_INT, MemSpace, DataSpace, H5P_DEFAULT, Class_Tags); 
+	H5Sclose(MemSpace); status=H5Sclose(DataSpace); H5Dclose(id_Class_Tags);
+
+	hid_t id_Index_to_Coordinates = H5Dopen(id_File, "/Model/Nodes/Index_to_Coordinates", H5P_DEFAULT);	
+	DataSpace = H5Dget_space(id_Index_to_Coordinates);
+	H5Sget_simple_extent_dims(DataSpace, dims1_out, NULL);This_File_Number_of_nodes=dims1_out[0];
+	int *Index_To_Coordinates; Index_To_Coordinates= new int[dims1_out[0]];
+	offset1[0]=0;   	MemSpace = H5Screate_simple(1,dims1_out,NULL);
+	H5Sselect_hyperslab(DataSpace,H5S_SELECT_SET,offset1,NULL,dims1_out,NULL);
+	H5Dread(id_Index_to_Coordinates, H5T_NATIVE_INT, MemSpace, DataSpace, H5P_DEFAULT, Index_To_Coordinates); 
+	H5Sclose(MemSpace); status=H5Sclose(DataSpace); H5Dclose(id_Index_to_Coordinates);
 
 	////////////////////////////////////////////////////// Reading Node Attributes /////////////////////////////////////////////////////////////////////////////
 
-	DataSpace = H5Dget_space(id_Coordinates);
-	H5Sget_simple_extent_dims(DataSpace, dims1_out, NULL);	
-	float Node_Coordinates[dims1_out[0]];
-	H5Sclose(DataSpace); 
-	H5Dread(id_Coordinates, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Node_Coordinates); 
+	// int Constrained_Nodes[Number_of_Constrained_Dofs];
+	// H5Dread(id_Constrained_Nodes, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Constrained_Nodes); 
 
-	int Constrained_Nodes[Number_of_Constrained_Dofs];
-	H5Dread(id_Constrained_Nodes, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Constrained_Nodes); 
+	// int Constrained_DOFs[Number_of_Constrained_Dofs];
+	// H5Dread(id_Constrained_DOFs, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Constrained_DOFs); 
 
-	int Constrained_DOFs[Number_of_Constrained_Dofs];
-	H5Dread(id_Constrained_DOFs, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Constrained_DOFs); 
+	// //////////////////////////////////////////////////// Reading Element Data ///////////////////////////////////////////////////////////////////////////////////////////
 
-	//////////////////////////////////////////////////// Reading Element Data ///////////////////////////////////////////////////////////////////////////////////////////
+	// int Element_Class_Tags[Number_of_Elements];
+	// H5Dread(id_Class_Tags, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Element_Class_Tags);
 
-	int Element_Class_Tags[Number_of_Elements];
-	H5Dread(id_Class_Tags, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Element_Class_Tags);
+	// int Element_Material_Tags[Number_of_Elements];
+	// H5Dread(id_Material_Tags, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Element_Material_Tags);
 
-	int Element_Material_Tags[Number_of_Elements];
-	H5Dread(id_Material_Tags, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Element_Material_Tags);
+	// DataSpace = H5Dget_space(id_Connectivity);
+	// H5Sget_simple_extent_dims(DataSpace, dims1_out, NULL);	
+	// int Element_Connectivity[dims1_out[0]];
+	// H5Sclose(DataSpace); 
+	// H5Dread(id_Connectivity, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Element_Connectivity); 
 
-	DataSpace = H5Dget_space(id_Connectivity);
-	H5Sget_simple_extent_dims(DataSpace, dims1_out, NULL);	
-	int Element_Connectivity[dims1_out[0]];
-	H5Sclose(DataSpace); 
-	H5Dread(id_Connectivity, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Element_Connectivity); 
+	// /////////////////////////////////////////////////// Building Nodes ///////////////////////////////////////////////////////////////////////////////////////////
 
-	/////////////////////////////////////////////////// Building Nodes ///////////////////////////////////////////////////////////////////////////////////////////
+	// cout << "Global_Number_of_Nodes " << Global_Number_of_Nodes << endl;
 
-	Node_Tag = vtkSmartPointer<vtkIntArray> ::New();
-	this->Set_Meta_Array (Meta_Array_Map["Node_Tag"]);
-	Node_Tag->Allocate(Number_of_Nodes);
+	if(Whether_Node_Tag_Initialized==false)
+	{
 
-	vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
-	points->SetNumberOfPoints(this->Number_of_Nodes);
+		this->Set_Meta_Array (Meta_Array_Map["Node_Tag"]);
+		Node_Tag->Allocate(Global_Number_of_Nodes);
 
-	Node_Mesh->Allocate(this->Number_of_Elements);
+		points->SetNumberOfPoints(Global_Number_of_Nodes);		
+		Global_UGrid_Node_Mesh->Allocate(Global_Number_of_Nodes);	
+	}
+	Whether_Node_Tag_Initialized==true;
 
-	int index_to_coordinates;
+	// cout << "This_File_Number_of_nodes " << This_File_Number_of_nodes << endl;
 
-	for (int i = 0; i < Number_of_Nodes; i++){
+	int index;
 
-		Node_Tag->InsertValue(i,Node_Map[i]);
+	for (int i = 0; i < This_File_Number_of_nodes; i++){
 
-		points->InsertPoint(i,  Node_Coordinates[3*i  ],
-								Node_Coordinates[3*i+1],
-								Node_Coordinates[3*i+2]
-		);
+		index = Index_To_Coordinates[i];
+		if(index!=-1)
+		{
+			// Node_Tag->InsertValue(i,i);
+
+			// cout << "Node_Coordinates " << Node_Coordinates[index  ] << " " << Node_Coordinates[index+1  ] << " " << Node_Coordinates[index+2  ] << endl;; 
+			points->InsertPoint(i,  Node_Coordinates[index  ],
+									Node_Coordinates[index+1],
+									Node_Coordinates[index+2]
+			);
+		}
 	}
 
 
-	Node_Mesh->SetPoints(points);
-	Node_Mesh->GetPointData()->AddArray(Node_Tag);
+	Global_UGrid_Node_Mesh->SetPoints(points);
+	// Global_UGrid_Node_Mesh->GetPointData()->AddArray(Node_Tag);
 
-	/////////////////////////////////////////////////// Building Boundary Conditions  ///////////////////////////////////////////////////////////////////////////
+	// /////////////////////////////////////////////////// Building Boundary Conditions  ///////////////////////////////////////////////////////////////////////////
 
-	Boundary_Conditions = vtkSmartPointer<vtkIntArray> ::New();
-	this->Set_Meta_Array (Meta_Array_Map["Boundary_Conditions"]);
-	Boundary_Conditions->Allocate(Number_of_Nodes*3);
-	Boundary_Conditions->SetNumberOfValues(Number_of_Nodes*3);
-	Boundary_Conditions->FillComponent (0, 0);
-	Boundary_Conditions->FillComponent (1, 0);
-	Boundary_Conditions->FillComponent (2, 0);
+	// Boundary_Conditions = vtkSmartPointer<vtkIntArray> ::New();
+	// this->Set_Meta_Array (Meta_Array_Map["Boundary_Conditions"]);
+	// Boundary_Conditions->Allocate(Number_of_Nodes*3);
+	// Boundary_Conditions->SetNumberOfValues(Number_of_Nodes*3);
+	// Boundary_Conditions->FillComponent (0, 0);
+	// Boundary_Conditions->FillComponent (1, 0);
+	// Boundary_Conditions->FillComponent (2, 0);
 
-	for(int i = 0; i<Number_of_Constrained_Dofs; i++){
+	// for(int i = 0; i<Number_of_Constrained_Dofs; i++){
 
-		if(Constrained_DOFs[i]<3)
-			Boundary_Conditions->SetComponent(Constrained_Nodes[i],Constrained_DOFs[i],1);
+	// 	if(Constrained_DOFs[i]<3)
+	// 		Boundary_Conditions->SetComponent(Constrained_Nodes[i],Constrained_DOFs[i],1);
 
-	}
+	// }
 
-	Node_Mesh->GetPointData()->AddArray(Boundary_Conditions);
+	// Node_Mesh->GetPointData()->AddArray(Boundary_Conditions);
 
 	// ///////////////////////////////////////////////////////////////////////////// Building up the elements //////////////////////////////////////////////////////
 
-	Material_Tag = vtkSmartPointer<vtkIntArray> ::New();
-	this->Set_Meta_Array (Meta_Array_Map["Material_Tag"]);
-	Material_Tag->Allocate(Number_of_Elements);
+	// Material_Tag = vtkSmartPointer<vtkIntArray> ::New();
+	// this->Set_Meta_Array (Meta_Array_Map["Material_Tag"]);
+	// Material_Tag->Allocate(Number_of_Elements);
 
-	Element_Tag = vtkSmartPointer<vtkIntArray> ::New();
-	this->Set_Meta_Array (Meta_Array_Map["Element_Tag"]);
-	Element_Tag->Allocate(Number_of_Elements);
+	// Element_Tag = vtkSmartPointer<vtkIntArray> ::New();
+	// this->Set_Meta_Array (Meta_Array_Map["Element_Tag"]);
+	// Element_Tag->Allocate(Number_of_Elements);
 
-	Class_Tag = vtkSmartPointer<vtkIntArray> ::New();
-	this->Set_Meta_Array (Meta_Array_Map["Class_Tag"]);
-	Class_Tag->Allocate(Number_of_Elements);
+	// Class_Tag = vtkSmartPointer<vtkIntArray> ::New();
+	// this->Set_Meta_Array (Meta_Array_Map["Class_Tag"]);
+	// Class_Tag->Allocate(Number_of_Elements);
 
 
-	if(Number_of_Processes_Used>1){
-		Partition_Info = vtkSmartPointer<vtkIntArray> ::New();
-		this->Set_Meta_Array (Meta_Array_Map["Partition_Info"]);
-		Partition_Info->Allocate(Number_of_Elements);		
-	}
+	// if(Number_of_Processes_Used>1){
+	// 	Partition_Info = vtkSmartPointer<vtkIntArray> ::New();
+	// 	this->Set_Meta_Array (Meta_Array_Map["Partition_Info"]);
+	// 	Partition_Info->Allocate(Number_of_Elements);		
+	// }
 
 
 	int connectivity_index =0;
 	int nnodes = 0;
 	int Cell_Type;
 
-	for (int i = 0; i < Number_of_Elements; i++){
+	// cout << "This_File_Number_of_elements " << This_File_Number_of_elements << endl;
+	for (int i = 0; i < This_File_Number_of_elements; i++){
 
-		nnodes     = NUMBER_OF_NODES(Element_Desc_Array[Element_Class_Tags[i]]);  // Number of element nodes
+		nnodes     = NUMBER_OF_NODES(Element_Desc_Array[Class_Tags[i]]);  // Number of element nodes
 
-		if(not(Show_Hide_Contact_Flag==true and (Element_Class_Tags[i]==86  or Element_Class_Tags[i]==87)))
+		connectivity_index = Element_Index_To_Connectivity[i];
+		// cout << "connectivity_index " << connectivity_index << endl;
+		if(not(Show_Hide_Contact_Flag==true and (Class_Tags[i]==86  or Class_Tags[i]==87)) and connectivity_index!=-1)
 		{
 
-			Material_Tag->InsertValue(i,Element_Material_Tags[i]);
-			Element_Tag->InsertValue(i,Element_Map[i]);
-			Class_Tag->InsertValue(i,Element_Class_Tags[i]);
+		// 	// Material_Tag->InsertValue(i,Element_Material_Tags[i]);
+		// 	// Element_Tag->InsertValue(i,Element_Map[i]);
+		// 	// Class_Tag->InsertValue(i,Class_Tags[i]);
 
-			if(Number_of_Processes_Used>1) {Partition_Info->InsertValue(i,Element_Partition[Element_Map[i]]); }
+		// 	// if(Number_of_Processes_Used>1) {Partition_Info->InsertValue(i,Element_Partition[Element_Map[i]]); }
 
 			vtkIdType Vertices[nnodes];
 			Cell_Type = ESSI_to_VTK_Element.find(nnodes)->second;
 			std::vector<int> Nodes_Connectivity_Order = ESSI_to_VTK_Connectivity.find(nnodes)->second;
 
+
 			for(int j=0; j<nnodes ; j++){
 				Vertices[j] = Element_Connectivity[connectivity_index+Nodes_Connectivity_Order[j]];
 			}
 
-			Node_Mesh->InsertNextCell(Cell_Type, nnodes, Vertices);
+			Global_UGrid_Node_Mesh->InsertNextCell(Cell_Type, nnodes, Vertices);
 
 		}
 
-		connectivity_index = connectivity_index + nnodes;
+		// connectivity_index = connectivity_index + nnodes;
 	}
 
 
 
-	Node_Mesh->GetCellData()->AddArray(Material_Tag);
-	Node_Mesh->GetCellData()->AddArray(Element_Tag);
-	Node_Mesh->GetCellData()->AddArray(Class_Tag);
-	if(Number_of_Processes_Used>1) Node_Mesh->GetCellData()->AddArray(Partition_Info);
+	// Node_Mesh->GetCellData()->AddArray(Material_Tag);
+	// Node_Mesh->GetCellData()->AddArray(Element_Tag);
+	// Node_Mesh->GetCellData()->AddArray(Class_Tag);
+	// if(Number_of_Processes_Used>1) Node_Mesh->GetCellData()->AddArray(Partition_Info);
 
-	if(Number_of_Processes_Used>1)
-	{
-		delete [] Element_Partition; Element_Partition=NULL;
-		delete [] Inverse_Element_Map; Inverse_Element_Map=NULL;
-	}
+	// if(Number_of_Processes_Used>1)
+	// {
+	// 	delete [] Element_Partition; Element_Partition=NULL;
+	// 	delete [] Inverse_Element_Map; Inverse_Element_Map=NULL;
+	// }
 
 	Whether_Node_Mesh_build[domain_no] = true;
 

@@ -246,9 +246,14 @@ protected:
   bool Enable_Physical_Node_Group_Selection_Flag;
   bool Disable_Contact_Relative_Displacement_Flag;
   bool Show_Hide_Contact_Flag;
+
+  bool Whether_Node_Tag_Initialized;
   vtkSmartPointer<vtkDataArraySelection> Physical_Node_Group;
   vtkSmartPointer<vtkDataArraySelection> Physical_Element_Group;
 
+/****************** Mesh Variables *******************/
+  vtkSmartPointer<vtkPoints> points;
+  
 
 
   hsize_t  dims1_out[1], dims2_out[2];
@@ -387,6 +392,12 @@ private:
   vtkSmartPointer<vtkUnstructuredGrid> *UGrid_Gauss_Mesh;                // Contains the mesh of all domains
   vtkSmartPointer<vtkUnstructuredGrid> *UGrid_Current_Node_Mesh;         // Contains mesh with data attributes 
   vtkSmartPointer<vtkUnstructuredGrid> *UGrid_Current_Gauss_Mesh;        // Contains mesh with data attributes 
+
+  vtkSmartPointer<vtkUnstructuredGrid> Global_UGrid_Node_Mesh;                 // Contains the mesh of all domains
+  vtkSmartPointer<vtkUnstructuredGrid> Global_UGrid_Gauss_Mesh;                // Contains the mesh of all domains
+  vtkSmartPointer<vtkUnstructuredGrid> Global_UGrid_Current_Node_Mesh;         // Contains mesh with data attributes 
+  vtkSmartPointer<vtkUnstructuredGrid> Global_UGrid_Current_Gauss_Mesh;        // Contains mesh with data attributes 
+
 
   /****************************************** Physical Groups*********************************/
   static std::vector<std::string> Physical_Group_Container;
