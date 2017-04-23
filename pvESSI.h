@@ -112,6 +112,7 @@ protected:
   
   //////////////////////// Important Variables /////////////////////////////////////////
 
+int Pseudo_Number_of_Nodes, Pseudo_Number_of_Elements;
   /************************************** Time parameters ***************************************/
   int TimeStep;                 
   int Time_Step_Range[2];             // Range of Time Steps
@@ -121,15 +122,15 @@ protected:
   int Gauss_Mesh_Current_Time;        // Stores the currengt time step of Gauss Mesh
 
   /************************************ Element Info Parameters *********************************/
-  int Pseudo_Number_of_Elements;      // Stores the max node tag in each domain
-  int Number_of_Elements;             // Stores the Number of Elements in each domain
+  int Number_of_Elements;             // Stores the Maximum Element Tag in each domain
+  int Total_Number_of_Elements;       // Stores the Maximum Element Tag in Visualization
   int Number_of_Gauss_Points;         // Stores the Number of gauss points in each domain
-  int Number_of_Connectivity_Nodes;   // Stores the Number of connectivity nodes in reach domain
+  int Number_of_Connectivity_Nodes;   // Stores the Number of connectivity nodes in each domain
 
   /********************************** Node Info parameters **************************************/
-  int Number_of_Nodes;                // Stores the numbr of nodes in each domain
-  int Pseudo_Number_of_Nodes;         // Stores the max Node Tag in each demain 
-  int Number_of_Constrained_Dofs;     // Number of constrained dofs
+  int Number_of_Nodes;                // Stores the Maximum Node Tag in each domain
+  int Total_Number_of_Nodes;          // Stores the Maximum Node Tag in Visualization
+  int Number_of_Constrained_Dofs;     // Number of constrained dofs in each domain
 
   /********************************* Output Class_DESC_ENCODING Format *************************/
   int ELE_TAG_DESC_ENCODING;

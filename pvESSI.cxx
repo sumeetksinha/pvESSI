@@ -891,16 +891,16 @@ void pvESSI::Get_Node_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh){
 
 	// cout << "Global_Number_of_Nodes " << Global_Number_of_Nodes << endl;
 
-	if(Whether_Node_Tag_Initialized==false)
+	if(not this->Whether_Node_Tag_Initialized)
 	{
-
+		cout << " I am here " <<endl;
 		this->Set_Meta_Array (Meta_Array_Map["Node_Tag"]);
-		Node_Tag->Allocate(Global_Number_of_Nodes);
+		// Node_Tag->Allocate(Global_Number_of_Nodes);
 
-		points->SetNumberOfPoints(Global_Number_of_Nodes);		
-		Global_UGrid_Node_Mesh->Allocate(Global_Number_of_Nodes);	
+		// points->SetNumberOfPoints(Global_Number_of_Nodes);		
+		// Global_UGrid_Node_Mesh->Allocate(Global_Number_of_Nodes);	
 	}
-	Whether_Node_Tag_Initialized==true;
+	this->Whether_Node_Tag_Initialized==true;
 
 	// cout << "This_File_Number_of_nodes " << This_File_Number_of_nodes << endl;
 
@@ -911,7 +911,7 @@ void pvESSI::Get_Node_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh){
 		index = Index_To_Coordinates[i];
 		if(index!=-1)
 		{
-			// Node_Tag->InsertValue(i,i);
+			Node_Tag->InsertValue(i,i);
 
 			// cout << "Node_Coordinates " << Node_Coordinates[index  ] << " " << Node_Coordinates[index+1  ] << " " << Node_Coordinates[index+2  ] << endl;; 
 			points->InsertPoint(i,  Node_Coordinates[index  ],
@@ -923,7 +923,7 @@ void pvESSI::Get_Node_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh){
 
 
 	Global_UGrid_Node_Mesh->SetPoints(points);
-	// Global_UGrid_Node_Mesh->GetPointData()->AddArray(Node_Tag);
+	Global_UGrid_Node_Mesh->GetPointData()->AddArray(Node_Tag);
 
 	// /////////////////////////////////////////////////// Building Boundary Conditions  ///////////////////////////////////////////////////////////////////////////
 
