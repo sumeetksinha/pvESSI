@@ -112,7 +112,7 @@ protected:
   
   //////////////////////// Important Variables /////////////////////////////////////////
 
-int Pseudo_Number_of_Nodes, Pseudo_Number_of_Elements;
+// int Pseudo_Number_of_Nodes, Pseudo_Number_of_Elements;
   /************************************** Time parameters ***************************************/
   int TimeStep;                 
   int Time_Step_Range[2];             // Range of Time Steps
@@ -122,14 +122,18 @@ int Pseudo_Number_of_Nodes, Pseudo_Number_of_Elements;
   int Gauss_Mesh_Current_Time;        // Stores the currengt time step of Gauss Mesh
 
   /************************************ Element Info Parameters *********************************/
-  int Number_of_Elements;             // Stores the Maximum Element Tag in each domain
-  int Total_Number_of_Elements;       // Stores the Maximum Element Tag in Visualization
+  int Number_of_Elements;             // Actual Number of Elements in each domain
+  int Pseudo_Number_of_Elements;      // Stores the Maximum Element Tag in each domain
+  int Total_Number_of_Elements;       // Stores the Total Elements in Visualization
+  int Max_Element_Tag;                // Stores the Maximum Element Tag in Visualization
   int Number_of_Gauss_Points;         // Stores the Number of gauss points in each domain
   int Number_of_Connectivity_Nodes;   // Stores the Number of connectivity nodes in each domain
 
   /********************************** Node Info parameters **************************************/
-  int Number_of_Nodes;                // Stores the Maximum Node Tag in each domain
-  int Total_Number_of_Nodes;          // Stores the Maximum Node Tag in Visualization
+  int Number_of_Nodes;                // Actual Number of Nodes in each domain
+  int Pseudo_Number_of_Nodes;         // Stores the Maximum Node Tag in each domain
+  int Total_Number_of_Nodes;          // Stores the Total Node in Visualization
+  int Max_Node_Tag;                   // Stores the Maximum Node Tag in Visualization
   int Number_of_Constrained_Dofs;     // Number of constrained dofs in each domain
 
   /********************************* Output Class_DESC_ENCODING Format *************************/
@@ -151,7 +155,7 @@ int Pseudo_Number_of_Nodes, Pseudo_Number_of_Elements;
   int domain_no                   ;   // domain no of the mesh
   bool enable_support_reactions;
   bool eigen_mode_on;                 // enable eigen analysis mode
-
+  bool Whether_Node_Mesh_Array_Initialized;
   ///////////////////////////// HDF5 ID /////////////////////////////////////////////////////// 
 
   /***************** File_id **********************************/
@@ -186,6 +190,7 @@ int Pseudo_Number_of_Nodes, Pseudo_Number_of_Elements;
   hid_t id_Constrained_Nodes;
   hid_t id_Coordinates;
   hid_t id_Generalized_Displacements;
+  hid_t id_Index_to_Coordinates;
   hid_t id_Support_Reactions;
   hid_t id_Number_of_DOFs;
   hid_t id_Index_to_Displacements;
@@ -248,7 +253,7 @@ int Pseudo_Number_of_Nodes, Pseudo_Number_of_Elements;
   bool Disable_Contact_Relative_Displacement_Flag;
   bool Show_Hide_Contact_Flag;
 
-  bool Whether_Node_Tag_Initialized;
+  
   vtkSmartPointer<vtkDataArraySelection> Physical_Node_Group;
   vtkSmartPointer<vtkDataArraySelection> Physical_Element_Group;
 
@@ -361,6 +366,8 @@ private:
   std::map<double,int > Time_Map;
   std::map<std::string,int > Meta_Array_Map;
   std::map<int,double**> Gauss_To_Node_Interpolation_Map;
+  int *Node_Map;
+  int *Element_Map;
 
   pvESSI(const pvESSI&);  // Not implemented.
   void operator=(const pvESSI&);  // Not implemented.
@@ -368,6 +375,7 @@ private:
   void Initialize();
   void Build_Time_Map();
   void Domain_Initializer(int Piece_No); 
+  void Initialize_Piece_data(int start, int end);
   void Close_File();
   void Build_Maps();
   void Build_Meta_Array_Map();
