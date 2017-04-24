@@ -138,6 +138,7 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 		// ///////////////////////////////////////////////////////////////////////////////////////
 
 		if(eigen_mode_on){
+			cout << this->Node_Mesh_Current_Time << endl;
 			Build_Eigen_Modes_Node_Attributes(UGrid_Current_Node_Mesh[domain_no], this->Node_Mesh_Current_Time );	
 		}
 
@@ -1261,6 +1262,8 @@ void pvESSI::Initialize(){
 	H5Dread(id_Number_of_Time_Steps, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,&Number_of_Time_Steps);
 	H5Dclose(id_Number_of_Time_Steps);
 
+	float *temp_Time;
+
 	H5Eset_auto (NULL, NULL, NULL);  // To stop HDF5 from printing error message
 	this->id_Eigen_Mode_Analysis                 = H5Gopen(id_File, "Eigen_Mode_Analysis", H5P_DEFAULT);
 	if(this->id_Eigen_Mode_Analysis>0){
@@ -1270,13 +1273,21 @@ void pvESSI::Initialize(){
 
 		cout << "<<<<pvESSI>>>> Eigen_Mode_Analysis is On!!! \n" << endl;
 		eigen_mode_on = true;
-	}
 
-    this->Time = new double[Number_of_Time_Steps];
-    float temp_Time [Number_of_Time_Steps];
-	this->id_time = H5Dopen(id_File, "/time", H5P_DEFAULT); 
-	H5Dread(id_time, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT,temp_Time);
-	H5Dclose(id_time);
+	    this->Time = new double[this->id_number_of_modes];
+	    temp_Time = new float[this->id_number_of_modes];
+		this->id_time = H5Dopen(id_File, "/Eigen_Mode_Analysis/frequencies", H5P_DEFAULT); 
+		H5Dread(id_time, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT,temp_Time);
+		H5Dclose(id_time);
+
+	}
+	else{
+	    this->Time = new double[Number_of_Time_Steps];
+	    temp_Time = new float [Number_of_Time_Steps];
+		this->id_time = H5Dopen(id_File, "/time", H5P_DEFAULT); 
+		H5Dread(id_time, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT,temp_Time);
+		H5Dclose(id_time);
+	}
 
     /***************** Model Info *******************************/
 	this->id_Number_of_Iterations      = H5Dopen(id_File, "/Number_of_Iterations", H5P_DEFAULT);
