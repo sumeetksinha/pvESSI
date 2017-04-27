@@ -46,7 +46,6 @@
 #define NUMBER_OF_NODES(class_tag_desc)             (class_tag_desc/(int)pow(10.0,(9-(ELE_TAG_DESC_ENCODING/(int)pow(10.0,7))%100%10)))%((int)pow(10.0,((ELE_TAG_DESC_ENCODING/(int)pow(10.0,7))%100%10   - (ELE_TAG_DESC_ENCODING/(int)pow(10.0,8))%100%10  + 1)))
 #define NUMBER_OF_GAUSS(class_tag_desc)             (class_tag_desc/(int)pow(10.0,(9-(ELE_TAG_DESC_ENCODING/(int)pow(10.0,5))%100%10)))%((int)pow(10.0,((ELE_TAG_DESC_ENCODING/(int)pow(10.0,5))%100%10   - (ELE_TAG_DESC_ENCODING/(int)pow(10.0,6))%100%10  + 1))) 
 #define NUMBER_OF_ELEMENT_OUTPUTS(class_tag_desc)   (class_tag_desc/(int)pow(10.0,(9-(ELE_TAG_DESC_ENCODING/(int)pow(10.0,3))%100%10)))%((int)pow(10.0,((ELE_TAG_DESC_ENCODING/(int)pow(10.0,3))%100%10   - (ELE_TAG_DESC_ENCODING/(int)pow(10.0,4))%100%10  + 1))) 
-#define ELEMENT_CATEGORY(class_tag_desc)            (class_tag_desc/(int)pow(10.0,(9-(ELE_TAG_DESC_ENCODING/(int)pow(10.0,3))%100%10)))%((int)pow(10.0,((ELE_TAG_DESC_ENCODING/(int)pow(10.0,3))%100%10   - (ELE_TAG_DESC_ENCODING/(int)pow(10.0,4))%100%10  + 1))) 
 #define ELEMENT_CATEGORY(class_tag_desc)   (class_tag_desc/(int)pow(10.0,8))
 
 std::vector<std::string> pvESSI::Physical_Group_Container;
@@ -69,8 +68,6 @@ pvESSI::pvESSI(){
 	Global_UGrid_Gauss_Mesh= vtkSmartPointer<vtkUnstructuredGrid>::New();
 	Global_UGrid_Current_Node_Mesh= vtkSmartPointer<vtkUnstructuredGrid>::New();
 	Global_UGrid_Current_Gauss_Mesh= vtkSmartPointer<vtkUnstructuredGrid>::New();
-		Node_Tag = vtkSmartPointer<vtkIntArray> ::New();
-	points = vtkSmartPointer<vtkPoints>::New();
 	Build_Inverse_Matrices();
 	Build_Gauss_To_Node_Interpolation_Map();
 }
@@ -855,7 +852,9 @@ void pvESSI::Get_Node_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh){
 
 	if(this->Whether_Node_Mesh_Array_Initialized==false)
 	{
-		points->SetNumberOfPoints(Total_Number_of_Nodes);		
+		points = vtkSmartPointer<vtkPoints>::New();
+		points->SetNumberOfPoints(Total_Number_of_Nodes);
+
 		Global_UGrid_Node_Mesh->Allocate(Total_Number_of_Nodes);
 
 		Node_Map    = new int[Max_Node_Tag];
@@ -1475,14 +1474,15 @@ void pvESSI::Initialize(){
 
 void pvESSI::Initialize_Piece_data(int start, int end)
 {
-	Total_Number_of_Elements =0;
-	Total_Number_of_Nodes =0;
+	this->Total_Number_of_Elements =0;
+	this->Total_Number_of_Nodes =0;
 
-	Max_Node_Tag=0;
-	Max_Element_Tag=0;
+	this->Max_Node_Tag=0;
+	this->Max_Element_Tag=0;
 
-	int NumElements, NumNodes, MaxNode, MaxElement;
+	int NumElements, NumNodes, NumGauss, MaxNode, MaxElement;
 	std::string filename;
+	hid_t id_Domain_File;
 
 	for (int File_No = start; File_No<end; File_No++){
 
@@ -1492,54 +1492,44 @@ void pvESSI::Initialize_Piece_data(int start, int end)
 			int digits = Number_of_Processes_Used > 0 ? (int) log10 ((double) Number_of_Processes_Used) + 1 : 1;
 			ss << setfill('0') << setw(digits) << File_No+1;
 			filename = Source_File + ss.str()+".feioutput";
-
-	
-			hid_t id_Source_File = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
-
-			this->id_Number_of_Elements   = H5Dopen(id_Source_File, "/Number_of_Elements", H5P_DEFAULT);
-			H5Dread(id_Number_of_Elements, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,&NumElements );
-			H5Dclose(id_Number_of_Elements);
-			Total_Number_of_Elements = Total_Number_of_Elements + NumElements;
-
-			this->id_Number_of_Nodes   = H5Dopen(id_File, "/Number_of_Nodes", H5P_DEFAULT);
-			H5Dread(id_Number_of_Nodes, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,&NumNodes );
-			H5Dclose(id_Number_of_Nodes);
-			Total_Number_of_Nodes = Total_Number_of_Nodes + NumNodes;
-
-			H5Fclose(id_Source_File);
-
 		}
 		else{
 			filename = this->FileName;
-
-			hid_t id_Source_File = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
-
-			this->id_Number_of_Elements   = H5Dopen(id_Source_File, "/Number_of_Elements", H5P_DEFAULT);
-			H5Dread(id_Number_of_Elements, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,&NumElements );
-			H5Dclose(id_Number_of_Elements);
-			Total_Number_of_Elements = Total_Number_of_Elements + NumElements;
-
-			this->id_Number_of_Nodes   = H5Dopen(id_File, "/Number_of_Nodes", H5P_DEFAULT);
-			H5Dread(id_Number_of_Nodes, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,&NumNodes );
-			H5Dclose(id_Number_of_Nodes);
-			Total_Number_of_Nodes = Total_Number_of_Nodes + NumNodes;
-
-			this->id_Index_to_Connectivity = H5Dopen(id_Source_File, "/Model/Elements/Index_to_Connectivity", H5P_DEFAULT);
-			DataSpace = H5Dget_space(id_Index_to_Connectivity);
-			H5Sget_simple_extent_dims(DataSpace, dims1_out, NULL);
-			MaxElement = dims1_out[0];
-			H5Sclose(DataSpace); H5Dclose(id_Index_to_Connectivity);
-			if(Max_Element_Tag<MaxElement)Max_Element_Tag=MaxElement;
-
-			this->id_Number_of_DOFs = H5Dopen(id_Source_File, "Model/Nodes/Number_of_DOFs", H5P_DEFAULT);
-			DataSpace = H5Dget_space(id_Number_of_DOFs);
-			H5Sget_simple_extent_dims(DataSpace, dims1_out, NULL);
-			MaxNode = dims1_out[0];
-			H5Sclose(DataSpace); H5Dclose(id_Number_of_DOFs);
-			if(Max_Node_Tag<MaxNode)Max_Node_Tag=MaxNode;
-
-			H5Fclose(id_Source_File);
 		}
+
+
+		id_Domain_File = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
+
+		this->id_Number_of_Elements   = H5Dopen(id_Domain_File, "/Number_of_Elements", H5P_DEFAULT);
+		H5Dread(id_Number_of_Elements, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,&NumElements );
+		H5Dclose(id_Number_of_Elements);
+		this->Total_Number_of_Elements = this->Total_Number_of_Elements + NumElements;
+
+		this->id_Number_of_Nodes   = H5Dopen(id_Domain_File, "/Number_of_Nodes", H5P_DEFAULT);
+		H5Dread(id_Number_of_Nodes, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,&NumNodes );
+		H5Dclose(id_Number_of_Nodes);
+		this->Total_Number_of_Nodes = this->Total_Number_of_Nodes + NumNodes;
+
+		this->id_Number_of_Gauss_Points   = H5Dopen(id_Domain_File, "/Number_of_Gauss_Points", H5P_DEFAULT);
+		H5Dread(id_Number_of_Gauss_Points, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,&NumGauss );
+		H5Dclose(id_Number_of_Gauss_Points);
+		Total_Number_of_Gauss_Points = Total_Number_of_Gauss_Points + NumGauss;
+		
+		this->id_Index_to_Connectivity = H5Dopen(id_Domain_File, "/Model/Elements/Index_to_Connectivity", H5P_DEFAULT);
+		DataSpace = H5Dget_space(id_Index_to_Connectivity);
+		H5Sget_simple_extent_dims(DataSpace, dims1_out, NULL);
+		MaxElement = dims1_out[0];
+		H5Sclose(DataSpace); H5Dclose(id_Index_to_Connectivity);
+		if(this->Max_Element_Tag<MaxElement)this->Max_Element_Tag=MaxElement;
+
+		this->id_Number_of_DOFs = H5Dopen(id_Domain_File, "Model/Nodes/Number_of_DOFs", H5P_DEFAULT);
+		DataSpace = H5Dget_space(id_Number_of_DOFs);
+		H5Sget_simple_extent_dims(DataSpace, dims1_out, NULL);
+		MaxNode = dims1_out[0];
+		H5Sclose(DataSpace); H5Dclose(id_Number_of_DOFs);
+		if(this->Max_Node_Tag<MaxNode)this->Max_Node_Tag=MaxNode;
+
+		H5Fclose(id_Domain_File);
 	}
 }
 

@@ -127,6 +127,7 @@ protected:
   int Total_Number_of_Elements;       // Stores the Total Elements in Visualization
   int Max_Element_Tag;                // Stores the Maximum Element Tag in Visualization
   int Number_of_Gauss_Points;         // Stores the Number of gauss points in each domain
+  int Total_Number_of_Gauss_Points;   // Stores the Total Number of gauss points in Visualization
   int Number_of_Connectivity_Nodes;   // Stores the Number of connectivity nodes in each domain
 
   /********************************** Node Info parameters **************************************/
