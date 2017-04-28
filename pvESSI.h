@@ -66,6 +66,9 @@ public:
   void Reference_Displacement_Index(int x ){if(x!=Reference_Displacement_Index_Flag)this->Modified();   Reference_Displacement_Index_Flag=x;}
   void Enable_Physical_Node_Group_Selection(int x ){ if(!(x and Enable_Physical_Node_Group_Selection_Flag))this->Modified();  Enable_Physical_Node_Group_Selection_Flag=false; if(x) Enable_Physical_Node_Group_Selection_Flag=true;}
   void Enable_Physical_Element_Group_Selection(int x ){ if(!(x and Enable_Physical_Element_Group_Selection_Flag))this->Modified();  Enable_Physical_Element_Group_Selection_Flag=false; if(x) Enable_Physical_Element_Group_Selection_Flag=true;}
+  void Disable_Contact_Relative_Displacement(int x ){ if(!(x and Disable_Contact_Relative_Displacement_Flag))this->Modified();  Disable_Contact_Relative_Displacement_Flag=false; if(x) Disable_Contact_Relative_Displacement_Flag=true;}
+  void Show_Hide_Contact(int x ){ if(!(x and Show_Hide_Contact_Flag))this->Modified();  Show_Hide_Contact_Flag=true; if(x) Show_Hide_Contact_Flag=false;}
+
 
   void PrintX(int x){}
 
@@ -184,6 +187,7 @@ protected:
   hid_t id_Generalized_Displacements;
   hid_t id_Support_Reactions;
   hid_t id_Number_of_DOFs;
+  hid_t id_Index_to_Displacements;
 
   /**************** Maps ***********************************/
   hid_t id_pvESSI; 
@@ -202,8 +206,6 @@ protected:
   hid_t id_Field_at_Nodes_group;
   hid_t id_Stress_and_Strain;
   hid_t id_Whether_Stress_Strain_Build;
-  hid_t id_Energy;                            // Not implemented
-  hid_t id_Whether_Energy_Build;              // Not implemented
 
   /************** Substep Outputs ***************************/
   hid_t id_Number_of_Iterations;
@@ -229,6 +231,25 @@ protected:
   hid_t Group; 
   hid_t MemSpace;
 
+  // Energy Related [Han, Nov 2016] [Han, Apr 2017]
+  double Contact_Element_Volume;
+
+  int Number_of_Energy_Density_Info;   // Total Number_of_Stress_Strain_Data_at_Nodes
+
+  hid_t id_Number_of_Structural_Elements_Shared;
+  hid_t id_Number_of_Contact_Elements_Shared;
+
+  hid_t id_Energy_Density;                    // Dataset for Energy Density at Nodes
+  hid_t id_Whether_Energy_Density_Build;
+
+  hid_t id_Energy_Density_GP;
+  hid_t id_Energy_Density_Element_Brick;
+  hid_t id_Energy_Density_Element_Beam;
+  hid_t id_Energy_Element_Brick;
+  hid_t id_Energy_Element_Beam;
+  hid_t id_Energy_Element_Contact;
+  // Energy Related End [Han, Nov 2016] [Han, Apr 2017]
+
   /************** Visualization Control Variables **********/
   bool Enable_Gauss_To_Node_Interpolation_Flag;
   bool Enable_Building_of_Maps_Flag;
@@ -240,6 +261,8 @@ protected:
   bool Whether_Physical_Group_Info_build;
   bool Enable_Physical_Element_Group_Selection_Flag;
   bool Enable_Physical_Node_Group_Selection_Flag;
+  bool Disable_Contact_Relative_Displacement_Flag;
+  bool Show_Hide_Contact_Flag;
   vtkSmartPointer<vtkDataArraySelection> Physical_Node_Group;
   vtkSmartPointer<vtkDataArraySelection> Physical_Element_Group;
 
@@ -413,9 +436,25 @@ private:
   vtkSmartPointer<vtkIntArray>   Element_Tag;
   vtkSmartPointer<vtkIntArray>   Class_Tag;
 
-  // Energy 
-  vtkSmartPointer<vtkIntArray>   Total_Energy;
-  vtkSmartPointer<vtkIntArray>   Incremental_Energy;  
+  // Energy Related [Han, Nov 2016] [Han, Apr 2017]
+  vtkSmartPointer<vtkFloatArray>   Strain_Energy_Density_GP;
+  vtkSmartPointer<vtkFloatArray>   Plastic_Dissipation_Density_GP;
+  vtkSmartPointer<vtkFloatArray>   Input_Work_Density_GP;
+
+  vtkSmartPointer<vtkFloatArray>   Strain_Energy_Density_Node;
+  vtkSmartPointer<vtkFloatArray>   Plastic_Dissipation_Density_Node;
+  vtkSmartPointer<vtkFloatArray>   Input_Work_Density_Node;
+
+  vtkSmartPointer<vtkFloatArray>   Strain_Energy_Density_Element;
+  vtkSmartPointer<vtkFloatArray>   Plastic_Dissipation_Density_Element;
+  vtkSmartPointer<vtkFloatArray>   Input_Work_Density_Element;
+
+  vtkSmartPointer<vtkFloatArray>   Strain_Energy_Element;
+  vtkSmartPointer<vtkFloatArray>   Plastic_Dissipation_Element;
+  vtkSmartPointer<vtkFloatArray>   Input_Work_Element;
+
+  void Build_Energy_Density_Field_At_Nodes(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh, int Node_Mesh_Current_Time);
+  // Energy Related End [Han, Nov 2016] [Han, Apr 2017]
 
   // Partition Information 
   vtkSmartPointer<vtkIntArray>   Partition_Info; // For Elements
