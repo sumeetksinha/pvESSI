@@ -157,6 +157,7 @@ protected:
   bool enable_support_reactions;
   bool eigen_mode_on;                 // enable eigen analysis mode
   bool Whether_Node_Mesh_Array_Initialized;
+  bool Whether_Node_Mesh_Attributes_Initialized;
   ///////////////////////////// HDF5 ID /////////////////////////////////////////////////////// 
 
   /***************** File_id **********************************/

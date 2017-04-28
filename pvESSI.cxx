@@ -56,6 +56,7 @@ pvESSI::pvESSI(){
 	this->FileName = NULL;
 	this->eigen_mode_on = false;
 	this->Whether_Node_Mesh_Array_Initialized = false;
+	this->Whether_Node_Mesh_Attributes_Initialized = false;
 	this->Enable_Initialization_Flag=true;
 	this->Whether_Physical_Group_Info_build=false;
 	this->SetNumberOfInputPorts(0);
@@ -107,6 +108,8 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 
  	Initialize_Piece_data(start,end);
 
+ 	this->Whether_Node_Mesh_Attributes_Initialized=false;
+
 	for (int i = start; i<end; i++){
 
 		this->domain_no = i;
@@ -146,18 +149,19 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 		// 	Build_Eigen_Modes_Node_Attributes(UGrid_Current_Node_Mesh[domain_no], this->Node_Mesh_Current_Time );	
 		// }
 
-		// else{
-		// 	if(!Show_Gauss_Mesh_Flag){
-		// 		Build_Node_Attributes(UGrid_Current_Node_Mesh[domain_no], this->Node_Mesh_Current_Time );
-		// 		if(Enable_Gauss_To_Node_Interpolation_Flag) Build_Stress_Field_At_Nodes(UGrid_Current_Node_Mesh[domain_no], this->Node_Mesh_Current_Time);
-		// 		if(Enable_Physical_Node_Group_Selection_Flag or Enable_Physical_Element_Group_Selection_Flag) Build_Physical_Element_Group_Mesh(UGrid_Current_Node_Mesh[domain_no]);
-		// 	}
+		else{
+			if(!Show_Gauss_Mesh_Flag){
+				Build_Node_Attributes(UGrid_Current_Node_Mesh[domain_no], this->Node_Mesh_Current_Time );
+				// if(Enable_Gauss_To_Node_Interpolation_Flag) Build_Stress_Field_At_Nodes(UGrid_Current_Node_Mesh[domain_no], this->Node_Mesh_Current_Time);
+				// if(Enable_Physical_Node_Group_Selection_Flag or Enable_Physical_Element_Group_Selection_Flag) Build_Physical_Element_Group_Mesh(UGrid_Current_Node_Mesh[domain_no]);
+			}
 		// 	else if(Show_Gauss_Mesh_Flag){
 		// 		Build_Gauss_Attributes(UGrid_Current_Node_Mesh[domain_no], this->Node_Mesh_Current_Time );
 		// 	}
-		// }
+		}
 
 	}
+	this->Whether_Node_Mesh_Attributes_Initialized=false;
 
 	// vtkSmartPointer<vtkUnstructuredGrid>  Chunk_Node_mesh =  vtkSmartPointer<vtkUnstructuredGrid>::New();;
 
@@ -197,6 +201,8 @@ int pvESSI::RequestInformation( vtkInformation *request, vtkInformationVector **
 	Node_Mesh->Set(vtkStreamingDemandDrivenPipeline::TIME_STEPS(),Time, this->Number_of_Time_Steps);
 	Node_Mesh->Set(vtkStreamingDemandDrivenPipeline::TIME_RANGE(),Time_range,2);
 	Node_Mesh->Set(CAN_HANDLE_PIECE_REQUEST(), 1);
+
+	this->Whether_Node_Mesh_Attributes_Initialized=false;
 
 	return 1;
 }
@@ -283,10 +289,11 @@ void pvESSI::Build_Node_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Node_Mes
 	float *Node_Generalized_Displacements,*Reference_Node_Generalized_Displacements;
 
 	////////////////////////////////////////////////////// Reading Node Attributes /////////////////////////////////////////////////////////////////////////////
-
-	int *Number_of_DOFs; Number_of_DOFs = new int [Number_of_Nodes];
+	int *Number_of_DOFs; Number_of_DOFs = new int [Pseudo_Number_of_Nodes];
 	H5Dread(id_Number_of_DOFs, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Number_of_DOFs); 
 
+	int *Index_to_Generalized_Displacement; Index_to_Generalized_Displacement = new int [Pseudo_Number_of_Nodes];
+	H5Dread(id_Index_to_Displacements, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Index_to_Generalized_Displacement); 
 	///////////////////////////////////////////  Output Dataset for a particular time /////////////////////////////////////////////////////////////////////////////	
 
 	DataSpace = H5Dget_space(id_Generalized_Displacements);
@@ -314,72 +321,97 @@ void pvESSI::Build_Node_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Node_Mes
 
 	/////////////////////////////////////////////////////////////// DataSets Visulization at Nodes //////////////////////////////////////////////////////////////////////////////////////
  	
- 	Generalized_Displacements = vtkSmartPointer<vtkFloatArray>::New(); 
-	this->Set_Meta_Array (Meta_Array_Map["Generalized_Displacements"]);
-	Generalized_Displacements->Allocate(Number_of_Nodes*3);
-	Generalized_Displacements->SetNumberOfValues(Number_of_Nodes*3);
-
- 	if(Enable_uPU_Visualization_Flag)
+ 	if(Whether_Node_Mesh_Attributes_Initialized==false)
  	{
-	 	Fluid_Displacements = vtkSmartPointer<vtkFloatArray>::New(); 
-		this->Set_Meta_Array(Meta_Array_Map["Fluid_Displacements"]);
-		Fluid_Displacements->Allocate(Number_of_Nodes*3);
-		Fluid_Displacements->SetNumberOfValues(Number_of_Nodes*3);
+	 	Generalized_Displacements = vtkSmartPointer<vtkFloatArray>::New(); 
+		this->Set_Meta_Array (Meta_Array_Map["Generalized_Displacements"]);
+		Generalized_Displacements->Allocate(Total_Number_of_Nodes*3);
+		Generalized_Displacements->SetNumberOfValues(Total_Number_of_Nodes*3);	
 
 		// initializing all components to zero 
-		Fluid_Displacements->FillComponent (0, 0);
-		Fluid_Displacements->FillComponent (1, 0);
-		Fluid_Displacements->FillComponent (2, 0);
+		Generalized_Displacements->FillComponent (0, 0);
+		Generalized_Displacements->FillComponent (1, 0);
+		Generalized_Displacements->FillComponent (2, 0);
+			
+	 	if(Enable_uPU_Visualization_Flag)
+	 	{
+		 	Fluid_Displacements = vtkSmartPointer<vtkFloatArray>::New(); 
+			this->Set_Meta_Array(Meta_Array_Map["Fluid_Displacements"]);
+			Fluid_Displacements->Allocate(Total_Number_of_Nodes*3);
+			Fluid_Displacements->SetNumberOfValues(Total_Number_of_Nodes*3);
 
-	 	Pore_Pressure = vtkSmartPointer<vtkFloatArray>::New(); 
-		this->Set_Meta_Array (Meta_Array_Map["Pore_Pressure"]);
-		Pore_Pressure->Allocate(Number_of_Nodes);
-		Pore_Pressure->SetNumberOfValues(Number_of_Nodes);
+			// initializing all components to zero 
+			Fluid_Displacements->FillComponent (0, 0);
+			Fluid_Displacements->FillComponent (1, 0);
+			Fluid_Displacements->FillComponent (2, 0);
 
-		// initializing all components to zero 
-		Pore_Pressure->FillComponent (0, 0);
-	}
+		 	Pore_Pressure = vtkSmartPointer<vtkFloatArray>::New(); 
+			this->Set_Meta_Array (Meta_Array_Map["Pore_Pressure"]);
+			Pore_Pressure->Allocate(Total_Number_of_Nodes);
+			Pore_Pressure->SetNumberOfValues(Total_Number_of_Nodes);
+
+			// initializing all components to zero 
+			Pore_Pressure->FillComponent (0, 0);
+		}
+
+		if(enable_support_reactions){
+
+			Support_Reactions = vtkSmartPointer<vtkFloatArray>::New(); 
+			this->Set_Meta_Array (Meta_Array_Map["Support_Reactions"]);
+			Support_Reactions->Allocate(Total_Number_of_Nodes*3);
+			Support_Reactions->SetNumberOfValues(Total_Number_of_Nodes*3);
+
+			Support_Reactions->FillComponent (0, 0);
+			Support_Reactions->FillComponent (1, 0);
+			Support_Reactions->FillComponent (2, 0);
+		}
+
+		this->Whether_Node_Mesh_Attributes_Initialized=true;
+ 	}
 
 
 	int index_to_generalized_displacement=0;
 	
 	if(Enable_Relative_Displacement_Flag==false)
 	{
-		for (int i = 0; i < Number_of_Nodes; i++){
+		for (int i = 0; i < Pseudo_Number_of_Nodes; i++){
 
-			float disp[3]={
-				Node_Generalized_Displacements[index_to_generalized_displacement  ],
-				Node_Generalized_Displacements[index_to_generalized_displacement+1],
-				Node_Generalized_Displacements[index_to_generalized_displacement+2]
-			};
+			index_to_generalized_displacement = Index_to_Generalized_Displacement[i];
 
+			if(index_to_generalized_displacement>=0)
+			{
 
-			Generalized_Displacements->InsertTypedTuple(i,disp);
-
-			// ************************************************************** Displacement, Acceleration and Velocity -> Calculation Formulae *********************************************************
-
-			// Displacement(t) = D_t;
-			// Acceleration(t) = (1/del.t)^2*{ D_(t+del.t) - 2*D_t + D_(t-del.t)};
-			// Acceleration(t) = 1/2/del.t*{ D_(t+del.t) - D_(t-del.t)};
-
-			/***************************************************************** Add Acceleration and Velocity Arrays Here ****************************************/
-
-			// uPU Visualization Mode
-
-		 	if(Enable_uPU_Visualization_Flag and  Number_of_DOFs[i]==7){
-		 		
-		 		float disp[3]={
-					Node_Generalized_Displacements[index_to_generalized_displacement+4],
-					Node_Generalized_Displacements[index_to_generalized_displacement+5],
-					Node_Generalized_Displacements[index_to_generalized_displacement+6]
+				float disp[3]={
+					Node_Generalized_Displacements[index_to_generalized_displacement  ],
+					Node_Generalized_Displacements[index_to_generalized_displacement+1],
+					Node_Generalized_Displacements[index_to_generalized_displacement+2]
 				};
 
-				Fluid_Displacements->InsertTypedTuple(i,disp);
-				Pore_Pressure->InsertValue(i,Node_Generalized_Displacements[index_to_generalized_displacement+3]);
-		 	}
 
+				Generalized_Displacements->InsertTypedTuple(this->Node_Map[i],disp);
 
-		 	index_to_generalized_displacement = index_to_generalized_displacement + Number_of_DOFs[i];
+				// ************************************************************** Displacement, Acceleration and Velocity -> Calculation Formulae *********************************************************
+
+				// Displacement(t) = D_t;
+				// Acceleration(t) = (1/del.t)^2*{ D_(t+del.t) - 2*D_t + D_(t-del.t)};
+				// Acceleration(t) = 1/2/del.t*{ D_(t+del.t) - D_(t-del.t)};
+
+				/***************************************************************** Add Acceleration and Velocity Arrays Here ****************************************/
+
+				// uPU Visualization Mode
+
+			 	if(Enable_uPU_Visualization_Flag and  Number_of_DOFs[i]==7){
+			 		
+			 		float disp[3]={
+						Node_Generalized_Displacements[index_to_generalized_displacement+4],
+						Node_Generalized_Displacements[index_to_generalized_displacement+5],
+						Node_Generalized_Displacements[index_to_generalized_displacement+6]
+					};
+
+					Fluid_Displacements->InsertTypedTuple(this->Node_Map[i],disp);
+					Pore_Pressure->InsertValue(this->Node_Map[i],Node_Generalized_Displacements[index_to_generalized_displacement+3]);
+			 	}
+			}
 
 		}
 
@@ -388,33 +420,36 @@ void pvESSI::Build_Node_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Node_Mes
 
 		// cout << "reference_node_mesh_time " << reference_node_mesh_time << endl;
 
-		for (int i = 0; i < Number_of_Nodes; i++){
+		for (int i = 0; i < Pseudo_Number_of_Nodes; i++){
 
-			float disp[3]={
-				Node_Generalized_Displacements[index_to_generalized_displacement  ] - Reference_Node_Generalized_Displacements[index_to_generalized_displacement  ],
-				Node_Generalized_Displacements[index_to_generalized_displacement+1] - Reference_Node_Generalized_Displacements[index_to_generalized_displacement+1],
-				Node_Generalized_Displacements[index_to_generalized_displacement+2] - Reference_Node_Generalized_Displacements[index_to_generalized_displacement+2]
-			};
+			index_to_generalized_displacement = Index_to_Generalized_Displacement[i];
 
-			Generalized_Displacements->InsertTypedTuple(i,disp);
+			if(index_to_generalized_displacement>=0)
+			{
 
-
-			// uPU Visualization Mode
-
-		 	if(Enable_uPU_Visualization_Flag and Number_of_DOFs[i]==7){		
-
-		 		float disp[3]={
-					Node_Generalized_Displacements[index_to_generalized_displacement+4] - Reference_Node_Generalized_Displacements[index_to_generalized_displacement+4],
-					Node_Generalized_Displacements[index_to_generalized_displacement+5] - Reference_Node_Generalized_Displacements[index_to_generalized_displacement+5],
-					Node_Generalized_Displacements[index_to_generalized_displacement+6] - Reference_Node_Generalized_Displacements[index_to_generalized_displacement+6]
+				float disp[3]={
+					Node_Generalized_Displacements[index_to_generalized_displacement  ] - Reference_Node_Generalized_Displacements[index_to_generalized_displacement  ],
+					Node_Generalized_Displacements[index_to_generalized_displacement+1] - Reference_Node_Generalized_Displacements[index_to_generalized_displacement+1],
+					Node_Generalized_Displacements[index_to_generalized_displacement+2] - Reference_Node_Generalized_Displacements[index_to_generalized_displacement+2]
 				};
 
-				Fluid_Displacements->InsertTypedTuple(i,disp);
-				Pore_Pressure->InsertValue(i,Node_Generalized_Displacements[index_to_generalized_displacement+3]);
-		 	}
+				Generalized_Displacements->InsertTypedTuple(Node_Map[i],disp);
 
-		 	index_to_generalized_displacement = index_to_generalized_displacement + Number_of_DOFs[i];
 
+				// uPU Visualization Mode
+
+			 	if(Enable_uPU_Visualization_Flag and Number_of_DOFs[i]==7){		
+
+			 		float disp[3]={
+						Node_Generalized_Displacements[index_to_generalized_displacement+4] - Reference_Node_Generalized_Displacements[index_to_generalized_displacement+4],
+						Node_Generalized_Displacements[index_to_generalized_displacement+5] - Reference_Node_Generalized_Displacements[index_to_generalized_displacement+5],
+						Node_Generalized_Displacements[index_to_generalized_displacement+6] - Reference_Node_Generalized_Displacements[index_to_generalized_displacement+6]
+					};
+
+					Fluid_Displacements->InsertTypedTuple(Node_Map[i],disp);
+					Pore_Pressure->InsertValue(Node_Map[i],Node_Generalized_Displacements[index_to_generalized_displacement+3]);
+			 	}
+			}
 		}
 
 	// 	if(Disable_Contact_Relative_Displacement_Flag){
@@ -481,12 +516,12 @@ void pvESSI::Build_Node_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Node_Mes
 	// 	}
 	}
 
-	Node_Mesh->GetPointData()->AddArray(Generalized_Displacements);
+	Global_UGrid_Node_Mesh->GetPointData()->AddArray(Generalized_Displacements);
 
 
 	if(Enable_uPU_Visualization_Flag){	
-		Node_Mesh->GetPointData()->AddArray(Fluid_Displacements);
-		Node_Mesh->GetPointData()->AddArray(Pore_Pressure);
+		Global_UGrid_Node_Mesh->GetPointData()->AddArray(Fluid_Displacements);
+		Global_UGrid_Node_Mesh->GetPointData()->AddArray(Pore_Pressure);
 	}
 
 	/////////////////////////////////////////////////////////////// Support Reactions  //////////////////////////////////////////////////////////////////////////////////////
@@ -503,47 +538,42 @@ void pvESSI::Build_Node_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Node_Mes
 		H5Sclose(MemSpace);
 		H5Sclose(DataSpace); 
 
-		int Constrained_Nodes[Number_of_Constrained_Dofs];
+		int *Constrained_Nodes; Constrained_Nodes = new int [Number_of_Constrained_Dofs];
 		H5Dread(id_Constrained_Nodes, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Constrained_Nodes); 
 
-		int Constrained_DOFs[Number_of_Constrained_Dofs];
+		int *Constrained_DOFs; Constrained_DOFs = new int[Number_of_Constrained_Dofs];
 		H5Dread(id_Constrained_DOFs, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Constrained_DOFs); 
-
-		Support_Reactions = vtkSmartPointer<vtkFloatArray>::New(); 
-		this->Set_Meta_Array (Meta_Array_Map["Support_Reactions"]);
-		Support_Reactions->Allocate(Number_of_Nodes*3);
-		Support_Reactions->SetNumberOfValues(Number_of_Nodes*3);
-
-		Support_Reactions->FillComponent (0, 0);
-		Support_Reactions->FillComponent (1, 0);
-		Support_Reactions->FillComponent (2, 0);
 
 		for(int i = 0; i<Number_of_Constrained_Dofs; i++){
 
 			if(Constrained_DOFs[i]<3)
-				Support_Reactions->SetComponent(Constrained_Nodes[i],Constrained_DOFs[i],Reaction_Forces[i]);
+				Support_Reactions->SetComponent(this->Node_Map[Constrained_Nodes[i]],Constrained_DOFs[i],Reaction_Forces[i]);
 
 		}
 
-		Node_Mesh->GetPointData()->AddArray(Support_Reactions);
+		Global_UGrid_Node_Mesh->GetPointData()->AddArray(Support_Reactions);
 		delete [] Reaction_Forces; Reaction_Forces=NULL;
+		delete [] Constrained_Nodes; Constrained_Nodes=NULL;
+		delete [] Constrained_DOFs; Constrained_DOFs=NULL;
 
 	}
 
-	delete [] Node_Generalized_Displacements; Node_Generalized_Displacements;
-	if(Enable_Relative_Displacement_Flag==true)	delete [] Reference_Node_Generalized_Displacements; Reference_Node_Generalized_Displacements;
-	delete [] Number_of_DOFs; Number_of_DOFs;
+	delete [] Node_Generalized_Displacements; Node_Generalized_Displacements=NULL;
+	if(Enable_Relative_Displacement_Flag==true)	delete [] Reference_Node_Generalized_Displacements; Reference_Node_Generalized_Displacements=NULL;
+	delete [] Number_of_DOFs; Number_of_DOFs=NULL;
+	delete [] Index_to_Generalized_Displacement; Index_to_Generalized_Displacement=NULL;
 
  	return;
 }
 
 void pvESSI::Build_Eigen_Modes_Node_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh, int Current_Time){
 
-
 	////////////////////////////////////////////////////// Reading Node Attributes /////////////////////////////////////////////////////////////////////////////
-
-	int Number_of_DOFs[Number_of_Nodes];
+	int *Number_of_DOFs; Number_of_DOFs = new int [Pseudo_Number_of_Nodes];
 	H5Dread(id_Number_of_DOFs, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Number_of_DOFs); 
+
+	int *Index_to_Generalized_Displacement; Index_to_Generalized_Displacement = new int [Pseudo_Number_of_Nodes];
+	H5Dread(id_Index_to_Displacements, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Index_to_Generalized_Displacement); 
 
 	///////////////////////////////////////////  Output Dataset for a particular time /////////////////////////////////////////////////////////////////////////////	
 
@@ -559,31 +589,39 @@ void pvESSI::Build_Eigen_Modes_Node_Attributes(vtkSmartPointer<vtkUnstructuredGr
 
 	/////////////////////////////////////////////////////////////// DataSets Visulization at Nodes //////////////////////////////////////////////////////////////////////////////////////
  	
- 	Generalized_Displacements = vtkSmartPointer<vtkFloatArray>::New(); 
-	this->Set_Meta_Array (Meta_Array_Map["Generalized_Displacements"]);
-	Generalized_Displacements->Allocate(Number_of_Nodes*3);
-	Generalized_Displacements->SetNumberOfValues(Number_of_Nodes*3);
+ 	if(Whether_Node_Mesh_Attributes_Initialized==false)
+ 	{
+	 	Generalized_Displacements = vtkSmartPointer<vtkFloatArray>::New(); 
+		this->Set_Meta_Array (Meta_Array_Map["Generalized_Displacements"]);
+		Generalized_Displacements->Allocate(Total_Number_of_Nodes*3);
+		Generalized_Displacements->SetNumberOfValues(Total_Number_of_Nodes*3);
+	}
 
 	int index_to_generalized_displacement=0;
 	
 
-	for (int i = 0; i < Number_of_Nodes; i++){
+	for (int i = 0; i < Pseudo_Number_of_Nodes; i++){
 
-		float disp[3]={
-			Node_Generalized_Displacements[index_to_generalized_displacement  ],
-			Node_Generalized_Displacements[index_to_generalized_displacement+1],
-			Node_Generalized_Displacements[index_to_generalized_displacement+2]
-		};
+		index_to_generalized_displacement = Index_to_Generalized_Displacement[i];
 
+		if(index_to_generalized_displacement>=0)
+		{
 
-		Generalized_Displacements->InsertTypedTuple(i,disp);
+			float disp[3]={
+				Node_Generalized_Displacements[index_to_generalized_displacement  ],
+				Node_Generalized_Displacements[index_to_generalized_displacement+1],
+				Node_Generalized_Displacements[index_to_generalized_displacement+2]
+			};
 
-		index_to_generalized_displacement = index_to_generalized_displacement + Number_of_DOFs[i];
+			Generalized_Displacements->InsertTypedTuple(this->Node_Map[i],disp);
+		}
 
 	}
 
 	Node_Mesh->GetPointData()->AddArray(Generalized_Displacements);
+
 	delete [] Node_Generalized_Displacements; Node_Generalized_Displacements=NULL;
+	delete [] Number_of_DOFs; Number_of_DOFs=NULL;
 
  	return;
 }
@@ -892,20 +930,6 @@ void pvESSI::Get_Node_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh){
 
 		if(Number_of_Processes_Used>1){	
 
-			std::string Source_File = GetSourceFile(this->FileName)+"feioutput";
-			hid_t id_Source_File = H5Fopen(Source_File.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
-
-			hid_t id_Element_Partition = H5Dopen(id_Source_File, "/Model/Elements/Partition", H5P_DEFAULT);
-			DataSpace = H5Dget_space(id_Element_Partition);
-			H5Sget_simple_extent_dims(DataSpace, dims1_out, NULL);
-			Element_Partition= new int[dims1_out[0]];
-			offset1[0]=0;   	MemSpace = H5Screate_simple(1,dims1_out,NULL);
-			H5Sselect_hyperslab(DataSpace,H5S_SELECT_SET,offset1,NULL,dims1_out,NULL);
-			H5Dread(id_Index_to_Connectivity, H5T_NATIVE_INT, MemSpace, DataSpace, H5P_DEFAULT, Element_Partition); 
-			H5Sclose(MemSpace); status=H5Sclose(DataSpace);
-
-			H5Fclose(id_Source_File);
-
 			Partition_Info = vtkSmartPointer<vtkIntArray> ::New();
 			this->Set_Meta_Array (Meta_Array_Map["Partition_Info"]);
 			Partition_Info->Allocate(Total_Number_of_Elements);		
@@ -916,10 +940,28 @@ void pvESSI::Get_Node_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh){
 		this->Whether_Node_Mesh_Array_Initialized=true;
 	}
 
+	if(Number_of_Processes_Used>1){	
+
+		std::string Source_File = GetSourceFile(this->FileName)+"feioutput";
+		hid_t id_Source_File = H5Fopen(Source_File.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
+
+		id_Element_Partition = H5Dopen(id_Source_File, "/Model/Elements/Partition", H5P_DEFAULT);
+		DataSpace = H5Dget_space(id_Element_Partition);
+		H5Sget_simple_extent_dims(DataSpace, dims1_out, NULL);
+		Element_Partition= new int[dims1_out[0]];
+		offset1[0]=0;   	MemSpace = H5Screate_simple(1,dims1_out,NULL);
+		H5Sselect_hyperslab(DataSpace,H5S_SELECT_SET,offset1,NULL,dims1_out,NULL);
+		H5Dread(id_Element_Partition, H5T_NATIVE_INT, MemSpace, DataSpace, H5P_DEFAULT, Element_Partition); 
+		H5Sclose(MemSpace); status=H5Sclose(DataSpace); H5Dclose(id_Element_Partition);
+
+		H5Fclose(id_Source_File);
+	}
+
+
 	int index;
 
-	cout << Pseudo_Number_of_Nodes << endl;
-	cout << Pseudo_Number_of_Elements << endl;
+	// cout << Pseudo_Number_of_Nodes << endl;
+	// cout << Pseudo_Number_of_Elements << endl;
 
 	for (int i = 0; i < this->Pseudo_Number_of_Nodes; i++){
 
@@ -970,7 +1012,7 @@ void pvESSI::Get_Node_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh){
 			Element_Tag->InsertValue(element_no,i);
 			Class_Tag->InsertValue(element_no,Class_Tags[i]);
 
-			// if(Number_of_Processes_Used>1) {Partition_Info->InsertValue(element_no,Element_Partition[i]); }
+			if(Number_of_Processes_Used>1) {Partition_Info->InsertValue(element_no,Element_Partition[i]); }
 
 			vtkIdType Vertices[nnodes];
 			Cell_Type = ESSI_to_VTK_Element.find(nnodes)->second;
@@ -994,12 +1036,22 @@ void pvESSI::Get_Node_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh){
 	Global_UGrid_Node_Mesh->GetCellData()->AddArray(Material_Tag);
 	Global_UGrid_Node_Mesh->GetCellData()->AddArray(Element_Tag);
 	Global_UGrid_Node_Mesh->GetCellData()->AddArray(Class_Tag);
-	// if(Number_of_Processes_Used>1) Global_UGrid_Node_Mesh->GetCellData()->AddArray(Partition_Info);
+	if(Number_of_Processes_Used>1) Global_UGrid_Node_Mesh->GetCellData()->AddArray(Partition_Info);
 
-	// if(Number_of_Processes_Used>1)
-	// {
-	// 	delete [] Element_Partition; Element_Partition=NULL;
-	// }
+	if(Number_of_Processes_Used>1)
+	{
+		delete [] Element_Partition; Element_Partition=NULL;
+	}
+
+
+	delete [] Node_Coordinates; Node_Coordinates = NULL;
+	delete [] Index_to_Coordinates; Index_to_Coordinates = NULL;
+	delete [] Element_Connectivity; Element_Connectivity = NULL;
+	delete [] Element_Index_To_Connectivity; Element_Index_To_Connectivity = NULL;
+	delete [] Class_Tags; Class_Tags = NULL;
+	delete [] Constrained_Nodes; Constrained_Nodes = NULL;
+	delete [] Constrained_DOFs; Constrained_DOFs = NULL;
+	delete [] Element_Material_Tags; Element_Material_Tags = NULL;
 
 	// Whether_Node_Mesh_build[domain_no] = true;
 
