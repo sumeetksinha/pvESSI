@@ -1,0 +1,21 @@
+                                                               
+                                                               
+  The Finite Element Interpreter                               
+                                                               
+  Real ESSI                                                  
+  Earthquake Soil Structure Interaction Simulator            
+                                                             
+  Sequential processing mode.                                
+                                                             
+Version Name   : Academic Version. Release date: May 3 2017 at 19:21:11. Tag: df932927d5
+Version Branch : sumeet
+Compile Date   : May  9 2017 at 15:07:04
+Compile User   : sumeet
+Compile Sysinfo: sumeet 4.4.0-75-generic x86_64 GNU/Linux
+Runtime User   : Runtime Sysinfo: Time Now       : May 10 2017 at 07:22:55
+                                                               
+Static startup tips:                                           
+ * Remember: Every command ends with a semicolon ';'.          
+ * Type 'quit;' or 'exit;' to finish.                          
+ * Run 'essi -h' to see available command line options.        
+                                                               

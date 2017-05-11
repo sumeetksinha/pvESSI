@@ -98,6 +98,94 @@
         <!-- <Property name="Disable Contact Relative Displacement" /> -->
       </PropertyGroup>
 
+
+      <!--  Array Selection GUI Component  For Visualization at Node-->
+      <StringVectorProperty information_only="1"
+                            name="VisualizationOptionsOnNodeArrayInfo">
+        <ArraySelectionInformationHelper attribute_name="VisualizationOptionsOnNode" />
+      </StringVectorProperty>
+
+      <StringVectorProperty command="VisualizationOptionsOnNodeArrayStatus"
+                            element_types="2 0"
+                            information_property="VisualizationOptionsOnNodeArrayInfo"
+                            label="On Node"
+                            name="VisualizationOptionsOnNodeStatus"
+                            number_of_elements="0"
+                            number_of_elements_per_command="2"
+                            repeat_command="1">
+        <ArraySelectionDomain name="array_list">
+          <RequiredProperties>
+            <Property function="ArrayList"
+                      name="VisualizationOptionsOnNodeArrayInfo" />
+          </RequiredProperties>
+        </ArraySelectionDomain>
+        <Documentation>This property lists which cell-centered arrays storead.</Documentation>
+      </StringVectorProperty>
+
+<!--       <StringVectorProperty command="VisualizationOptionsOnElementArrayStatus"
+                            element_types="2 0"
+                            information_property="VisualizationOptionsOnElementArrayInfo"
+                            label="On Element"
+                            name="VisualizationOptionsOnElementStatus"
+                            number_of_elements="0"
+                            number_of_elements_per_command="2"
+                            repeat_command="1">
+        <ArraySelectionDomain name="array_list">
+          <RequiredProperties>
+            <Property function="ArrayList"
+                      name="VisualizationOptionsOnElementArrayInfo" />
+          </RequiredProperties>
+        </ArraySelectionDomain>
+        <Documentation>This property lists which cell-centered arrays storead.</Documentation>
+      </StringVectorProperty>
+ -->
+<!--       <StringVectorProperty command="VisualizationOptionsOnGaussArrayStatus"
+                            element_types="2 0"
+                            information_property="VisualizationOptionsOnGaussArrayInfo"
+                            label="On Element"
+                            name="VisualizationOptionsOnGaussStatus"
+                            number_of_elements="0"
+                            number_of_elements_per_command="2"
+                            repeat_command="1">
+        <ArraySelectionDomain name="array_list">
+          <RequiredProperties>
+            <Property function="ArrayList"
+                      name="VisualizationOptionsOnGaussArrayInfo" />
+          </RequiredProperties>
+        </ArraySelectionDomain>
+        <Documentation>This property lists which cell-centered arrays storead.</Documentation>
+      </StringVectorProperty> -->
+
+
+<!--       <StringVectorProperty information_only="1"
+                            name="PhysicalNodeGroupArrayInfo">
+        <ArraySelectionInformationHelper attribute_name="PhysicalNodeGroup" />
+      </StringVectorProperty>
+
+      <StringVectorProperty command="SetPhysicalNodeGroupArrayStatus"
+                            element_types="2 0"
+                            information_property="PhysicalNodeGroupArrayInfo"
+                            label="Physical Node Groups"
+                            name="PhysicalNodeGroupArrayStatus"
+                            number_of_elements="0"
+                            number_of_elements_per_command="2"
+                            repeat_command="1">
+        <ArraySelectionDomain name="array_list">
+          <RequiredProperties>
+            <Property function="ArrayList"
+                      name="PhysicalNodeGroupArrayInfo" />
+          </RequiredProperties>
+        </ArraySelectionDomain>
+        <Documentation>This property lists which cell-centered arrays storead.</Documentation>
+      </StringVectorProperty>
+ -->
+ 
+      <PropertyGroup label="Visualization Options" >
+        <Property name="VisualizationOptionsOnNodeStatus" />
+        <!-- <Property name="VisualizationOptionsOnElementStatus" /> -->
+        <!-- <Property name="VisualizationOptionsOnGaussStatus" /> -->
+      </PropertyGroup>
+
       <IntVectorProperty command="Enable_Physical_Element_Group_Selection" default_values="0" number_of_elements="1" name="Enable Physical Element Group Selection">
         <BooleanDomain name="bool"/>
         <Documentation>

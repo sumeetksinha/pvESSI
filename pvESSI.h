@@ -89,13 +89,37 @@ public:
     return this->Number_of_Time_Steps;
   }
 
+  /*************** Node Visualization Options ****************************/
+  /* The user needs to select the arrays to be visualize on nodes        */
+  void SetVisualizationOptionsOnNodeArrayStatus(const char* name, int status);
+  const char* GetVisualizationOptionsOnNodeArrayName(int index);
+  int GetNumberOfVisualizationOptionsOnNodeArrays();
+  int GetVisualizationOptionsOnNodeArrayStatus(const char* name);
+
+  /*************** Element Visualization Options ****************************/
+  /* The user needs to select the arrays to be visualize on elements        */
+  void SetVisualizationOptionsOnElementArrayStatus(const char* name, int status);
+  const char* GetVisualizationOptionsOnElementArrayName(int index);
+  int GetNumberOfVisualizationOptionsOnElementArrays();
+  int GetVisualizationOptionsOnElementArrayStatus(const char* name);
+
+  /*************** Gauss Visualization Options ****************************/
+  /* The user needs to select the arrays to be visualize on gauss        */
+  void SetVisualizationOptionsOnGaussArrayStatus(const char* name, int status);
+  const char* GetVisualizationOptionsOnGaussArrayName(int index);
+  int GetNumberOfVisualizationOptionsOnGaussArrays();
+  int GetVisualizationOptionsOnGaussArrayStatus(const char* name);
+
+
   /*************** Physical Element Groups ****************************/
+  /* The user needs to select the physical element group to visualize */
   void SetPhysicalElementGroupArrayStatus(const char* name, int status);
   const char* GetPhysicalElementGroupArrayName(int index);
   int GetNumberOfPhysicalElementGroupArrays();
   int GetPhysicalElementGroupArrayStatus(const char* name);
 
   /*************** Physical Node Groups ****************************/
+  /* The user needs to select the physical node group to visualize */
   void SetPhysicalNodeGroupArrayStatus(const char* name, int status);
   const char* GetPhysicalNodeGroupArrayName(int index);
   int GetNumberOfPhysicalNodeGroupArrays();
@@ -112,52 +136,98 @@ protected:
   
   //////////////////////// Important Variables /////////////////////////////////////////
 
-// int Pseudo_Number_of_Nodes, Pseudo_Number_of_Elements;
+  int Number_of_Strain_Strain_Info;   // Total Number_of_Stress_Strain_Data_at_Nodes [currently 22]
+
+
   /************************************** Time parameters ***************************************/
-  int TimeStep;                 
+  int TimeStep;                       // 
   int Time_Step_Range[2];             // Range of Time Steps
   int Number_of_Time_Steps;           // Stores the Number of TimeSteps in the analysis
   int Number_of_Sub_Steps;            // Stores the Number of Substeps in the analysis
   int Node_Mesh_Current_Time;         // Stores the currengt time step of Node Mesh
   int Gauss_Mesh_Current_Time;        // Stores the currengt time step of Gauss Mesh
 
-  /************************************ Element Info Parameters *********************************/
-  int Number_of_Elements;             // Actual Number of Elements in each domain
-  int Pseudo_Number_of_Elements;      // Stores the Maximum Element Tag in each domain
+  /********************* Visualization Mode :: Element Info Parameters ***************************/
   int Total_Number_of_Elements;       // Stores the Total Elements in Visualization
   int Max_Element_Tag;                // Stores the Maximum Element Tag in Visualization
-  int Number_of_Gauss_Points;         // Stores the Number of gauss points in each domain
   int Total_Number_of_Gauss_Points;   // Stores the Total Number of gauss points in Visualization
-  int Number_of_Connectivity_Nodes;   // Stores the Number of connectivity nodes in each domain
 
-  /********************************** Node Info parameters **************************************/
-  int Number_of_Nodes;                // Actual Number of Nodes in each domain
-  int Pseudo_Number_of_Nodes;         // Stores the Maximum Node Tag in each domain
+  /********************* Visualization Mode :: Node Info parameters *****************************/
   int Total_Number_of_Nodes;          // Stores the Total Node in Visualization
   int Max_Node_Tag;                   // Stores the Maximum Node Tag in Visualization
-  int Number_of_Constrained_Dofs;     // Number of constrained dofs in each domain
 
   /********************************* Output Class_DESC_ENCODING Format *************************/
   int ELE_TAG_DESC_ENCODING;
 
   /********************************** Model Info *************************************************/
   int Number_of_Processes_Used;       // Number of Processes used
-  int Process_Number;
-  bool single_file_visualization_mode; 
+  int Process_Number;                 // Process Id or Domain Number 
+  bool single_file_visualization_mode;// Sequential or One file Visualization Mode
   
   /*************************** Visualization Parameters *****************************************/
-  int Build_Map_Status;               // Whether Map is Build
-  bool *Whether_Node_Mesh_build;      // Whether Node Mesh Build For Domains
-  bool *Whether_Gauss_Mesh_build;     // Whether Node Mesh Build For Domains
-  bool Enable_Initialization_Flag;    // Whether Initialization Done
-  int piece_no;                       // Piece no or Processor no
-  int num_of_pieces;                  // total number of pieces or processors
-  int Number_of_Strain_Strain_Info;   // Total Number_of_Stress_Strain_Data_at_Nodes
-  int domain_no                   ;   // domain no of the mesh
-  bool enable_support_reactions;
-  bool eigen_mode_on;                 // enable eigen analysis mode
-  bool Whether_Node_Mesh_Array_Initialized;
-  bool Whether_Node_Mesh_Attributes_Initialized;
+  int Build_Map_Status;                             // Whether Map is Build
+  bool Enable_Initialization_Flag;                  // Whether Initialization Done
+  int  piece_no;                                    // Piece no or Processor no
+  int  num_of_pieces;                               // total number of pieces or processors
+  bool enable_support_reactions;                    // enable support reactions
+  bool eigen_mode_on;                               // enable eigen analysis mode
+  bool Whether_Node_Mesh_Array_Initialized;         // Holds whether the node mesh array initialized
+  bool Whether_Node_Mesh_Attributes_Initialized;    // Holds whether node mesh attributes initialized
+  bool Whether_Gauss_Mesh_Array_Initialized;        // Holds whether gauss mesh array initialized
+  bool Whether_Gauss_Mesh_Attributes_Initialized;   // Holds whether gauss mesh attributes initialized
+
+  /************************** Data for Each Domain **************************************/
+
+  bool *Domain_Data_Build_Status;     // Whether Domain Data has been build
+  bool *Domain_Write_Status;          // Whether Domain Data can be written 
+  bool *Domain_Read_Status;           // Whether Domain Data can be read 
+
+  int  domain_no;                     // domain no
+
+  //// 1-D Scalar [Domain_Number] Parameter
+
+  /*** Element Data ***/
+  int Number_of_Elements;             // Actual Number of Elements in each domain
+  int Pseudo_Number_of_Elements;      // Stores the Maximum Element Tag in each domain
+  int Number_of_Gauss_Points;         // Stores the Number of gauss points in each domain
+  int Number_of_Connectivity_Nodes;   // Stores the Number of connectivity nodes in each domain
+
+   /*** Node Data ***/ 
+  int Number_of_Nodes;                // Actual Number of Nodes in each domain
+  int Pseudo_Number_of_Nodes;         // Stores the Maximum Node Tag in each domain
+  int Number_of_Constrained_Dofs;     // Number of constrained dofs in each domain
+
+  /*** Element Data ***/
+  int *Domain_Number_of_Elements;             // Actual Number of Elements in each domain
+  int *Domain_Pseudo_Number_of_Elements;      // Stores the Maximum Element Tag in each domain
+  int *Domain_Number_of_Gauss_Points;         // Stores the Number of gauss points in each domain
+  int *Domain_Number_of_Connectivity_Nodes;   // Stores the Number of connectivity nodes in each domain
+
+   /*** Node Data ***/ 
+  int *Domain_Number_of_Nodes;                // Actual Number of Nodes in each domain
+  int *Domain_Pseudo_Number_of_Nodes;         // Stores the Maximum Node Tag in each domain
+  int *Domain_Number_of_Constrained_Dofs;     // Number of constrained dofs in each domain
+
+
+  //// 2-Dimensional Containers [Domain_Number][Array] Parameter 
+  int **Domain_Class_Tags;
+  int **Domain_Connectivity;
+  int **Domain_ConstrainedNodes;
+  int **Domain_Element_Map;
+  int **Domain_Node_Map;
+  int **Domain_Inverse_Element_Map;
+  int **Domain_Inverse_Node_Map;
+  int **Domain_Number_of_Dofs;
+  int **Domain_Number_of_Elements_Shared;
+  int **Domain_Number_of_Gauss_Elements_Shared;
+  int **Domain_Number_of_Contact_Elements_Shared;  
+
+  //// Visualization Parameters 
+  bool *Whether_Node_Mesh_build;                     // Whether Node Mesh  Build for each Domain 
+  bool *Whether_Gauss_Mesh_build;                    // Whether Gauss Mesh Build For each Domain 
+
+
+
   ///////////////////////////// HDF5 ID /////////////////////////////////////////////////////// 
 
   /***************** File_id **********************************/
@@ -255,14 +325,18 @@ protected:
   bool Disable_Contact_Relative_Displacement_Flag;
   bool Show_Hide_Contact_Flag;
 
-  
+  /************* Data Array Selection *********************/  
   vtkSmartPointer<vtkDataArraySelection> Physical_Node_Group;
   vtkSmartPointer<vtkDataArraySelection> Physical_Element_Group;
+  vtkSmartPointer<vtkDataArraySelection> Visualization_Options_On_Node;
+  vtkSmartPointer<vtkDataArraySelection> Visualization_Options_On_Element;
+  vtkSmartPointer<vtkDataArraySelection> Visualization_Options_On_Gauss;
+
 
 /****************** Mesh Variables *******************/
   vtkSmartPointer<vtkPoints> points;
   
-
+  /*********** Some HDF5 Variables Regularly Used **********/
 
   hsize_t  dims1_out[1], dims2_out[2];
   hsize_t  dims3[3],     dims2[2];
@@ -277,9 +351,14 @@ protected:
 
   hsize_t index_i,index_j,index_k;
 
+
+  // temporary variable store node and element number 
   int node_no, element_no;
 
   /************* Hdf5 function ******************************/
+
+
+  // Read INT Array Data 
   void HDF5_Read_INT_Array_Data(hid_t id_DataSet,
                                int rank,
                                hsize_t *data_dims,
@@ -289,6 +368,7 @@ protected:
                                hsize_t *block,
                                int* data);
 
+  // Write INT Array Data 
   void HDF5_Write_INT_Array_Data(hid_t id_DataSet,
                                  int rank,
                                  hsize_t *data_dims,
@@ -298,6 +378,7 @@ protected:
                                  hsize_t *block,
                                  int* data);
 
+  // Read FLOAT  Array Data 
   void HDF5_Read_FLOAT_Array_Data(hid_t id_DataSet,
                                    int rank,
                                    hsize_t *data_dims,
@@ -306,7 +387,7 @@ protected:
                                    hsize_t *count,
                                    hsize_t *block,
                                    float* data);
-
+  // Read DOUBLE  Array Data 
   void HDF5_Read_DOUBLE_Array_Data(hid_t id_DataSet,
                                    int rank,
                                    hsize_t *data_dims,
@@ -316,6 +397,7 @@ protected:
                                    hsize_t *block,
                                    double* data);
 
+  // Write FLOAT  Array Data 
   void HDF5_Write_FLOAT_Array_Data(hid_t id_DataSet,
                                    int rank,
                                    hsize_t *data_dims,
@@ -324,7 +406,7 @@ protected:
                                    hsize_t *count,
                                    hsize_t *block,
                                    float* data);
-
+  // Write DOUBLE  Array Data 
   void HDF5_Write_DOUBLE_Array_Data(hid_t id_DataSet,
                                    int rank,
                                    hsize_t *data_dims,
@@ -333,7 +415,7 @@ protected:
                                    hsize_t *count,
                                    hsize_t *block,
                                    double* data);
-
+  // Read STRING  Array Data 
   void HDF5_Read_STRING_Array_Data(hid_t id_DataSet,
                                    int rank,
                                    hsize_t *data_dims,
@@ -343,7 +425,8 @@ protected:
                                    hsize_t *block,
                                    int* data);
 
-static herr_t op_func (hid_t loc_id, const char *name, const H5O_info_t *info, void *operator_data);
+  // To Explore the contents of HDF5 Group
+  static herr_t op_func (hid_t loc_id, const char *name, const H5O_info_t *info, void *operator_data);
 
 
   /************************* Some common Variables ********************************/
@@ -363,13 +446,18 @@ static herr_t op_func (hid_t loc_id, const char *name, const H5O_info_t *info, v
  
 private:
 
-  std::map<int,int> ESSI_to_VTK_Element;
-  std::map<int,std::vector<int> > ESSI_to_VTK_Connectivity;
-  std::map<double,int > Time_Map;
+  std::map<int,int> ESSI_to_VTK_Element;                    // ESSI to VTK Element Type Mapping
+  std::map<int,std::vector<int> > ESSI_to_VTK_Connectivity; // VTK to ESSI Element Number Mapping for the Current Visualization Mode
+  std::map<double,int > Time_Map; 
   std::map<std::string,int > Meta_Array_Map;
   std::map<int,double**> Gauss_To_Node_Interpolation_Map;
-  int *Node_Map;
-  int *Element_Map;
+  int *ESSI_To_VTK_Node_Map;               // ESSI to VTK Node Number Mapping for the Current Visualization Mode
+  int *ESSI_To_VTK_Element_Map;            // ESSI to VTK Element Number Mapping for the Current Visualization Mode
+  int *VTK_To_ESSI_Node_Map;               // VTK to ESSI Node Number Mapping for the Current Visualization Mode
+  int *VTK_To_ESSI_Element_Map;            // VTK to ESSI Element Number Mapping for the Current Visualization Mode
+  int **Number_of_Elements_Shared;         // Number of Elements Shared for Each ESSI Element in Current Visualization
+  int **Number_of_gauss_Elements_Shared;   // Number Gauss Elements Shared for Each ESSI Element in Current Visualization
+  int **Number_of_Element_Types_Shared;    // Number Contact Elements Shared for Each ESSI Element in Current Visualization
 
   pvESSI(const pvESSI&);  // Not implemented.
   void operator=(const pvESSI&);  // Not implemented.
@@ -379,9 +467,12 @@ private:
   void Domain_Initializer(int Piece_No); 
   void Initialize_Piece_data(int start, int end);
   void Close_File();
-  void Build_Maps();
+  void Build_Local_Domain_Maps(int domain_no);
+  void Write_Local_Domain_Maps(int domain_no);
+  void Read_Local_Domain_Maps(int domain_no);
   void Build_Meta_Array_Map();
   void Build_Gauss_To_Node_Interpolation_Map();
+  void Build_Shared_Info_Per_Mode();
   void Build_Gauss_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Gauss_Mesh, int Node_Mesh_Current_Time);
   void Build_Node_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh, int Gauss_Mesh_Current_Time);
   void Build_Eigen_Modes_Node_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh, int Current_Time);
@@ -394,20 +485,16 @@ private:
   std::string GetSourceFile(std::string filename);
 
 
-  double *Time;            // Holds the time vector for the domain
-  char* FileName;          // Holds the filename
-  int* Element_Desc_Array; // Holds the element decription array 
+
+  double *Time;              // Holds the time vector for the domain
+  char*  FileName;           // Holds the filename
+  int*   Element_Desc_Array; // Holds the element decription array 
 
   /******************************************* Mesh ******************************************/  
-  vtkSmartPointer<vtkUnstructuredGrid> *UGrid_Node_Mesh;                 // Contains the mesh of all domains
-  vtkSmartPointer<vtkUnstructuredGrid> *UGrid_Gauss_Mesh;                // Contains the mesh of all domains
-  vtkSmartPointer<vtkUnstructuredGrid> *UGrid_Current_Node_Mesh;         // Contains mesh with data attributes 
-  vtkSmartPointer<vtkUnstructuredGrid> *UGrid_Current_Gauss_Mesh;        // Contains mesh with data attributes 
-
-  vtkSmartPointer<vtkUnstructuredGrid> Global_UGrid_Node_Mesh;                 // Contains the mesh of all domains
-  vtkSmartPointer<vtkUnstructuredGrid> Global_UGrid_Gauss_Mesh;                // Contains the mesh of all domains
-  vtkSmartPointer<vtkUnstructuredGrid> Global_UGrid_Current_Node_Mesh;         // Contains mesh with data attributes 
-  vtkSmartPointer<vtkUnstructuredGrid> Global_UGrid_Current_Gauss_Mesh;        // Contains mesh with data attributes 
+  vtkSmartPointer<vtkUnstructuredGrid> Visualization_Current_UGrid_Node_Mesh;  // Contains the mesh of current Visualization
+  vtkSmartPointer<vtkUnstructuredGrid> Visualization_Current_UGrid_Gauss_Mesh; // Contains the mesh of current Visualization
+  vtkSmartPointer<vtkUnstructuredGrid> Visualization_UGrid_Node_Mesh;          // Contains the mesh of current Visualization
+  vtkSmartPointer<vtkUnstructuredGrid> Visualization_UGrid_Gauss_Mesh;         // Contains the mesh of current Visualization
 
 
   /****************************************** Physical Groups*********************************/
