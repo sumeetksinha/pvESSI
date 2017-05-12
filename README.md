@@ -47,7 +47,7 @@ Currently, the plugin is not distributable type. There are two ways to install t
 	(b) If FFMPEG is already build in system with all it's libraries, build paraview with ```PARAVIEW_USE_MPI=true``` option
 	```bash
 	cd ${ParaView_Source_Directory}/Plugins/ 
-	git clone git clone https://github.com/SumeetSinha/pvESSI.git
+	git clone https://github.com/SumeetSinha/pvESSI.git
 	cd ${ParaView_Build_Directory}
 	cmake -DPARAVIEW_USE_MPI=true -DPARAVIEW_ENABLE_PYTHON=true -DPARAVIEW_ENABLE_FFMPEG=true ${ParaView_Source_Directory}
 	cmake ${ParaView_Source_Directory}
