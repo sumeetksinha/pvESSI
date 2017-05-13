@@ -127,7 +127,7 @@ public:
 
 protected:
   pvESSI();
-  ~pvESSI(){}
+  ~pvESSI(){std::cout << "asdas " << std::endl; }
  
   int RequestData(vtkInformation *, vtkInformationVector **, vtkInformationVector *);
   int RequestInformation( vtkInformation *, vtkInformationVector **, vtkInformationVector* );
@@ -175,12 +175,16 @@ protected:
   bool Whether_Node_Mesh_Attributes_Initialized;    // Holds whether node mesh attributes initialized
   bool Whether_Gauss_Mesh_Array_Initialized;        // Holds whether gauss mesh array initialized
   bool Whether_Gauss_Mesh_Attributes_Initialized;   // Holds whether gauss mesh attributes initialized
+  bool Whether_Node_Mesh_Stress_Attributes_Initialized;
 
   /************************** Data for Each Domain **************************************/
 
   bool *Domain_Data_Build_Status;     // Whether Domain Data has been build
   bool *Domain_Write_Status;          // Whether Domain Data can be written 
   bool *Domain_Read_Status;           // Whether Domain Data can be read 
+  bool *Domain_Node_Map_Initialized ;
+  bool *Domain_Element_Map_Initialized;
+  bool *Domain_Basic_Info_Initialized;
 
   int  domain_no;                     // domain no
 
@@ -275,6 +279,10 @@ protected:
   hid_t id_Inverse_Element_Map;
   hid_t id_Number_of_Elements_Shared;
   hid_t id_Number_of_Gauss_Elements_Shared;
+  hid_t id_pvESSI_Class_Tags;
+  hid_t id_pvESSI_Connectivity;
+  hid_t id_pvESSI_Number_of_DOFs;
+
 
   /*************** Partition Info *************************/
   hid_t id_Node_Partition;
