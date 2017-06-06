@@ -117,8 +117,12 @@ protected:
   int Time_Step_Range[2];             // Range of Time Steps
   int Number_of_Time_Steps;           // Stores the Number of TimeSteps in the analysis
   int Number_of_Sub_Steps;            // Stores the Number of Substeps in the analysis
-  int Node_Mesh_Current_Time;         // Stores the currengt time step of Node Mesh
-  int Gauss_Mesh_Current_Time;        // Stores the currengt time step of Gauss Mesh
+  int Node_Mesh_Current_Time;         // Stores the current time step of Node Mesh
+  int Node_Mesh_Current_Time_Step_1;  // Stores the current time step n for Node Mesh interpolation
+  int Node_Mesh_Current_Time_Step_2;  // Stores the current time step n+1 for Node Mesh interpolation
+  double Shape_Function_1;            // Interpolation function 1
+  double Shape_Function_2;            // Interpolation function 2 
+  int Gauss_Mesh_Current_Time;        // Stores the current time step of Gauss Mesh
 
   /************************************ Element Info Parameters *********************************/
   int Pseudo_Number_of_Elements;      // Stores the max node tag in each domain
@@ -366,13 +370,14 @@ private:
   void Build_Maps();
   void Build_Meta_Array_Map();
   void Build_Gauss_To_Node_Interpolation_Map();
-  void Build_Gauss_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Gauss_Mesh, int Node_Mesh_Current_Time);
-  void Build_Node_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh, int Gauss_Mesh_Current_Time);
-  void Build_Eigen_Modes_Node_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh, int Current_Time);
+  void Build_Gauss_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Gauss_Mesh, int Node_Mesh_Current_Time_1, int Node_Mesh_Current_Time_2, double Interpolation_Fun_1, double Interpolation_Fun_2);
+  void Build_Node_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh, int Node_Mesh_Current_Time_1, int Node_Mesh_Current_Time_2, double Interpolation_Fun_1, double Interpolation_Fun_2);
+  void Build_Eigen_Modes_Node_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh, int Node_Mesh_Current_Time_1, int Node_Mesh_Current_Time_2, double Interpolation_Fun_1, double Interpolation_Fun_2);
   void Build_Delaunay3D_Gauss_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Mesh);
-  void Build_ProbeFilter_Gauss_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Probe_Input, int Current_Time); // Probing variables at gauss nodes from node mesh
+  void Build_ProbeFilter_Gauss_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Probe_Input, int Node_Mesh_Current_Time_1, int Node_Mesh_Current_Time_2, double Interpolation_Fun_1, double Interpolation_Fun_2);  // Probing variables at gauss nodes from node mesh
   void Build_Stress_Field_At_Nodes_v2(vtkSmartPointer<vtkUnstructuredGrid> Gauss_Mesh, int Node_Mesh_Current_Time);
-  void Build_Stress_Field_At_Nodes(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh, int Node_Mesh_Current_Time);
+  void Build_Stress_Field_At_Nodes(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh, int Node_Mesh_Current_Time_1, int Node_Mesh_Current_Time_2, double Interpolation_Fun_1, double Interpolation_Fun_2);
+  void Interpolate_And_Save_Stress_Field_At_Nodes(int Node_Mesh_Current_Time);
   void Build_Physical_Element_Group_Mesh(vtkSmartPointer<vtkUnstructuredGrid> NodeMesh);
   void Build_VTK_Element_Selection_mesh();
   std::string GetSourceFile(std::string filename);
