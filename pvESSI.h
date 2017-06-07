@@ -454,7 +454,11 @@ private:
   void Build_Eigen_Modes_Node_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh, int Time_Index1, int Time_Index2, float Interpolation_Func1,float Interpolation_Func2);
   void Build_Delaunay3D_Gauss_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Mesh);
   void Build_ProbeFilter_Gauss_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Probe_Input, int Time_Index1, int Time_Index2, float Interpolation_Func1,float Interpolation_Func2); // Probing variables at gauss nodes from node mesh
-  void Build_Stress_Field_At_Nodes(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh, int Time_Index1, int Time_Index2, float Interpolation_Func1,float Interpolation_Func2);
+  void Build_Node_Stress(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh, int Time_Index1, int Time_Index2, float Interpolation_Func1,float Interpolation_Func2);
+  void Interpolate_Stress_Field_At_Nodes(int Time_Index1, int timeIndex2, float Interpolation_Func1,float Interpolation_Func2, float **DataArray);
+  void Build_Stress_Field_At_Nodes(int Time_Index1, float ** DataArray);
+  void Extract_Stress_Field_At_Nodes(int Time_Index1, float ** DataArray);
+  void Write_Stress_Field_At_Nodes(int Time_Index1, float ** DataArray);
   void Build_Physical_Element_Group_Mesh(vtkSmartPointer<vtkUnstructuredGrid> NodeMesh);
   void Build_VTK_Element_Selection_mesh();
   std::string GetSourceFile(std::string filename);

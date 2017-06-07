@@ -240,7 +240,7 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 				Build_Node_Attributes(Visualization_Current_UGrid_Node_Mesh, TimeIndex1, TimeIndex2, InterpolationFun1, InterpolationFun2);
 
 				// Builds Gauss To Node Interpolation if it is enabled
-				if(Enable_Gauss_To_Node_Interpolation_Flag) Build_Stress_Field_At_Nodes(Visualization_Current_UGrid_Node_Mesh,  TimeIndex1, TimeIndex2, InterpolationFun1, InterpolationFun2);	
+				if(Enable_Gauss_To_Node_Interpolation_Flag) Build_Node_Stress(Visualization_Current_UGrid_Node_Mesh,  TimeIndex1, TimeIndex2, InterpolationFun1, InterpolationFun2);	
 
 				// If Physical Group Selection is enabled
 				if(Enable_Physical_Node_Group_Selection_Flag or Enable_Physical_Element_Group_Selection_Flag) Build_Physical_Element_Group_Mesh(Visualization_Current_UGrid_Node_Mesh);
@@ -1982,13 +1982,12 @@ void pvESSI::Build_Local_Domain_Maps(int domain_no){
 #endif
 
 	//************** Building Node Map datset *******************************//
-	this->Domain_Node_Map[domain_no] = new int[this->Domain_Number_of_Nodes[domain_no]];
+	this->Domain_Node_Map[domain_no]         = new int[this->Domain_Number_of_Nodes[domain_no]];
 	this->Domain_Inverse_Node_Map[domain_no] = new int[this->Domain_Pseudo_Number_of_Nodes[domain_no]];
-	this->Domain_Number_of_Dofs[domain_no] = new int[this->Domain_Number_of_Nodes[domain_no]];
+	this->Domain_Number_of_Dofs[domain_no]   = new int[this->Domain_Number_of_Nodes[domain_no]];
 
 
-    int *Number_of_DOFs; Number_of_DOFs  = new int[this->Domain_Pseudo_Number_of_Nodes[domain_no]];
-	H5Dread(id_Number_of_DOFs, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Number_of_DOFs);
+   	int *Number_of_DOFs; INT_Time_Data_From_1_D_Dataset(id_Number_of_DOFs, &Number_of_DOFs);
 
 	int index   = -1;
 	int Node_Id = 0;
@@ -2008,28 +2007,23 @@ void pvESSI::Build_Local_Domain_Maps(int domain_no){
 	}
 
 	//************** Building Element Map datset *******************************//
-	this->Domain_Element_Map[domain_no] = new int[Domain_Number_of_Elements[domain_no]];
-	this->Domain_Connectivity[domain_no] = new int[Domain_Number_of_Connectivity_Nodes[domain_no]];
-	this->Domain_Class_Tags[domain_no]    = new int[Domain_Number_of_Elements[domain_no]];
-	this->Domain_Inverse_Element_Map[domain_no] = new int[Domain_Pseudo_Number_of_Elements[domain_no]];
-	this->Domain_Number_of_Elements_Shared[domain_no] = new int[Domain_Number_of_Nodes[domain_no]];
-	this->Domain_Number_of_Gauss_Elements_Shared[domain_no] =  new int[Domain_Number_of_Nodes[domain_no]];
+	this->Domain_Element_Map[domain_no]                     = new int[Domain_Number_of_Elements[domain_no]];
+	this->Domain_Connectivity[domain_no]                    = new int[Domain_Number_of_Connectivity_Nodes[domain_no]];
+	this->Domain_Class_Tags[domain_no]                      = new int[Domain_Number_of_Elements[domain_no]];
+	this->Domain_Inverse_Element_Map[domain_no]             = new int[Domain_Pseudo_Number_of_Elements[domain_no]];
+	this->Domain_Number_of_Elements_Shared[domain_no]       = new int[Domain_Number_of_Nodes[domain_no]];
+	this->Domain_Number_of_Gauss_Elements_Shared[domain_no] = new int[Domain_Number_of_Nodes[domain_no]];
 
 	for (int i = 0 ; i<Domain_Number_of_Nodes[domain_no]; i++){
 		this->Domain_Number_of_Elements_Shared[domain_no][i]       = 0;
 		this->Domain_Number_of_Gauss_Elements_Shared[domain_no][i] = 0;
 	}
 
-	int *Element_Class_Tags;  Element_Class_Tags = new int[this->Domain_Pseudo_Number_of_Elements[domain_no]];
-	H5Dread(id_Class_Tags, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Element_Class_Tags);
-
-
-	int *Element_Connectivity; Element_Connectivity  = new int[this->Domain_Number_of_Connectivity_Nodes[domain_no]];
-	H5Dread(id_Connectivity, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Element_Connectivity); 
+	int *Element_Class_Tags;   INT_Time_Data_From_1_D_Dataset(id_Class_Tags, &Element_Class_Tags);
+	int *Element_Connectivity; INT_Time_Data_From_1_D_Dataset(id_Connectivity, &Element_Connectivity);
 
 	this->id_Index_to_Connectivity = H5Dopen(id_File, "Model/Elements/Index_to_Connectivity", H5P_DEFAULT);
-	int *Element_Index_to_Connectivity; Element_Index_to_Connectivity = new int[this->Domain_Pseudo_Number_of_Elements[domain_no]];
-	H5Dread(id_Index_to_Connectivity, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Element_Index_to_Connectivity); 
+	int *Element_Index_to_Connectivity; INT_Time_Data_From_1_D_Dataset(id_Index_to_Connectivity, &Element_Index_to_Connectivity);
 
 	std::map<int,double**>::iterator it;
 
@@ -2880,6 +2874,11 @@ void pvESSI::FLOAT_Time_Data_From_3_D_Dataset(hid_t datasetId, int timeIndex, fl
 
 void pvESSI::INT_Time_Data_From_1_D_Dataset(hid_t datasetId, int** DataArray){
 
+#ifdef DEBUG_MODE
+	PRINT_FUNCTION("pvESSI::INT_Time_Data_From_1_D_Dataset");
+	cout << "DatasetId            " << datasetId << endl;
+#endif
+
 	DataSpace = H5Dget_space(datasetId);
 	H5Sget_simple_extent_dims(DataSpace, dims1_out, NULL);
 	*DataArray= new int[dims1_out[0]];
@@ -2893,6 +2892,11 @@ void pvESSI::INT_Time_Data_From_1_D_Dataset(hid_t datasetId, int** DataArray){
 
 void pvESSI::FLOAT_Time_Data_From_1_D_Dataset(hid_t datasetId, float** DataArray){
 
+#ifdef DEBUG_MODE
+	PRINT_FUNCTION("pvESSI::FLOAT_Time_Data_From_1_D_Dataset");
+	cout << "DatasetId            " << datasetId << endl;
+#endif
+
 	DataSpace = H5Dget_space(datasetId);
 	H5Sget_simple_extent_dims(DataSpace, dims1_out, NULL);
 	*DataArray= new float[dims1_out[0]];
@@ -2905,23 +2909,280 @@ void pvESSI::FLOAT_Time_Data_From_1_D_Dataset(hid_t datasetId, float** DataArray
 
 
 
+void pvESSI::Interpolate_Stress_Field_At_Nodes(int Time_Index1, int Time_Index2, float Interpolation_Func1,float Interpolation_Func2, float** DataArray){
+
+#ifdef DEBUG_MODE
+	PRINT_FUNCTION("pvESSI::Interpolate_Stress_Field_At_Nodes");
+#endif
+
+	if(Time_Index1==Time_Index2 or Interpolation_Func1==1){
+		 float *DataArray1; Extract_Stress_Field_At_Nodes(Time_Index1, &DataArray1);
+		 *DataArray = DataArray1;
+		 return;
+	}
+	else if(Interpolation_Func2==1){
+		float *DataArray2; Extract_Stress_Field_At_Nodes(Time_Index2, &DataArray2);
+		*DataArray = DataArray2;
+		return;
+	}
+
+	float *DataArray1; Extract_Stress_Field_At_Nodes(Time_Index1, &DataArray1);
+	float *DataArray2; Extract_Stress_Field_At_Nodes(Time_Index2, &DataArray2);
+
+	*DataArray = new float[dims2_out[0]];
+	for (int i=0;i<dims2_out[0];i++){
+		(*DataArray)[i]=Interpolation_Func1*DataArray1[i]+Interpolation_Func2*DataArray2[i];
+	}
+
+	delete []  DataArray1; DataArray1 = NULL;
+	delete []  DataArray2; DataArray2 = NULL;
+}
+
+void pvESSI::Write_Stress_Field_At_Nodes(int TimeIndex1, float **DataArray){
 
 
-/*******************************************************************************
-* Interpolating Stress-Strain at Nodes from gauss Points 
-********************************************************************************/
-void pvESSI::Build_Stress_Field_At_Nodes(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh, int Time_Index1, int Time_Index2, float Interpolation_Func1,float Interpolation_Func2){
+#ifdef DEBUG_MODE
+	PRINT_FUNCTION("pvESSI::Write_Stress_Field_At_Nodes");
+#endif
+
+	cout << "<<<<pvESSI>>>> I store the interpolated stresses at node for future \n" << endl;
+
+	offset3[0]   = 0;  					     				 offset3[1]   = TimeIndex1;                             offset3[2] = 0;
+    count3 [0]   = Domain_Number_of_Nodes[this->domain_no];  count3 [2]   = this->Number_of_Strain_Strain_Info;     count3 [1] = 1;
+    dims2_out[0] = Domain_Number_of_Nodes[this->domain_no];	 dims2_out[1] = this->Number_of_Strain_Strain_Info;
+
+    DataSpace = H5Dget_space(id_Stress_and_Strain);
+    MemSpace = H5Screate_simple(2,dims2_out,NULL);
+    H5Sselect_hyperslab(DataSpace,H5S_SELECT_SET,offset3,NULL,count3,NULL);
+    H5Dwrite(id_Stress_and_Strain, H5T_NATIVE_FLOAT, MemSpace, DataSpace, H5P_DEFAULT, (*DataArray)); 
+    H5Sclose(MemSpace); status=H5Sclose(DataSpace);
 
 
-Node_Mesh_Current_Time = timeIndex1;
+	int Whether_Stress_Strain_Build = TimeIndex1;
+	count1[0]   =1;
+	dims1_out[0]=1;
+	index_i = (hsize_t)TimeIndex1;
+
+    HDF5_Write_INT_Array_Data(id_Whether_Stress_Strain_Build,
+	                          1,
+	                         dims1_out,
+	                         &index_i,
+	                         NULL,
+	                         count1,
+	                         NULL,
+	                         &Whether_Stress_Strain_Build); // Whether_Stress_Strain_Build_Index 
+}
+
+
+void pvESSI::Extract_Stress_Field_At_Nodes(int Time_Index1, float **Node_Stress_And_Strain_Field){
+
+#ifdef DEBUG_MODE
+	PRINT_FUNCTION("pvESSI::Extract_Stress_Field_At_Nodes");
+#endif
+
+	float* DataArray;
+
+	if(Domain_Read_Status[this->domain_no])
+	{
+
+		count1[0]   =1;
+		dims1_out[0]=1;
+		index_i = (hsize_t)Time_Index1;
+
+		int Whether_Stress_Strain_Build;
+	    HDF5_Read_INT_Array_Data(id_Whether_Stress_Strain_Build,
+		                          1,
+		                         dims1_out,
+		                         &index_i,
+		                         NULL,
+		                         count1,
+		                         NULL,
+		                         &Whether_Stress_Strain_Build); // Whether_Stress_Strain_Build
+
+	    if(Whether_Stress_Strain_Build!=-1){
+	    	FLOAT_Time_Data_From_3_D_Dataset(id_Stress_and_Strain,Time_Index1,&DataArray);
+	    	(*Node_Stress_And_Strain_Field) = DataArray;
+	    	return;
+	    }
+	}
+	
+	Build_Stress_Field_At_Nodes(Time_Index1,&DataArray);
+	(*Node_Stress_And_Strain_Field) = DataArray;
+
+	if(Domain_Write_Status[domain_no]){
+		Write_Stress_Field_At_Nodes(TimeIndex1, &DataArray);
+	}
+
+	
+}
+
+void pvESSI::Build_Stress_Field_At_Nodes(int Time_Index1, float **Node_Stress_And_Strain_Field){
 
 #ifdef DEBUG_MODE
 	PRINT_FUNCTION("pvESSI::Build_Stress_Field_At_Nodes");
 #endif
 
-	// First Check whether Stresses has been calculated or not.
-	// If Not Calculated : Calculate it and store it.
-	// if Calculated: Visualize it
+	count1[0]   =1;
+	dims1_out[0]=1;
+	index_i = (hsize_t)Time_Index1;
+
+	int GlobalSize = this->Number_of_Strain_Strain_Info * this->Number_of_Nodes;
+    (*Node_Stress_And_Strain_Field) = new float[GlobalSize];					
+
+	cout << "<<<<pvESSI>>>> Stress-Strains are not interpolated for this time_step " << this->Time[Time_Index1] <<" s" << endl;
+	cout << "<<<<pvESSI>>>> I will calculate \n" << endl;
+
+	// initializing the Node_Stress_And_Strain_Field matrix to zero
+	for(int i =0; i<GlobalSize;i++)
+		(*Node_Stress_And_Strain_Field)[i]=0.0;
+	
+	////////////////////////////////////////////////// Reading Map Data ///////////////////////////////////////////////////////////////////////////////////////////
+    int* Element_Class_Tags; INT_Time_Data_From_1_D_Dataset(id_Class_Tags, &Element_Class_Tags); 
+    int* Element_Connectivity; INT_Time_Data_From_1_D_Dataset(id_Connectivity, &Element_Connectivity); 
+    int *Element_Index_To_Connectivity; INT_Time_Data_From_1_D_Dataset(id_Index_to_Connectivity,&Element_Index_To_Connectivity);
+	///////////////////////////////////////////  Gauss Output Dataset for a particular time /////////////////////////////////////////////////////////////////////////////	
+    float *Gauss_Outputs; FLOAT_Time_Data_From_2_D_Dataset(id_Gauss_Outputs,Time_Index1, &Gauss_Outputs);
+	///////////////////////////////////////////// Need to Extend the Dataset ////////////////////////////////////////////////////////////////////////////////////////////
+	
+	int connectivity_index=0;
+	int gauss_output_index=0;
+	int nnodes, ngauss, class_tag;  
+	int ESSI_ELEMENT_TAG;
+
+	for (int i = 0; i < this->Domain_Number_of_Elements[this->domain_no]; ++i)
+	{
+
+		ESSI_ELEMENT_TAG = this->Domain_Element_Map[domain_no][i];
+		connectivity_index = Element_Index_To_Connectivity[ESSI_ELEMENT_TAG];
+
+		class_tag  = Element_Class_Tags[ESSI_ELEMENT_TAG];
+		nnodes     = NUMBER_OF_NODES(Element_Desc_Array[class_tag]); // Number of element nodes
+		ngauss     = NUMBER_OF_GAUSS(Element_Desc_Array[class_tag]); // Number of element gauss nodes
+
+		std::map<int,double**>::iterator it;
+		it = Gauss_To_Node_Interpolation_Map.find(class_tag);
+
+		if(ngauss>0){
+
+			if(it != Gauss_To_Node_Interpolation_Map.end()){
+
+				std::vector<int> Nodes_Connectivity_Order = ESSI_to_VTK_Connectivity.find(nnodes)->second;
+
+				////////////////////// Initializing Containers ///////////////////////////////////////
+				double **Stress_Strain_At_Nodes        = new double*[nnodes];
+			    double **Stress_Strain_At_Gauss_Points = new double*[ngauss];					
+				for(int j = 0; j < nnodes; ++j){
+			    	Stress_Strain_At_Nodes[j]        = new double[this->Number_of_Strain_Strain_Info];
+				}
+				for(int j = 0; j < nnodes; ++j){
+			    	Stress_Strain_At_Gauss_Points[j] = new double[this->Number_of_Strain_Strain_Info];
+				}
+
+				///////////////////// Calculating Stresses at gauss Points /////////////////////////////////
+
+				double  Var_q, Var_p, Var_Plastic_q, Var_Plastic_p;
+
+				for(int j=0; j< nnodes ; j++){
+
+					int index_2=gauss_output_index+j*18;
+					for(int k=0; k< 18 ; k++){
+						Stress_Strain_At_Gauss_Points[j][k] = Gauss_Outputs[index_2+k];
+					}
+					// elastic_strain_v   = 1/3*(Gauss_Outputs[index_2+0]+Gauss_Outputs[index_2+1]+Gauss_Outputs[index_2+2]);
+					// elastic_strain_dev = sqrt(3/2* (pow(Gauss_Outputs[index_2+0]-Gauss_Outputs[index_2+1],2) +
+					// 						   		pow(Gauss_Outputs[index_2+1]-Gauss_Outputs[index_2+2],2) +
+					// 						   		pow(Gauss_Outputs[index_2+2]-Gauss_Outputs[index_2+1],2) + 6*
+					// 						   		(	pow(Gauss_Outputs[index_2+3],2)+
+					// 						   			pow(Gauss_Outputs[index_2+4],2)+
+					// 						   			pow(Gauss_Outputs[index_2+5],2))
+					// 						  		)
+					// 						 );
+
+					Var_Plastic_p   = -1.0*(Gauss_Outputs[index_2+6]+Gauss_Outputs[index_2+7]+Gauss_Outputs[index_2+8]);
+					Var_Plastic_q   = sqrt(2.0/9.0* (pow(Gauss_Outputs[index_2+6]-Gauss_Outputs[index_2+1],7) +
+								   					 pow(Gauss_Outputs[index_2+7]-Gauss_Outputs[index_2+2],8) +
+								   					 pow(Gauss_Outputs[index_2+8]-Gauss_Outputs[index_2+1],6) + 6*
+								   					 (	pow(Gauss_Outputs[index_2+9],2)+
+								   					 	pow(Gauss_Outputs[index_2+10],2)+
+								   					 	pow(Gauss_Outputs[index_2+11],2))
+								  					 )
+										  );
+
+					Var_p   	   = -1.0/3.0*(Gauss_Outputs[index_2+12]+Gauss_Outputs[index_2+13]+Gauss_Outputs[index_2+14]);
+					Var_q 		   = sqrt(1.0/2.0* (pow(Gauss_Outputs[index_2+12]-Gauss_Outputs[index_2+13],2) +
+											   		pow(Gauss_Outputs[index_2+13]-Gauss_Outputs[index_2+14],2) +
+											   		pow(Gauss_Outputs[index_2+14]-Gauss_Outputs[index_2+13],2) + 6*
+											   		(	pow(Gauss_Outputs[index_2+15],2)+
+											   			pow(Gauss_Outputs[index_2+16],2)+
+											   			pow(Gauss_Outputs[index_2+17],2))
+											  		)
+										 );
+
+					Stress_Strain_At_Gauss_Points[j][18] = Var_q;
+					Stress_Strain_At_Gauss_Points[j][19] = Var_p;
+					Stress_Strain_At_Gauss_Points[j][20] = Var_Plastic_q;
+					Stress_Strain_At_Gauss_Points[j][21] = Var_Plastic_p;
+
+				}
+
+				vtkMath::MultiplyMatrix	(it->second,Stress_Strain_At_Gauss_Points,nnodes,nnodes,nnodes,this->Number_of_Strain_Strain_Info,Stress_Strain_At_Nodes);
+
+
+
+				///////////////////////// Adding the Calculated Stresses at Nodes //////////////////////////
+				int node_no=0;
+				for(int j=0; j< nnodes ; j++){
+					node_no = ESSI_To_VTK_Node_Map[Element_Connectivity[connectivity_index+j]];
+					// cout << "connectivity_index " << connectivity_index <<" node_no " << node_no  << " class_tag " << class_tag<< endl;
+					for(int k=0; k< this->Number_of_Strain_Strain_Info ; k++){
+						(*Node_Stress_And_Strain_Field)[node_no*this->Number_of_Strain_Strain_Info+k] = (*Node_Stress_And_Strain_Field)[node_no*this->Number_of_Strain_Strain_Info+k] + Stress_Strain_At_Nodes[j][k] ;
+					}
+				}
+
+				for(int j = 0; j < nnodes; ++j){
+			    	delete [] Stress_Strain_At_Nodes[j];
+			    	delete [] Stress_Strain_At_Gauss_Points[j];
+				}
+				delete [] Stress_Strain_At_Gauss_Points;Stress_Strain_At_Gauss_Points=NULL;
+				delete [] Stress_Strain_At_Nodes;Stress_Strain_At_Nodes=NULL;
+			}
+			else{
+
+				cout << "<<<<pvESSI>>>> Build_Stress_Field_At_Nodes:: Warning!! Gauss_Interpolation to nodes not implemented for element of Class_Tag " << class_tag << endl;
+			}
+
+			gauss_output_index = gauss_output_index + ngauss*18;
+
+		}
+	}
+
+	// free the allocated arrays 
+	delete [] Gauss_Outputs;Gauss_Outputs=NULL;
+	delete [] Element_Class_Tags;  Element_Class_Tags = NULL;
+	delete [] Element_Connectivity; Element_Connectivity = NULL;
+	delete [] Element_Index_To_Connectivity; Element_Index_To_Connectivity = NULL;
+
+
+	// Now take average of contributions from gauss points 
+	double epsilon = 1e-6;
+	for(int i =0; i<this->Domain_Number_of_Nodes[this->domain_no] ; i++ ){
+		for(int j=0; j<this->Number_of_Strain_Strain_Info; j++)
+			(*Node_Stress_And_Strain_Field)[i*this->Number_of_Strain_Strain_Info+j] =  (*Node_Stress_And_Strain_Field)[i*this->Number_of_Strain_Strain_Info+j]/((double)this->Domain_Number_of_Gauss_Elements_Shared[this->domain_no][i]+epsilon);
+	}
+
+
+}
+
+
+/*******************************************************************************
+* Interpolating Stress-Strain at Nodes from gauss Points 
+********************************************************************************/
+void pvESSI::Build_Node_Stress(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh, int Time_Index1, int Time_Index2, float Interpolation_Func1,float Interpolation_Func2){
+
+
+#ifdef DEBUG_MODE
+	PRINT_FUNCTION("pvESSI::Build_Stress_Field_At_Nodes");
+#endif
 
  	if(Whether_Node_Mesh_Stress_Attributes_Initialized==false)
  	{
@@ -2951,7 +3212,6 @@ Node_Mesh_Current_Time = timeIndex1;
 		p->Allocate(Total_Number_of_Nodes);
 		p->SetNumberOfValues(Total_Number_of_Nodes);	
 
-
 		Plastic_Strain_q = vtkSmartPointer<vtkFloatArray> ::New();
 		this->Set_Meta_Array (Meta_Array_Map["Plastic_Strain_q"]);
 		Plastic_Strain_q->Allocate(Total_Number_of_Nodes);
@@ -2966,320 +3226,14 @@ Node_Mesh_Current_Time = timeIndex1;
 		this->Whether_Node_Mesh_Stress_Attributes_Initialized=true;
  	}
 
-
- 	int Whether_Stress_Strain_Build;
-
- 	if(Domain_Write_Status[domain_no])
- 	{
-		count1[0]   =1;
-		dims1_out[0]=1;
-		index_i = (hsize_t)Node_Mesh_Current_Time;
-
-	    HDF5_Read_INT_Array_Data(id_Whether_Stress_Strain_Build,
-		                          1,
-		                         dims1_out,
-		                         &index_i,
-		                         NULL,
-		                         count1,
-		                         NULL,
-		                         &Whether_Stress_Strain_Build); // Whether_Stress_Strain_Build
-	}
-	else{
-		Whether_Stress_Strain_Build = -1;
-	}
-
-	static int  Whether_Stress_Strain_Now_Build;  Whether_Stress_Strain_Now_Build = Whether_Stress_Strain_Build;
-
-	int GlobalSize = this->Number_of_Strain_Strain_Info * this->Domain_Number_of_Nodes[domain_no];
-    float *Node_Stress_And_Strain_Field = new float[this->Domain_Number_of_Nodes[domain_no] * this->Number_of_Strain_Strain_Info];					
-
-	if(Whether_Stress_Strain_Build==-1){
-
-		cout << "<<<<pvESSI>>>> Stress-Strains are not interpolated for this time_step " << Node_Mesh_Current_Time <<endl;
-		cout << "<<<<pvESSI>>>> I will calculate and store it for future \n" << endl;
-
-		//////////////////////////////////////////////// Extending the dataset /////////////////////////////////////////////////////////////////////////////
-
-		// initializing the Node_Stress_And_Strain_Field matrix to zero
-		for(int i =0; i<GlobalSize;i++)
-			Node_Stress_And_Strain_Field[i]=0.0;
-
-		if(Domain_Write_Status[domain_no])
-		{
-		
-			// DataSpace = H5Dget_space (id_Stress_and_Strain);
-			// H5Sget_simple_extent_dims (DataSpace, dims3, NULL);
-			// H5Sclose(DataSpace);
-		
-		    // dims3[0] = this->Domain_Number_of_Nodes[domain_no];
-		    // dims3[1] = dims3[1]<Number_of_Time_Steps?(dims3[1]+1):dims3[1];
-		    // dims3[2] = this->Number_of_Strain_Strain_Info;
-		    // status = H5Dset_extent (id_Stress_and_Strain, dims3);
-
-			offset3[0] = 0;  					                         offset3[1] = Node_Mesh_Current_Time;    offset3[2] = 0;
-		    count3 [0] = this->Domain_Number_of_Nodes[domain_no];		 count3 [1] = 1;		                 count3 [2] = this->Number_of_Strain_Strain_Info;
-		    dims2_out[0] =this->Domain_Number_of_Nodes[domain_no];	     dims2_out[1] = this->Number_of_Strain_Strain_Info;
-
-		    DataSpace = H5Dget_space(id_Stress_and_Strain);
-		    MemSpace = H5Screate_simple(2,dims2_out,NULL);
-		    H5Sselect_hyperslab(DataSpace,H5S_SELECT_SET,offset3,NULL,count3,NULL);
-		    H5Dwrite(id_Stress_and_Strain, H5T_NATIVE_FLOAT, MemSpace, DataSpace, H5P_DEFAULT, Node_Stress_And_Strain_Field); 
-		    H5Sclose(MemSpace); status=H5Sclose(DataSpace);
-
-		}
-
-	
-		////////////////////////////////////////////////// Reading Map Data ///////////////////////////////////////////////////////////////////////////////////////////
-		if(this->Domain_Read_Status[domain_no])
-		{
-
-			cout << " I am here " << endl;
-			cout << domain_no << " domain_no " << endl;
-			cout << id_pvESSI_Class_Tags << endl;
-			cout << id_Number_of_Gauss_Elements_Shared << endl;
-			cout << id_pvESSI_Connectivity << " " << Domain_Number_of_Connectivity_Nodes[domain_no] << endl;
-
-		    this->Domain_Number_of_Gauss_Elements_Shared[domain_no] = new int[Domain_Number_of_Nodes[domain_no]];
-			cout << " " << H5Dread(id_Number_of_Gauss_Elements_Shared, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Domain_Number_of_Gauss_Elements_Shared[domain_no]);
-
-			// ////////////////////////////////////////////////// Reading Element Data ///////////////////////////////////////////////////////////////////////////////////////////
-
-		    this->Domain_Class_Tags[domain_no] = new int[Domain_Number_of_Elements[domain_no]]; 
-			cout << " " << H5Dread(id_pvESSI_Class_Tags, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Domain_Class_Tags[domain_no]);
-
-			this->Domain_Connectivity[domain_no] = new int[Domain_Number_of_Connectivity_Nodes[domain_no]];
-			cout  << " " << H5Dread(id_pvESSI_Connectivity, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Domain_Connectivity[domain_no]); 
-
-		}
-
-
-		///////////////////////////////////////////  Gauss Output Dataset for a particular time /////////////////////////////////////////////////////////////////////////////	
-		DataSpace = H5Dget_space(id_Gauss_Outputs);
-		H5Sget_simple_extent_dims(DataSpace, dims2_out, NULL);
- 		float *Gauss_Outputs; Gauss_Outputs =  new float[dims2_out[0]];
-		offset2[0]=0; 					    count2[0] = dims2_out[0];		dims1_out[0]=dims2_out[0];
-		offset2[1]=Node_Mesh_Current_Time;  count2[1] = 1;					MemSpace = H5Screate_simple(1,dims1_out,NULL);
-		H5Sselect_hyperslab(DataSpace,H5S_SELECT_SET,offset2,NULL,count2,NULL);
-		H5Dread(id_Gauss_Outputs, H5T_NATIVE_FLOAT, MemSpace, DataSpace, H5P_DEFAULT, Gauss_Outputs); 
-		H5Sclose(MemSpace); status=H5Sclose(DataSpace);
-
-		///////////////////////////////////////////// Need to Extend the Dataset ////////////////////////////////////////////////////////////////////////////////////////////
-		
-		// for(int i =0 ; i<this->Number_of_Nodes;i++){
-		// 	for(int j=0;j<18;j++)
-		// 		Node_Stress_And_Strain_Field[i][j]=0;
-		// 		// cout <<  Node_Stress_And_Strain_Field[i][j] << " " ;
-		// 	cout << endl;
-		// }
-
-		int connectivity_index=0;
-		int gauss_output_index=0;
-		int nnodes, ngauss, class_tag; 
-
-		for (int i = 0; i < this->Domain_Number_of_Elements[domain_no]; ++i)
-		{
-
-				// cout << " i " << i << endl;
-				// cout << "class_tag " << class_tag << endl;
-				// cout << " domain_no  " << domain_no << endl;
-
-			class_tag  = this->Domain_Class_Tags[domain_no][i];
-			// cout << "class_tag " << class_tag << endl;
-			nnodes     = NUMBER_OF_NODES(Element_Desc_Array[class_tag]); // Number of element nodes
-			ngauss     = NUMBER_OF_GAUSS(Element_Desc_Array[class_tag]); // Number of element gauss nodes
-
-				// cout << " i " << i << endl;
-				// cout << "class_tag " << class_tag << endl;
-				// cout << " domain_no  " << domain_no << endl;
-
-			// cout << class_tag << "  " << nnodes << " " << ngauss << " " << endl;
-
-			std::map<int,double**>::iterator it;
-			it = Gauss_To_Node_Interpolation_Map.find(class_tag);
-
-			if(ngauss>0){
-
-				if(it != Gauss_To_Node_Interpolation_Map.end()){
-
-					std::vector<int> Nodes_Connectivity_Order = ESSI_to_VTK_Connectivity.find(nnodes)->second;
-
-					////////////////////// Initializing Containers ///////////////////////////////////////
-					double **Stress_Strain_At_Nodes = new double*[nnodes];
-				    double **Stress_Strain_At_Gauss_Points = new double*[ngauss];					
-					for(int j = 0; j < nnodes; ++j){
-				    	Stress_Strain_At_Nodes[j] = new double[this->Number_of_Strain_Strain_Info];
-					}
-					for(int j = 0; j < nnodes; ++j){
-				    	Stress_Strain_At_Gauss_Points[j] = new double[this->Number_of_Strain_Strain_Info];
-					}
-
-					///////////////////// Calculating Stresses at gauss Points /////////////////////////////////
-
-					double  Var_q, Var_p, Var_Plastic_q, Var_Plastic_p;
-
-					for(int j=0; j< nnodes ; j++){
-
-						int index_2=gauss_output_index+j*18;
-						for(int k=0; k< 18 ; k++){
-							Stress_Strain_At_Gauss_Points[j][k] = Gauss_Outputs[index_2+k];
-						}
-						// elastic_strain_v   = 1/3*(Gauss_Outputs[index_2+0]+Gauss_Outputs[index_2+1]+Gauss_Outputs[index_2+2]);
-						// elastic_strain_dev = sqrt(3/2* (pow(Gauss_Outputs[index_2+0]-Gauss_Outputs[index_2+1],2) +
-						// 						   		pow(Gauss_Outputs[index_2+1]-Gauss_Outputs[index_2+2],2) +
-						// 						   		pow(Gauss_Outputs[index_2+2]-Gauss_Outputs[index_2+1],2) + 6*
-						// 						   		(	pow(Gauss_Outputs[index_2+3],2)+
-						// 						   			pow(Gauss_Outputs[index_2+4],2)+
-						// 						   			pow(Gauss_Outputs[index_2+5],2))
-						// 						  		)
-						// 						 );
-
-						Var_Plastic_p   = -1.0*(Gauss_Outputs[index_2+6]+Gauss_Outputs[index_2+7]+Gauss_Outputs[index_2+8]);
-						Var_Plastic_q   = sqrt(2.0/9.0* (pow(Gauss_Outputs[index_2+6]-Gauss_Outputs[index_2+1],7) +
-									   					 pow(Gauss_Outputs[index_2+7]-Gauss_Outputs[index_2+2],8) +
-									   					 pow(Gauss_Outputs[index_2+8]-Gauss_Outputs[index_2+1],6) + 6*
-									   					 (	pow(Gauss_Outputs[index_2+9],2)+
-									   					 	pow(Gauss_Outputs[index_2+10],2)+
-									   					 	pow(Gauss_Outputs[index_2+11],2))
-									  					 )
-											  );
-
-						Var_p   	   = -1.0/3.0*(Gauss_Outputs[index_2+12]+Gauss_Outputs[index_2+13]+Gauss_Outputs[index_2+14]);
-						Var_q 		   = sqrt(1.0/2.0* (pow(Gauss_Outputs[index_2+12]-Gauss_Outputs[index_2+13],2) +
-												   		pow(Gauss_Outputs[index_2+13]-Gauss_Outputs[index_2+14],2) +
-												   		pow(Gauss_Outputs[index_2+14]-Gauss_Outputs[index_2+13],2) + 6*
-												   		(	pow(Gauss_Outputs[index_2+15],2)+
-												   			pow(Gauss_Outputs[index_2+16],2)+
-												   			pow(Gauss_Outputs[index_2+17],2))
-												  		)
-											 );
-
-						Stress_Strain_At_Gauss_Points[j][18] = Var_q;
-						Stress_Strain_At_Gauss_Points[j][19] = Var_p;
-						Stress_Strain_At_Gauss_Points[j][20] = Var_Plastic_q;
-						Stress_Strain_At_Gauss_Points[j][21] = Var_Plastic_p;
-
-					}
-
-					/*******************************************************************************************/
-
-					// vtkIdType Vertices[No_of_Element_Nodes];
-					// Cell_Type = ESSI_to_VTK_Element.find(No_of_Element_Nodes)->second;
-					// std::vector<int> Nodes_Connectivity_Order = ESSI_to_VTK_Connectivity.find(No_of_Element_Nodes)->second;
-
-					// for(int j=0; j<No_of_Element_Nodes ; j++){
-					// 	Vertices[j] = Inverse_Node_Map[Domain_Connectivity[domain_no][connectivity_index+Nodes_Connectivity_Order[j]]];
-					// }
-
-					// *****************************************************************************************
-
-					// for(int p =0; p<number_of_element_nodes ; p++ ){
-					// 	for(int q=0; q<18; q++)
-					// 		cout << Stress_Strain_At_Gauss_Points[p][q] << " ";
-					// 	cout << endl;
-					// }
-					// cout << endl;
-
-					// vtkMath::MultiplyMatrix	(it->second,Stress_Strain_At_Gauss_Points,nnodes,nnodes,nnodes,this->Number_of_Strain_Strain_Info,Stress_Strain_At_Nodes);
-
-	
-
-					// ///////////////////////// Adding the Calculated Stresses at Nodes //////////////////////////
-					// int node_no=0;
-					// for(int j=0; j< nnodes ; j++){
-					// 	node_no = Domain_Connectivity[domain_no][connectivity_index+j];
-					// 	// cout << "connectivity_index " << connectivity_index <<" node_no " << node_no  << " class_tag " << class_tag<< endl;
-					// 	for(int k=0; k< this->Number_of_Strain_Strain_Info ; k++){
-					// 		Node_Stress_And_Strain_Field[node_no*this->Number_of_Strain_Strain_Info+k] = Node_Stress_And_Strain_Field[node_no*this->Number_of_Strain_Strain_Info+k] + Stress_Strain_At_Nodes[j][k] ;
-					// 	}
-					// }
-
-					// for(int j = 0; j < nnodes; ++j){
-				 //    	delete [] Stress_Strain_At_Nodes[j];
-				 //    	delete [] Stress_Strain_At_Gauss_Points[j];
-					// }
-					// delete [] Stress_Strain_At_Gauss_Points;Stress_Strain_At_Gauss_Points=NULL;
-					// delete [] Stress_Strain_At_Nodes;Stress_Strain_At_Nodes=NULL;
-				}
-				else{
-
-					cout << "<<<<pvESSI>>>> Build_Stress_Field_At_Nodes:: Warning!! Gauss_Interpolation to nodes not implemented for element of Class_Tag " << class_tag << endl;
-				}
-
-				gauss_output_index = gauss_output_index + ngauss*18;
-
-			}
-			connectivity_index = connectivity_index + nnodes;
-		}
-
-
-
-		// Now take average of contributions from gauss points 
-		
-		// double epsilon = 1e-6;
-		// for(int i =0; i<this->Domain_Number_of_Nodes[domain_no] ; i++ ){
-		// 	for(int j=0; j<this->Number_of_Strain_Strain_Info; j++)
-		// 		Node_Stress_And_Strain_Field[i*this->Number_of_Strain_Strain_Info+j] =  Node_Stress_And_Strain_Field[i*this->Number_of_Strain_Strain_Info+j]/((double)Domain_Number_of_Gauss_Elements_Shared[domain_no][i]+epsilon);
-		// }
-
-			// free gauss outputs 
-	// 	delete [] Gauss_Outputs;Gauss_Outputs=NULL;
-	// 	if(this->Domain_Read_Status[domain_no])
-	// 	{
-	// 		delete [] this->Domain_Class_Tags[domain_no];  this->Domain_Class_Tags[domain_no] = NULL;
-	// 		delete [] this->Domain_Connectivity[domain_no]; this->Domain_Connectivity[domain_no] = NULL;
-	// 		delete [] this->Domain_Number_of_Gauss_Elements_Shared[domain_no]; this->Domain_Number_of_Gauss_Elements_Shared[domain_no]=NULL;
-	// 	}
-
-	// 	if(Domain_Write_Status[domain_no])
-	// 	{
-	// 		offset3[0] = 0;  					                         offset3[1] = Node_Mesh_Current_Time;    offset3[2] = 0;
-	// 	    count3 [0] = this->Domain_Number_of_Nodes[domain_no];		 count3 [1] = 1;		    count3 [2] = this->Number_of_Strain_Strain_Info;
-	// 	    dims2_out[0] =this->Domain_Number_of_Nodes[domain_no];	     dims2_out[1] = this->Number_of_Strain_Strain_Info;
-
-	// 	    DataSpace = H5Dget_space(id_Stress_and_Strain);
-	// 	    MemSpace = H5Screate_simple(2,dims2_out,NULL);
-	// 	    H5Sselect_hyperslab(DataSpace,H5S_SELECT_SET,offset3,NULL,count3,NULL);
-	// 	    H5Dwrite(id_Stress_and_Strain, H5T_NATIVE_FLOAT, MemSpace, DataSpace, H5P_DEFAULT, Node_Stress_And_Strain_Field); 
-	// 	    H5Sclose(MemSpace); status=H5Sclose(DataSpace);
-
-
-	// 		Whether_Stress_Strain_Build = Node_Mesh_Current_Time;
-	// 		count1[0]   =1;
-	// 		dims1_out[0]=1;
-	// 		index_i = (hsize_t)Node_Mesh_Current_Time;
-
-	// 	    HDF5_Write_INT_Array_Data(id_Whether_Stress_Strain_Build,
-	// 		                          1,
-	// 		                         dims1_out,
-	// 		                         &index_i,
-	// 		                         NULL,
-	// 		                         count1,
-	// 		                         NULL,
-	// 		                         &Whether_Stress_Strain_Build); // Whether_Stress_Strain_Build_Index 
-	// 	}
-
-
-	}
-
-	///////////////////// Reading the stress-strain at nodes ///////////////////////////
-
-	// if(Whether_Stress_Strain_Now_Build!=-1)
-	// {   // read the interpolated stresses on nodes
-	// 	offset3[0] = 0;  					     					 offset3[1] =Whether_Stress_Strain_Build;          offset3[2] = 0;
-	//     count3 [0] = this->Domain_Number_of_Nodes[domain_no];		 count3 [1] = 1;		    	                   count3 [2] = this->Number_of_Strain_Strain_Info;
-	//     dims2_out[0] =this->Domain_Number_of_Nodes[domain_no];	     dims2_out[1] = this->Number_of_Strain_Strain_Info;
-
-	//     DataSpace = H5Dget_space(id_Stress_and_Strain);
-	//     MemSpace = H5Screate_simple(2,dims2_out,NULL);
-	//     H5Sselect_hyperslab(DataSpace,H5S_SELECT_SET,offset3,NULL,count3,NULL);
-
-	//     H5Dread(id_Stress_and_Strain, H5T_NATIVE_FLOAT, MemSpace, DataSpace, H5P_DEFAULT, Node_Stress_And_Strain_Field); 
-	//     H5Sclose(MemSpace); status=H5Sclose(DataSpace);
-	// }
+ 	float *Node_Stress_And_Strain_Field; Interpolate_Stress_Field_At_Nodes(Time_Index1, Time_Index2, Interpolation_Func1,Interpolation_Func2, &Node_Stress_And_Strain_Field);
 
  //    float Var_q, Var_p, Var_Plastic_q, Var_Plastic_p;
+ //    int  ESSI_NODE_TAG;
 
 	// for(int i=0; i< this->Domain_Number_of_Nodes[domain_no]; i++){	
+
+	// 	ESSI_NODE_TAG = this->Domain_Node_Map[this->domain_no][i];
 
 	// 	float El_Strain_Tuple[6] ={
 	// 		Node_Stress_And_Strain_Field[i*this->Number_of_Strain_Strain_Info+0],
@@ -3308,14 +3262,14 @@ Node_Mesh_Current_Time = timeIndex1;
 	// 		Node_Stress_And_Strain_Field[i*this->Number_of_Strain_Strain_Info+14]
 	// 	};
 
-	// 	Elastic_Strain->InsertTypedTuple (this->Domain_Node_Map[domain_no][i],El_Strain_Tuple);
-	// 	Plastic_Strain->InsertTypedTuple (this->Domain_Node_Map[domain_no][i],Pl_Strain_Tuple);
-	// 	Stress->InsertTypedTuple (this->Domain_Node_Map[domain_no][i],Stress_Tuple);
+	// 	Elastic_Strain->InsertTypedTuple (this->ESSI_To_VTK_Node_Map[ESSI_NODE_TAG],El_Strain_Tuple);
+	// 	Plastic_Strain->InsertTypedTuple (this->ESSI_To_VTK_Node_Map[ESSI_NODE_TAG],Pl_Strain_Tuple);
+	// 	Stress->InsertTypedTuple (this->ESSI_To_VTK_Node_Map[ESSI_NODE_TAG],Stress_Tuple);
 
-	// 	q->InsertValue(this->Domain_Node_Map[domain_no][i],Node_Stress_And_Strain_Field[i*this->Number_of_Strain_Strain_Info+18]);
-	// 	p->InsertValue(this->Domain_Node_Map[domain_no][i],Node_Stress_And_Strain_Field[i*this->Number_of_Strain_Strain_Info+19]);
-	// 	Plastic_Strain_q->InsertValue(this->Domain_Node_Map[domain_no][i],Node_Stress_And_Strain_Field[i*this->Number_of_Strain_Strain_Info+20]);
-	// 	Plastic_Strain_p->InsertValue(this->Domain_Node_Map[domain_no][i],Node_Stress_And_Strain_Field[i*this->Number_of_Strain_Strain_Info+21]);
+	// 	q->InsertValue(this->ESSI_To_VTK_Node_Map[ESSI_NODE_TAG],Node_Stress_And_Strain_Field[i*this->Number_of_Strain_Strain_Info+18]);
+	// 	p->InsertValue(this->ESSI_To_VTK_Node_Map[ESSI_NODE_TAG],Node_Stress_And_Strain_Field[i*this->Number_of_Strain_Strain_Info+19]);
+	// 	Plastic_Strain_q->InsertValue(this->ESSI_To_VTK_Node_Map[ESSI_NODE_TAG],Node_Stress_And_Strain_Field[i*this->Number_of_Strain_Strain_Info+20]);
+	// 	Plastic_Strain_p->InsertValue(this->ESSI_To_VTK_Node_Map[ESSI_NODE_TAG],Node_Stress_And_Strain_Field[i*this->Number_of_Strain_Strain_Info+21]);
 
 	// }
 
