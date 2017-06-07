@@ -59,7 +59,7 @@ public:
   void PrintSelf(ostream& os, vtkIndent indent);
   void Enable_Gauss_To_Node_Interpolation(int x){ if(!(x and Enable_Gauss_To_Node_Interpolation_Flag))this->Modified();  Enable_Gauss_To_Node_Interpolation_Flag=false; if(x) Enable_Gauss_To_Node_Interpolation_Flag=true; }
   void Show_Gauss_Mesh(int x){ if(!(x and Show_Gauss_Mesh_Flag))this->Modified(); Show_Gauss_Mesh_Flag=false; if(x) Show_Gauss_Mesh_Flag=true;}
-  void Build_pvESSI_Folder(int x){ if(!(x and Enable_Building_of_Maps_Flag))this->Modified(); Enable_Building_of_Maps_Flag=true; if(x) Enable_Building_of_Maps_Flag=false; Enable_Initialization_Flag=true;}
+  void Build_pvESSI_Folder(int x){ if(!(x and Enable_Building_of_Maps_Flag))this->Modified(); Enable_Building_of_Maps_Flag=false; if(x) Enable_Building_of_Maps_Flag=false; /*Enable_Initialization_Flag=true;*/}
   void Enable_uPU_Visualization(int x ){if(!(x and Enable_uPU_Visualization_Flag))this->Modified();  Enable_uPU_Visualization_Flag=false; if(x) Enable_uPU_Visualization_Flag=true;}
   void Enable_Relative_Displacement(int x ){if(!(x and Enable_Relative_Displacement_Flag))this->Modified();  Enable_Relative_Displacement_Flag=false; if(x) Enable_Relative_Displacement_Flag=true;}
   void Enable_Displacement_Probing(int x ){ if(!(x and Enable_Displacement_Probing_Flag))this->Modified();   Enable_Displacement_Probing_Flag=false; if(x) Enable_Displacement_Probing_Flag=true;}
@@ -125,9 +125,18 @@ public:
   int GetNumberOfPhysicalNodeGroupArrays();
   int GetPhysicalNodeGroupArrayStatus(const char* name);
 
+  void INTERPOLATE_FLOAT_Time_Data_From_2_D_Dataset(hid_t datasetId, int timeIndex1, int timeIndex2, float shapeFunction1, float shapeFunction2, float** DataArray);
+  void INTERPOLATE_FLOAT_Time_Data_From_3_D_Dataset(hid_t datasetId, int timeIndex1, int timeIndex2, float shapeFunction1, float shapeFunction2, float** DataArray);
+
+  void FLOAT_Time_Data_From_2_D_Dataset(hid_t datasetId, int timeIndex, float** DataArray);
+  void FLOAT_Time_Data_From_3_D_Dataset(hid_t datasetId, int timeIndex, float** DataArray);
+  void INT_Time_Data_From_1_D_Dataset(hid_t datasetId, int** DataArray);
+  void FLOAT_Time_Data_From_1_D_Dataset(hid_t datasetId, float** DataArray);
+
+
 protected:
   pvESSI();
-  ~pvESSI(){std::cout << "asdas " << std::endl; }
+  ~pvESSI(){/*std::cout << "asdas " << std::endl;*/ }
  
   int RequestData(vtkInformation *, vtkInformationVector **, vtkInformationVector *);
   int RequestInformation( vtkInformation *, vtkInformationVector **, vtkInformationVector* );
@@ -137,6 +146,8 @@ protected:
   //////////////////////// Important Variables /////////////////////////////////////////
 
   int Number_of_Strain_Strain_Info;   // Total Number_of_Stress_Strain_Data_at_Nodes [currently 22]
+  bool Whether_Writing_Allowed;
+
 
 
   /************************************** Time parameters ***************************************/
@@ -144,15 +155,18 @@ protected:
   int Time_Step_Range[2];             // Range of Time Steps
   int Number_of_Time_Steps;           // Stores the Number of TimeSteps in the analysis
   int Number_of_Sub_Steps;            // Stores the Number of Substeps in the analysis
-  int Node_Mesh_Current_Time;         // Stores the currengt time step of Node Mesh
-  int Gauss_Mesh_Current_Time;        // Stores the currengt time step of Gauss Mesh
+  int Node_Mesh_Current_Time;         // Stores the current actual time in seconds for Node Mesh
+  int Gauss_Mesh_Current_Time;        // Stores the current actual time in seconds for Gauss Mesh
+  int TimeIndex1, TimeIndex2;         // Stores TimeIndex1 and TimeIndex2 having current actual time
+  float InterpolationFun1,InterpolationFun2; // Stores the interpolation function 1 and 2 respectively
 
-  /********************* Visualization Mode :: Element Info Parameters ***************************/
+  /********************* For Each Piece Visualization :: Element Info parameters ***************************/
+  bool Whether_Piece_Data_initialized; // Whether piece data initialized
   int Total_Number_of_Elements;       // Stores the Total Elements in Visualization
   int Max_Element_Tag;                // Stores the Maximum Element Tag in Visualization
   int Total_Number_of_Gauss_Points;   // Stores the Total Number of gauss points in Visualization
 
-  /********************* Visualization Mode :: Node Info parameters *****************************/
+  /********************* For Each Piece Visualization :: Node Info parameters  *****************************/
   int Total_Number_of_Nodes;          // Stores the Total Node in Visualization
   int Max_Node_Tag;                   // Stores the Maximum Node Tag in Visualization
 
@@ -160,12 +174,12 @@ protected:
   int ELE_TAG_DESC_ENCODING;
 
   /********************************** Model Info *************************************************/
-  int Number_of_Processes_Used;       // Number of Processes used
-  int Process_Number;                 // Process Id or Domain Number 
-  bool single_file_visualization_mode;// Sequential or One file Visualization Mode
+  int Number_of_Processes_Used;         // Number of Processes used
+  int Process_Number;                   // Process Id or Domain Number 
+  bool single_file_visualization_mode;  // Sequential or One file Visualization Mode in Parallel
   
-  /*************************** Visualization Parameters *****************************************/
-  int Build_Map_Status;                             // Whether Map is Build
+  /*************************** For Each Piece Visualization:: More Parameters *****************************************/
+  int  Build_Map_Status;                            // Whether Map is Build
   bool Enable_Initialization_Flag;                  // Whether Initialization Done
   int  piece_no;                                    // Piece no or Processor no
   int  num_of_pieces;                               // total number of pieces or processors
@@ -177,18 +191,19 @@ protected:
   bool Whether_Gauss_Mesh_Attributes_Initialized;   // Holds whether gauss mesh attributes initialized
   bool Whether_Node_Mesh_Stress_Attributes_Initialized;
 
-  /************************** Data for Each Domain **************************************/
+  /******************* DataArrays for Each Domain or Process Id in  Real-ESSI Output **************/
 
-  bool *Domain_Data_Build_Status;     // Whether Domain Data has been build
-  bool *Domain_Write_Status;          // Whether Domain Data can be written 
-  bool *Domain_Read_Status;           // Whether Domain Data can be read 
-  bool *Domain_Node_Map_Initialized ;
-  bool *Domain_Element_Map_Initialized;
-  bool *Domain_Basic_Info_Initialized;
+  bool *Domain_Data_Build_Status;       // Whether Domain Data has been build
+  bool *Domain_Write_Status;            // Whether Domain Data can be written 
+  bool *Domain_Read_Status;             // Whether Domain Data can be read 
+  bool *Domain_Node_Map_Initialized ;   // Whether Domain Node Map has been initialized
+  bool *Domain_Element_Map_Initialized; // Whether Domain Element Map initialized
+  bool *Domain_Basic_Info_Initialized;  // Whether Basic Info Initialized
 
-  int  domain_no;                     // domain no
+  int  domain_no;                       // current Real ESSI domain_no or process Id output to be read 
 
-  //// 1-D Scalar [Domain_Number] Parameter
+  //// 1-D Scalar for each [Domain_Number] or Real-ESSI process Id 
+  //// Arrays of of dimention equal to total number of process Ids
 
   /*** Element Data ***/
   int Number_of_Elements;             // Actual Number of Elements in each domain
@@ -346,7 +361,7 @@ protected:
   
   /*********** Some HDF5 Variables Regularly Used **********/
 
-  hsize_t  dims1_out[1], dims2_out[2];
+  hsize_t  dims1_out[1], dims2_out[2], dims3_out[3]; 
   hsize_t  dims3[3],     dims2[2];
   hsize_t  maxdims3[3],  maxdims2[2];
 
@@ -385,53 +400,6 @@ protected:
                                  hsize_t *count,
                                  hsize_t *block,
                                  int* data);
-
-  // Read FLOAT  Array Data 
-  void HDF5_Read_FLOAT_Array_Data(hid_t id_DataSet,
-                                   int rank,
-                                   hsize_t *data_dims,
-                                   hsize_t *offset,
-                                   hsize_t *stride,
-                                   hsize_t *count,
-                                   hsize_t *block,
-                                   float* data);
-  // Read DOUBLE  Array Data 
-  void HDF5_Read_DOUBLE_Array_Data(hid_t id_DataSet,
-                                   int rank,
-                                   hsize_t *data_dims,
-                                   hsize_t *offset,
-                                   hsize_t *stride,
-                                   hsize_t *count,
-                                   hsize_t *block,
-                                   double* data);
-
-  // Write FLOAT  Array Data 
-  void HDF5_Write_FLOAT_Array_Data(hid_t id_DataSet,
-                                   int rank,
-                                   hsize_t *data_dims,
-                                   hsize_t *offset,
-                                   hsize_t *stride,
-                                   hsize_t *count,
-                                   hsize_t *block,
-                                   float* data);
-  // Write DOUBLE  Array Data 
-  void HDF5_Write_DOUBLE_Array_Data(hid_t id_DataSet,
-                                   int rank,
-                                   hsize_t *data_dims,
-                                   hsize_t *offset,
-                                   hsize_t *stride,
-                                   hsize_t *count,
-                                   hsize_t *block,
-                                   double* data);
-  // Read STRING  Array Data 
-  void HDF5_Read_STRING_Array_Data(hid_t id_DataSet,
-                                   int rank,
-                                   hsize_t *data_dims,
-                                   hsize_t *offset,
-                                   hsize_t *stride,
-                                   hsize_t *count,
-                                   hsize_t *block,
-                                   int* data);
 
   // To Explore the contents of HDF5 Group
   static herr_t op_func (hid_t loc_id, const char *name, const H5O_info_t *info, void *operator_data);
@@ -481,13 +449,12 @@ private:
   void Build_Meta_Array_Map();
   void Build_Gauss_To_Node_Interpolation_Map();
   void Build_Shared_Info_Per_Mode();
-  void Build_Gauss_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Gauss_Mesh, int Node_Mesh_Current_Time);
-  void Build_Node_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh, int Gauss_Mesh_Current_Time);
-  void Build_Eigen_Modes_Node_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh, int Current_Time);
+  void Build_Gauss_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Gauss_Mesh, int Time_Index1, int Time_Index2, float Interpolation_Func1,float Interpolation_Func2);
+  void Build_Node_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh, int Time_Index1, int Time_Index2, float Interpolation_Func1,float Interpolation_Func2);
+  void Build_Eigen_Modes_Node_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh, int Time_Index1, int Time_Index2, float Interpolation_Func1,float Interpolation_Func2);
   void Build_Delaunay3D_Gauss_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Mesh);
-  void Build_ProbeFilter_Gauss_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Probe_Input, int Current_Time); // Probing variables at gauss nodes from node mesh
-  void Build_Stress_Field_At_Nodes_v2(vtkSmartPointer<vtkUnstructuredGrid> Gauss_Mesh, int Node_Mesh_Current_Time);
-  void Build_Stress_Field_At_Nodes(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh, int Node_Mesh_Current_Time);
+  void Build_ProbeFilter_Gauss_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Probe_Input, int Time_Index1, int Time_Index2, float Interpolation_Func1,float Interpolation_Func2); // Probing variables at gauss nodes from node mesh
+  void Build_Stress_Field_At_Nodes(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh, int Time_Index1, int Time_Index2, float Interpolation_Func1,float Interpolation_Func2);
   void Build_Physical_Element_Group_Mesh(vtkSmartPointer<vtkUnstructuredGrid> NodeMesh);
   void Build_VTK_Element_Selection_mesh();
   std::string GetSourceFile(std::string filename);
