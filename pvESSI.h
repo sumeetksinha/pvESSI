@@ -131,6 +131,8 @@ public:
   void FLOAT_Time_Data_From_2_D_Dataset(hid_t datasetId, int timeIndex, float** DataArray);
   void FLOAT_Time_Data_From_3_D_Dataset(hid_t datasetId, int timeIndex, float** DataArray);
   void INT_Time_Data_From_1_D_Dataset(hid_t datasetId, int** DataArray);
+  void INT_Data_From_Scalar_Dataset(hid_t datasetId, int* DataArray);
+  void FLOAT_Data_From_Scalar_Dataset(hid_t datasetId, int* DataArray);
   void FLOAT_Time_Data_From_1_D_Dataset(hid_t datasetId, float** DataArray);
 
 
@@ -231,7 +233,6 @@ protected:
   //// 2-Dimensional Containers [Domain_Number][Array] Parameter 
   int **Domain_Class_Tags;
   int **Domain_Connectivity;
-  int **Domain_ConstrainedNodes;
   int **Domain_Element_Map;
   int **Domain_Node_Map;
   int **Domain_Inverse_Element_Map;
@@ -376,7 +377,7 @@ protected:
 
 
   // temporary variable store node and element number 
-  int node_no, element_no;
+  int node_no, element_no, gauss_no, gauss_no_for_attributes;
 
   /************* Hdf5 function ******************************/
 
