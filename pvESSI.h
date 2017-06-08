@@ -135,6 +135,9 @@ public:
   void FLOAT_Data_From_Scalar_Dataset(hid_t datasetId, int* DataArray);
   void FLOAT_Time_Data_From_1_D_Dataset(hid_t datasetId, float** DataArray);
 
+  void openDatasetIds();
+  void closeDatasetIds();
+
 
 protected:
   pvESSI();
@@ -203,6 +206,7 @@ protected:
   bool *Domain_Basic_Info_Initialized;  // Whether Basic Info Initialized
 
   int  domain_no;                       // current Real ESSI domain_no or process Id output to be read 
+  std::string Domain_FileName;          // current Real ESSI domain_no or process Id output filename
 
   //// 1-D Scalar for each [Domain_Number] or Real-ESSI process Id 
   //// Arrays of of dimention equal to total number of process Ids
@@ -334,6 +338,7 @@ protected:
   hid_t DataSet;
   hid_t Group; 
   hid_t MemSpace;
+  hid_t id_H5F_CLOSE_STRONG;
 
   /************** Visualization Control Variables **********/
   bool Enable_Gauss_To_Node_Interpolation_Flag;

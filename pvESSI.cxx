@@ -98,6 +98,11 @@ pvESSI::pvESSI(){
 	Build_Gauss_To_Node_Interpolation_Map();                 // build Gauss_To_Node_Interpolarion_Map
 	this->Whether_Writing_Allowed = false;
 	this->Whether_Piece_Data_initialized = false;
+
+
+	id_H5F_CLOSE_STRONG = H5Pcreate(H5P_FILE_ACCESS);
+	H5Pset_fclose_degree(id_H5F_CLOSE_STRONG, H5F_CLOSE_STRONG);
+
 } 
 
 
@@ -915,7 +920,7 @@ void pvESSI::Get_Node_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh){
 	if(Number_of_Processes_Used>1){	
 
 		std::string Source_File = GetSourceFile(this->FileName)+"feioutput";
-		hid_t id_Source_File = H5Fopen(Source_File.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
+		hid_t id_Source_File = H5Fopen(Source_File.c_str(), H5F_ACC_RDONLY, id_H5F_CLOSE_STRONG);
 
 		id_Element_Partition = H5Dopen(id_Source_File, "/Model/Elements/Partition", H5P_DEFAULT);
 		INT_Time_Data_From_1_D_Dataset(id_Element_Partition,&Element_Partition);
@@ -953,13 +958,13 @@ void pvESSI::Get_Node_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh){
 	Node_Mesh->GetPointData()->AddArray(Node_Tag);
 
 	/////////////////////////////////////////////// Building Boundary Conditions  ///////////////////////////////////////////////////////////////////////////
-	for(int i = 0; i<Domain_Number_of_Constrained_Dofs[domain_no]; i++){
+	// for(int i = 0; i<Domain_Number_of_Constrained_Dofs[domain_no]; i++){
 
-		if(Constrained_DOFs[i]<3){
-			Boundary_Conditions->SetComponent(ESSI_To_VTK_Node_Map[Constrained_Nodes[i]],Constrained_DOFs[i],1);
-		}
+	// 	if(Constrained_DOFs[i]<3){
+	// 		Boundary_Conditions->SetComponent(ESSI_To_VTK_Node_Map[Constrained_Nodes[i]],Constrained_DOFs[i],1);
+	// 	}
 
-	}
+	// }
 
 	Node_Mesh->GetPointData()->AddArray(Boundary_Conditions);
 
@@ -1448,7 +1453,7 @@ void pvESSI::Initialize(){
 
 
     /***************** File_id **********************************/
-    this->id_File = H5Fopen(this->FileName, H5F_ACC_RDONLY, H5P_DEFAULT);;  
+    this->id_File = H5Fopen(this->FileName, H5F_ACC_RDONLY, id_H5F_CLOSE_STRONG);;  
 
 	/***************** Time Steps *******************************/
     datasetId = H5Dopen(id_File, "/Number_of_Time_Steps", H5P_DEFAULT);   
@@ -1456,8 +1461,8 @@ void pvESSI::Initialize(){
 	H5Dclose(datasetId);
 
 	H5Eset_auto (NULL, NULL, NULL);  // To stop HDF5 from printing error message
-	datasetId                 = H5Gopen(id_File, "Eigen_Mode_Analysis", H5P_DEFAULT);
-	if(datasetId>0){
+	this->id_Eigen_Mode_Analysis = H5Gopen(id_File, "Eigen_Mode_Analysis", H5P_DEFAULT);
+	if(this->id_Eigen_Mode_Analysis>0){
 		datasetId  = H5Dopen(id_File,"Eigen_Mode_Analysis/number_of_modes",H5P_DEFAULT);
 		H5Dread(datasetId, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,&Number_of_Time_Steps);
 		H5Dclose(datasetId);
@@ -1465,6 +1470,7 @@ void pvESSI::Initialize(){
 		cout << "<<<<pvESSI>>>> Eigen_Mode_Analysis is On!!! \n" << endl;
 		eigen_mode_on = true;
 	}
+	H5Gclose(this->id_Eigen_Mode_Analysis);
 
 	float* Temp_Time;
 	datasetId = H5Dopen(id_File, "/time", H5P_DEFAULT); 
@@ -1605,7 +1611,7 @@ void pvESSI::Initialize_Piece_data(int start, int end)
 		}
 
 
-		id_Domain_File = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
+		id_Domain_File = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, id_H5F_CLOSE_STRONG);
 
 		datasetId   = H5Dopen(id_Domain_File, "/Number_of_Elements", H5P_DEFAULT);
 		H5Dread(datasetId, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,&NumElements );
@@ -1664,27 +1670,26 @@ void pvESSI::Domain_Initializer(int  Domain_Number){
 	PRINT_FUNCTION("pvESSI::Domain_Initializer");
 #endif
 
-	std::string filename;
-
 	if(Domain_Number>=0){
 		std::string Source_File = GetSourceFile(this->FileName);
 		std::stringstream ss;
 		int digits = Number_of_Processes_Used > 0 ? (int) log10 ((double) Number_of_Processes_Used) + 1 : 1;
 		ss << setfill('0') << setw(digits) << Domain_Number+1;
-		filename = Source_File + ss.str()+".feioutput";
+		Domain_FileName = Source_File + ss.str()+".feioutput";
 	}
 	else{
-		filename = this->FileName; 
+		Domain_FileName = this->FileName; 
 		domain_no =0;               // setting the index to be zero for Single_Domain_Visualization_Mode
-		Domain_Number =0;
 	}
+
+	const char* filename = Domain_FileName.c_str();
 
 	if(!Whether_Physical_Group_Info_build)
 	{
 		//********************* Building Avialable Physical Groups ***************************************************************/
 		// getting the master file containing physical group
 		std::string Source_File = GetSourceFile(this->FileName)+"feioutput";
-		hid_t id_Source_File = H5Fopen(Source_File.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
+		hid_t id_Source_File = H5Fopen(Source_File.c_str(), H5F_ACC_RDONLY, id_H5F_CLOSE_STRONG);
 
 	    this->id_Physical_Element_Groups = H5Gopen(id_Source_File, "/Model/Physical_Groups/Physical_Element_Groups", H5P_DEFAULT);
 	    this->id_Physical_Node_Groups    = H5Gopen(id_Source_File, "/Model/Physical_Groups/Physical_Node_Groups", H5P_DEFAULT);
@@ -1699,9 +1704,9 @@ void pvESSI::Domain_Initializer(int  Domain_Number){
 
 	    Whether_Physical_Group_Info_build = true;;
 
-	    H5Fclose(id_Source_File);
 		H5Gclose(id_Physical_Element_Groups); 
-		H5Gclose(id_Physical_Node_Groups); 
+		H5Gclose(id_Physical_Node_Groups);
+		H5Fclose(id_Source_File); 
 	}
 
 	/****************************************************************************************
@@ -1710,66 +1715,56 @@ void pvESSI::Domain_Initializer(int  Domain_Number){
 	****************************************************************************************/
 
 	/***************** File_id **********************************/
-	cout << "<<<<pvESSI>>>>  " << filename.c_str() << " Time_Step " << Node_Mesh_Current_Time << endl << endl;;
+	cout << "<<<<pvESSI>>>>  " << filename << " Time_Step " << Node_Mesh_Current_Time << endl << endl;;
+	
 	H5Fclose(this->id_File); // close the previous file
-	this->id_File = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
+	this->id_File = H5Fopen(filename, H5F_ACC_RDONLY, id_H5F_CLOSE_STRONG);
 
+	Domain_Write_Status[domain_no] = true;
 
-	/****************** Check if pvESSI build *******************/
-	H5Eset_auto (NULL, NULL, NULL);  // To stop HDF% from printing error message
-	this->id_pvESSI = H5Gopen(id_File, "/pvESSI", H5P_DEFAULT);  
-
-
-	if(id_pvESSI>0 and (Enable_Building_of_Maps_Flag==false)) { // Every thing is ready to go
-		cout << "<<<<pvESSI>>>>  Maps are build HURRAY!!! \n" << endl;
-		this->Domain_Read_Status[Domain_Number]=true;
-	}
-	else{ // We need to build the pvESSI folder
-		this->Domain_Read_Status[Domain_Number]=false;
-	}
-
-	this->Domain_Write_Status[Domain_Number] = this->Whether_Writing_Allowed;
-
-#ifdef DEBUG_MODE
-	cout << "Domain_Number::                 " << Domain_Number << endl;
-	cout << "========================== Before =========================" << endl;
-	cout << "Domain_Data_Build_Status        " << Domain_Data_Build_Status[Domain_Number] << endl;
-	cout << "Domain_Write_Status             " << Domain_Write_Status[Domain_Number] << endl;
-	cout << "Domain_Read_Status              " << Domain_Read_Status[Domain_Number]  << endl;
-	cout << "Enable_Building_of_Maps_Flag    " << Enable_Building_of_Maps_Flag << endl;
-#endif
-
-	if(this->Domain_Data_Build_Status[Domain_Number]==false or Enable_Building_of_Maps_Flag==true)
+	if(this->Domain_Data_Build_Status[domain_no]==false or Enable_Building_of_Maps_Flag==true)
 	{
-		if(this->Domain_Read_Status[Domain_Number]){  // it can be read, so lets go and read it
-			this->Read_Local_Domain_Maps(Domain_Number);
-		}
-		else{// We need to build the pvESSI folder
-			this->Build_Local_Domain_Maps(Domain_Number);
-		}
-		this->Domain_Data_Build_Status[Domain_Number]=true;
-	}
 
-	/** Check if Domain Data can be written. If not don't write it. */
-	if(this->Domain_Write_Status[Domain_Number] and Enable_Building_of_Maps_Flag==true)
-	{	
-		// Close the file and reopen in write mode and again close te file 
-		// and reopen in read only mode
-		H5Fclose(this->id_File);
-		this->id_File = H5Fopen(filename.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
-		this->Write_Local_Domain_Maps(Domain_Number);
-		H5Fclose(this->id_File);
-		this->id_File = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
+		H5Eset_auto (NULL, NULL, NULL);  // To stop HDF% from printing error message
+		this->id_pvESSI = H5Gopen(id_File, "/pvESSI", H5P_DEFAULT);  
+
+		if(Enable_Building_of_Maps_Flag==true)
+		{
+
+			this->Build_Local_Domain_Maps(domain_no);
+			this->Write_Local_Domain_Maps(domain_no);
+		}
+		else{
+			if(id_pvESSI>0) {// it can be read, so lets go and read it
+				cout << "<<<<pvESSI>>>>  Maps are build HURRAY!!! \n" << endl;
+				this->Read_Local_Domain_Maps(domain_no);
+				this->Domain_Read_Status[domain_no] = true;
+			}
+			else{// We need to build the pvESSI folder
+				this->Build_Local_Domain_Maps(domain_no);
+				this->Write_Local_Domain_Maps(domain_no);
+
+			}
+		}
+
+		H5Gclose(this->id_pvESSI);
+		this->Domain_Data_Build_Status[domain_no]=true;
 	}
 
 #ifdef DEBUG_MODE
-	cout << "========================== After =========================" << endl;
-	cout << "Domain_Data_Build_Status        " << Domain_Data_Build_Status[Domain_Number] << endl;
-	cout << "Domain_Write_Status             " << Domain_Write_Status[Domain_Number] << endl;
-	cout << "Domain_Read_Status              " << Domain_Read_Status[Domain_Number]  << endl;
+	cout << "Domain_Number::                 " << domain_no << endl;
+	cout << "========================== Before =========================" << endl;
+	cout << "Domain_Data_Build_Status        " << Domain_Data_Build_Status[domain_no] << endl;
+	cout << "Domain_Write_Status             " << Domain_Write_Status[domain_no] << endl;
+	cout << "Domain_Read_Status              " << Domain_Read_Status[domain_no]  << endl;
 	cout << "Enable_Building_of_Maps_Flag    " << Enable_Building_of_Maps_Flag << endl;
 #endif
 
+	this->openDatasetIds();
+}
+
+
+void pvESSI::openDatasetIds(){
 
 	if(eigen_mode_on){
 		this->id_frequencies					   = H5Dopen(id_File,"Eigen_Mode_Analysis/frequencies",H5P_DEFAULT); 	
@@ -1779,27 +1774,58 @@ void pvESSI::Domain_Initializer(int  Domain_Number){
 	}
 
 	/************************** Open Dataset for reading and *******************************************************************/
-		this->id_Constrained_Nodes                 = H5Dopen(id_File, "Model/Nodes/Constrained_Nodes", H5P_DEFAULT);
-		this->id_Material_Tags                     = H5Dopen(id_File, "Model/Elements/Material_Tags", H5P_DEFAULT);
-		this->id_Physical_Element_Groups           = H5Gopen(id_File, "Model/Physical_Groups/Physical_Element_Groups", H5P_DEFAULT);
-		this->id_Physical_Node_Groups              = H5Gopen(id_File, "Model/Physical_Groups/Physical_Node_Groups", H5P_DEFAULT);
+	this->id_Constrained_Nodes                 = H5Dopen(id_File, "Model/Nodes/Constrained_Nodes", H5P_DEFAULT);
+	this->id_Material_Tags                     = H5Dopen(id_File, "Model/Elements/Material_Tags", H5P_DEFAULT);
+	this->id_Physical_Element_Groups           = H5Gopen(id_File, "Model/Physical_Groups/Physical_Element_Groups", H5P_DEFAULT);
+	this->id_Physical_Node_Groups              = H5Gopen(id_File, "Model/Physical_Groups/Physical_Node_Groups", H5P_DEFAULT);
+	  
+	// /**************** Element Info ******************************/
+	this->id_Gauss_Point_Coordinates = H5Dopen(id_File, "Model/Elements/Gauss_Point_Coordinates", H5P_DEFAULT);
+	this->id_Element_Outputs = H5Dopen(id_File, "Model/Elements/Element_Outputs", H5P_DEFAULT);
+	this->id_Gauss_Outputs = H5Dopen(id_File, "Model/Elements/Gauss_Outputs", H5P_DEFAULT);
+	// this->id_Substep_Outputs = H5Dopen(id_File, "Model/Elements/Substep_Outputs", H5P_DEFAULT);
+
+	/**************** Node Info ******************************/
+	this->id_Constrained_DOFs = H5Dopen(id_File, "Model/Nodes/Constrained_DOFs", H5P_DEFAULT);
+	this->id_Coordinates = H5Dopen(id_File, "Model/Nodes/Coordinates", H5P_DEFAULT);
+	this->id_Index_to_Coordinates = H5Dopen(id_File, "/Model/Nodes/Index_to_Coordinates", H5P_DEFAULT);
+	this->id_Generalized_Displacements = H5Dopen(id_File, "Model/Nodes/Generalized_Displacements", H5P_DEFAULT);
+	this->id_Index_to_Displacements = H5Dopen(id_File, "Model/Nodes/Index_to_Generalized_Displacements", H5P_DEFAULT);
+	this->id_Support_Reactions = H5Dopen(id_File,"/Model/Nodes/Support_Reactions", H5P_DEFAULT);
+	if(id_Support_Reactions>0) enable_support_reactions=true; else enable_support_reactions=false;
+
+}
+
+void pvESSI::closeDatasetIds(){
+
+	if(eigen_mode_on){
+		H5Dclose(this->id_frequencies);
+		H5Dclose(this->id_modes);
+		H5Dclose(this->id_periods);
+		H5Dclose(this->id_values );
+	}
+
+	/************************** Open Dataset for reading and *******************************************************************/
+	  H5Dclose(this->id_Constrained_Nodes);
+	  H5Dclose(this->id_Material_Tags);
+	  H5Dclose(this->id_Physical_Element_Groups);
+	  H5Dclose(this->id_Physical_Node_Groups);
 	  
 	  // /**************** Element Info ******************************/
-	  this->id_Gauss_Point_Coordinates = H5Dopen(id_File, "Model/Elements/Gauss_Point_Coordinates", H5P_DEFAULT);
-	  this->id_Element_Outputs = H5Dopen(id_File, "Model/Elements/Element_Outputs", H5P_DEFAULT);
-	  this->id_Gauss_Outputs = H5Dopen(id_File, "Model/Elements/Gauss_Outputs", H5P_DEFAULT);
+	  H5Dclose(this->id_Gauss_Point_Coordinates);
+	  H5Dclose(this->id_Element_Outputs);
+	  H5Dclose(this->id_Gauss_Outputs);
 	  // this->id_Substep_Outputs = H5Dopen(id_File, "Model/Elements/Substep_Outputs", H5P_DEFAULT);
 
 	  /**************** Node Info ******************************/
-	  this->id_Constrained_DOFs = H5Dopen(id_File, "Model/Nodes/Constrained_DOFs", H5P_DEFAULT);
-	  this->id_Coordinates = H5Dopen(id_File, "Model/Nodes/Coordinates", H5P_DEFAULT);
-	  this->id_Index_to_Coordinates = H5Dopen(id_File, "/Model/Nodes/Index_to_Coordinates", H5P_DEFAULT);
-	  this->id_Generalized_Displacements = H5Dopen(id_File, "Model/Nodes/Generalized_Displacements", H5P_DEFAULT);
-	  this->id_Index_to_Displacements = H5Dopen(id_File, "Model/Nodes/Index_to_Generalized_Displacements", H5P_DEFAULT);
-	  this->id_Support_Reactions = H5Dopen(id_File,"/Model/Nodes/Support_Reactions", H5P_DEFAULT);
-	  if(id_Support_Reactions>0) enable_support_reactions=true; else enable_support_reactions=false;
-
+	  H5Dclose(this->id_Constrained_DOFs);
+	  H5Dclose(this->id_Coordinates);
+	  H5Dclose(this->id_Index_to_Coordinates);
+	  H5Dclose(this->id_Generalized_Displacements);
+	  H5Dclose(this->id_Index_to_Displacements);
+	  H5Dclose(this->id_Support_Reactions);
 }
+
 
 
 //??===========================================================================
@@ -2059,9 +2085,19 @@ void pvESSI::Write_Local_Domain_Maps(int domain_no){
 	PRINT_FUNCTION("pvESSI::Write_Local_Domain_Maps");
 #endif
 
+	if(this->Domain_Write_Status[domain_no]==false){
+		return;
+	}
+
 	// Check if Local_Domains Maps were build else build it again //
 	if(!Domain_Data_Build_Status[domain_no]) 
 		Build_Local_Domain_Maps(domain_no);
+
+	// Close the file and reopen in write mode and again close te file 
+	// and reopen in read only mode
+	H5Fclose(this->id_File);
+	const char * filename = Domain_FileName.c_str();
+	this->id_File = H5Fopen(filename, H5F_ACC_RDWR, id_H5F_CLOSE_STRONG);
 
 	hid_t datasetId;
 
@@ -2165,6 +2201,10 @@ void pvESSI::Write_Local_Domain_Maps(int domain_no){
 
 	delete[] Whether_Stress_Strain_Build; Whether_Stress_Strain_Build = NULL;
 
+	H5Fclose(this->id_File);
+	this->id_File = H5Fopen(filename, H5F_ACC_RDONLY, id_H5F_CLOSE_STRONG);
+
+
 }
 
 //######################################################################
@@ -2180,17 +2220,21 @@ void pvESSI::Read_Local_Domain_Maps(int domain_no){
 	{
 		hid_t datasetId;
 
-		datasetId = H5Dopen(id_File, "Model/Nodes/Number_of_DOFs", H5P_DEFAULT);
-		DataSpace = H5Dget_space(datasetId);
+		// Finiding Pseudo number of nodes 
+	   	datasetId = H5Dopen(id_File, "Model/Nodes/Number_of_DOFs", H5P_DEFAULT);
+	    DataSpace = H5Dget_space(datasetId);
 		H5Sget_simple_extent_dims(DataSpace, dims1_out, NULL);
 		this->Domain_Pseudo_Number_of_Nodes[domain_no] = dims1_out[0];
-		H5Sclose(DataSpace); H5Dclose(datasetId);
+		H5Sclose(DataSpace);
+		H5Dclose(datasetId);
 
-		datasetId = H5Dopen(id_File, "/Model/Elements/Index_to_Connectivity", H5P_DEFAULT);
+		// Finiding Pseudo number of elements 
+		datasetId = H5Dopen(id_File, "Model/Elements/Class_Tags", H5P_DEFAULT);
 		DataSpace = H5Dget_space(datasetId);
 		H5Sget_simple_extent_dims(DataSpace, dims1_out, NULL);
 		this->Domain_Pseudo_Number_of_Elements[domain_no] = dims1_out[0];
-		H5Sclose(DataSpace); H5Dclose(datasetId);
+		H5Sclose(DataSpace);
+		H5Dclose(datasetId);
 
 		// Finiding Number of connectivity nodes
 		datasetId = H5Dopen(id_File, "Model/Elements/Connectivity", H5P_DEFAULT);
@@ -2201,38 +2245,67 @@ void pvESSI::Read_Local_Domain_Maps(int domain_no){
 		H5Dclose(datasetId);
 
 		// Finding Number of Constrained nodes
-		datasetId = H5Dopen(id_File, "Model/Nodes/Constrained_Nodes", H5P_DEFAULT);
+		datasetId = H5Dopen(id_File, "/Model/Nodes/Constrained_DOFs", H5P_DEFAULT);
 		DataSpace = H5Dget_space(datasetId);
 		H5Sget_simple_extent_dims(DataSpace, dims1_out, NULL);
 		this->Domain_Number_of_Constrained_Dofs[domain_no] = dims1_out[0];
 		H5Sclose(DataSpace);
 		H5Dclose(datasetId);
 
-		int Value; 
+		// Finiding total Number of gauss Points
 		datasetId   = H5Dopen(id_File, "/Number_of_Gauss_Points", H5P_DEFAULT);
-		H5Dread(datasetId, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,&Value );
+		H5Dread(datasetId, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,&Number_of_Gauss_Points );
+		this->Domain_Number_of_Gauss_Points[domain_no]=this->Number_of_Gauss_Points;
 		H5Dclose(datasetId);
-		this->Domain_Number_of_Gauss_Points[domain_no] = Value;
 
+		// Finiding total Number of elements
 		datasetId   = H5Dopen(id_File, "/Number_of_Elements", H5P_DEFAULT);
-		H5Dread(datasetId, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,&Value );
+		H5Dread(datasetId, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,&Number_of_Elements );
+		this->Domain_Number_of_Elements[domain_no]=this->Number_of_Elements;
 		H5Dclose(datasetId);
-		this->Domain_Number_of_Elements[domain_no] = Value;
 
-		datasetId   = H5Dopen(id_File, "/Number_of_Nodes", H5P_DEFAULT);
-		H5Dread(datasetId, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,&Value );
-		H5Dclose(datasetId);
-		this->Domain_Number_of_Nodes[domain_no] = Value;	
+		// Finiding total Number of nodes
+		datasetId  = H5Dopen(id_File, "/Number_of_Nodes", H5P_DEFAULT);
+		H5Dread(datasetId, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,&Number_of_Nodes );
+		this->Domain_Number_of_Nodes[domain_no]=this->Number_of_Nodes;
+		H5Dclose(datasetId);	
 
 		datasetId                        = H5Dopen(id_File, "pvESSI/Node_Map", H5P_DEFAULT);
-		this->Domain_Node_Map[domain_no] = new int [this->Domain_Number_of_Nodes[domain_no]];
-		H5Dread(datasetId, H5T_NATIVE_INT, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT, this->Domain_Node_Map[domain_no]); 
+		INT_Time_Data_From_1_D_Dataset(datasetId, &Domain_Node_Map[domain_no]);
 		H5Dclose(datasetId);
 
 		datasetId                       = H5Dopen(id_File, "pvESSI/Element_Map", H5P_DEFAULT);
-		this->Domain_Element_Map[domain_no] = new int [this->Domain_Number_of_Elements[domain_no]];
-		H5Dread(datasetId, H5T_NATIVE_INT, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT, this->Domain_Element_Map[domain_no]); 
+		INT_Time_Data_From_1_D_Dataset(datasetId, &Domain_Element_Map[domain_no]);
 		H5Dclose(datasetId);
+
+		datasetId                       = H5Dopen(id_File, "pvESSI/Number_of_DOfs", H5P_DEFAULT);
+		INT_Time_Data_From_1_D_Dataset(datasetId, &Domain_Number_of_Dofs[domain_no]);
+		H5Dclose(datasetId);
+
+		datasetId                       = H5Dopen(id_File, "pvESSI/Number_of_Elements_Shared", H5P_DEFAULT);
+		INT_Time_Data_From_1_D_Dataset(datasetId, &Domain_Number_of_Elements_Shared[domain_no]);
+		H5Dclose(datasetId);
+
+		datasetId                       = H5Dopen(id_File, "pvESSI/Number_of_Gauss_Elements_Shared", H5P_DEFAULT);
+		INT_Time_Data_From_1_D_Dataset(datasetId, &Domain_Number_of_Gauss_Elements_Shared[domain_no]);
+		H5Dclose(datasetId);
+
+		datasetId                       = H5Dopen(id_File, "pvESSI/Class_Tags", H5P_DEFAULT);
+		INT_Time_Data_From_1_D_Dataset(datasetId, &Domain_Class_Tags[domain_no]);
+		H5Dclose(datasetId);
+
+		datasetId                       = H5Dopen(id_File, "pvESSI/Connectivity", H5P_DEFAULT);
+		INT_Time_Data_From_1_D_Dataset(datasetId, &Domain_Connectivity[domain_no]);
+		H5Dclose(datasetId);
+
+		datasetId                       = H5Dopen(id_File, "pvESSI/Inverse_Node_Map", H5P_DEFAULT);
+		INT_Time_Data_From_1_D_Dataset(datasetId, &Domain_Inverse_Node_Map[domain_no]);
+		H5Dclose(datasetId);
+
+		datasetId                       = H5Dopen(id_File, "pvESSI/Inverse_Element_Map", H5P_DEFAULT);
+		INT_Time_Data_From_1_D_Dataset(datasetId, &Domain_Inverse_Element_Map[domain_no]);
+		H5Dclose(datasetId);
+
 	}
 
 	this->Domain_Basic_Info_Initialized[domain_no]=true;
@@ -2848,12 +2921,15 @@ void pvESSI::Interpolate_Stress_Field_At_Nodes(int Time_Index1, int Time_Index2,
 
 void pvESSI::Write_Stress_Field_At_Nodes(int TimeIndex1, float **DataArray){
 
-
 #ifdef DEBUG_MODE
 	PRINT_FUNCTION("pvESSI::Write_Stress_Field_At_Nodes");
 #endif
 
-	cout << "<<<<pvESSI>>>> I store the interpolated stresses at node for future \n" << endl;
+	H5Fclose(this->id_File);
+	this->id_File = H5Fopen(Domain_FileName.c_str(), H5F_ACC_RDWR, id_H5F_CLOSE_STRONG);
+
+	this->id_Stress_and_Strain = H5Dopen(id_File, "/pvESSI/Field_at_Nodes/Stress_And_Strain", H5P_DEFAULT);
+	this->id_Whether_Stress_Strain_Build = H5Dopen(id_File, "/pvESSI/Field_at_Nodes/Whether_Stress_Strain_Build", H5P_DEFAULT);
 
 	offset3[0]   = 0;  					     				 offset3[1]   = TimeIndex1;                             offset3[2] = 0;
     count3 [0]   = Domain_Number_of_Nodes[this->domain_no];  count3 [2]   = this->Number_of_Strain_Strain_Info;     count3 [1] = 1;
@@ -2879,6 +2955,14 @@ void pvESSI::Write_Stress_Field_At_Nodes(int TimeIndex1, float **DataArray){
 	                         count1,
 	                         NULL,
 	                         &Whether_Stress_Strain_Build); // Whether_Stress_Strain_Build_Index 
+
+
+    H5Dclose(this->id_Stress_and_Strain);
+    H5Dclose(this->id_Whether_Stress_Strain_Build);
+    H5Fclose(this->id_File);
+
+	this->id_File = H5Fopen(Domain_FileName.c_str(), H5F_ACC_RDONLY, id_H5F_CLOSE_STRONG);
+	this->openDatasetIds();
 }
 
 
@@ -2889,10 +2973,9 @@ void pvESSI::Extract_Stress_Field_At_Nodes(int Time_Index1, float **Node_Stress_
 #endif
 
 	/*************** Opening the Datasets ***************************/
-	this->id_Stress_and_Strain = H5Dopen(id_File, "pvESSI/Field_at_Nodes/Stress_And_Strain", H5P_DEFAULT);
-	this->id_Whether_Stress_Strain_Build = H5Dopen(id_File, "pvESSI/Field_at_Nodes/Whether_Stress_Strain_Build", H5P_DEFAULT);
 
 	float* DataArray;
+	hid_t datasetId;
 
 	if(Domain_Read_Status[this->domain_no])
 	{
@@ -2902,7 +2985,8 @@ void pvESSI::Extract_Stress_Field_At_Nodes(int Time_Index1, float **Node_Stress_
 		index_i = (hsize_t)Time_Index1;
 
 		int Whether_Stress_Strain_Build;
-	    HDF5_Read_INT_Array_Data(id_Whether_Stress_Strain_Build,
+		datasetId = H5Dopen(id_File, "pvESSI/Field_at_Nodes/Whether_Stress_Strain_Build", H5P_DEFAULT);
+	    HDF5_Read_INT_Array_Data(datasetId,
 		                          1,
 		                         dims1_out,
 		                         &index_i,
@@ -2910,25 +2994,25 @@ void pvESSI::Extract_Stress_Field_At_Nodes(int Time_Index1, float **Node_Stress_
 		                         count1,
 		                         NULL,
 		                         &Whether_Stress_Strain_Build); // Whether_Stress_Strain_Build
+	    H5Dclose(datasetId);
 
 	    if(Whether_Stress_Strain_Build!=-1){
-	    	FLOAT_Time_Data_From_3_D_Dataset(id_Stress_and_Strain,Time_Index1,&DataArray);
+	    	cout << "<<<<pvESSI>>>> Stress-Strains are allready interpolated and stored for this time_step " << this->Time[Time_Index1] <<" s" << endl;
+	    	datasetId = H5Dopen(id_File, "pvESSI/Field_at_Nodes/Stress_And_Strain", H5P_DEFAULT);
+	    	FLOAT_Time_Data_From_3_D_Dataset(datasetId,Time_Index1,&DataArray);
+	    	H5Dclose(datasetId);
 	    	(*Node_Stress_And_Strain_Field) = DataArray;
 	    	return;
 	    }
 	}
-	
+
 	Build_Stress_Field_At_Nodes(Time_Index1,&DataArray);
 	(*Node_Stress_And_Strain_Field) = DataArray;
 
 	if(Domain_Write_Status[domain_no]){
+		cout << "<<<<pvESSI>>>> Storing Stress Field at nodes for future \n" << endl;
 		Write_Stress_Field_At_Nodes(TimeIndex1, &DataArray);
 	}
-
-
-	/*************** Closing the Datasets ***************************/
-	H5Dclose(this->id_Stress_and_Strain);
-	H5Dclose(this->id_Whether_Stress_Strain_Build);
 
 }
 
