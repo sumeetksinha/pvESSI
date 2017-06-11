@@ -898,7 +898,7 @@ void pvESSI::Get_Node_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh){
 
 		// getting the master file containing physical group
 		std::string Source_File = GetSourceFile(this->FileName)+"feioutput";
-		hid_t id_Source_File = H5Fopen(Source_File.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
+		hid_t id_Source_File = H5Fopen(Source_File.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
 		id_Element_Partition = H5Dopen(id_Source_File, "/Model/Elements/Partition", H5P_DEFAULT);
 
 		DataSpace = H5Dget_space(id_Element_Partition);
@@ -1435,7 +1435,7 @@ void pvESSI::Initialize(){
 	this->single_file_visualization_mode = false;
 
     /***************** File_id **********************************/
-    this->id_File = H5Fopen(this->FileName, H5F_ACC_RDONLY, H5P_DEFAULT);;  
+    this->id_File = H5Fopen(this->FileName, H5F_ACC_RDWR, H5P_DEFAULT);;  
 
 	/***************** Time Steps *******************************/
     this->id_Number_of_Time_Steps = H5Dopen(id_File, "/Number_of_Time_Steps", H5P_DEFAULT);   
@@ -1445,10 +1445,11 @@ void pvESSI::Initialize(){
 	H5Eset_auto (NULL, NULL, NULL);  // To stop HDF5 from printing error message
 	this->id_Eigen_Mode_Analysis                 = H5Gopen(id_File, "Eigen_Mode_Analysis", H5P_DEFAULT);
 	if(this->id_Eigen_Mode_Analysis>0){
-		this->id_number_of_modes				   = H5Dopen(id_File,"Eigen_Mode_Analysis/number_of_modes",H5P_DEFAULT);
+		this->id_number_of_modes				   = H5Dopen(id_File,"Eigen_Mode_Analysis/Number_of_Eigen_Modes",H5P_DEFAULT);
 		H5Dread(id_number_of_modes, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,&Number_of_Time_Steps);
 		H5Dclose(id_number_of_modes);
 
+		Number_of_Time_Steps = Number_of_Time_Steps +1;
 		cout << "<<<<pvESSI>>>> Eigen_Mode_Analysis is On!!! \n" << endl;
 		eigen_mode_on = true;
 	}
@@ -1545,7 +1546,7 @@ void pvESSI::Domain_Initializer(int Domain_Number){
 		//********************* Building Avialable Physical Groups ***************************************************************/
 		// getting the master file containing physical group
 		std::string Source_File = GetSourceFile(this->FileName)+"feioutput";
-		hid_t id_Source_File = H5Fopen(Source_File.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
+		hid_t id_Source_File = H5Fopen(Source_File.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
 
 	    this->id_Physical_Element_Groups = H5Gopen(id_Source_File, "/Model/Physical_Groups/Physical_Element_Groups", H5P_DEFAULT);
 	    this->id_Physical_Node_Groups    = H5Gopen(id_Source_File, "/Model/Physical_Groups/Physical_Node_Groups", H5P_DEFAULT);
@@ -1629,10 +1630,10 @@ void pvESSI::Domain_Initializer(int Domain_Number){
 	  }
 
 	  if(eigen_mode_on){
-	  	this->id_frequencies					   = H5Dopen(id_File,"Eigen_Mode_Analysis/frequencies",H5P_DEFAULT); 	
-		this->id_modes 							   = H5Dopen(id_File,"Eigen_Mode_Analysis/modes",H5P_DEFAULT);
-		this->id_periods						   = H5Dopen(id_File,"Eigen_Mode_Analysis/periods",H5P_DEFAULT);
-		this->id_values  						   = H5Dopen(id_File,"Eigen_Mode_Analysis/values",H5P_DEFAULT);
+	  	this->id_frequencies					   = H5Dopen(id_File,"Eigen_Mode_Analysis/Eigen_Frequencies",H5P_DEFAULT); 	
+		this->id_modes 							   = H5Dopen(id_File,"Eigen_Mode_Analysis/Eigen_Modes",H5P_DEFAULT);
+		this->id_periods						   = H5Dopen(id_File,"Eigen_Mode_Analysis/Eigen_Periods",H5P_DEFAULT);
+		this->id_values  						   = H5Dopen(id_File,"Eigen_Mode_Analysis/Eigen_Values",H5P_DEFAULT);
 	  }
 
 	  /**************** Open Datasets in pvESSI Folder *************************************/
@@ -1888,7 +1889,6 @@ void pvESSI::Build_Maps(){
 	H5Dclose(id_Stress_and_Strain);
 	id_Stress_and_Strain = H5Dopen(id_File,"pvESSI/Field_at_Nodes/Stress_And_Strain", H5P_DEFAULT);
 
-
 	//************** Building Node Map datset *******************************//
 	int *Node_Map = new int[Number_of_Nodes];
 	int *pvESSI_Number_of_DOFs = new int[Number_of_Nodes];
@@ -1931,7 +1931,6 @@ void pvESSI::Build_Maps(){
 	// close the datasets 
 	// H5Dclose(id_Number_of_DOFs);
 	// H5Dclose(id_Constrained_Nodes);
-
 
 	//************** Building Element Map datset *******************************//
 	int *Element_Map = new int[Number_of_Elements];
@@ -2113,7 +2112,6 @@ void pvESSI::Build_Maps(){
 		delete [] pvESSI_Individual_Physical_group;pvESSI_Individual_Physical_group=NULL;
 		delete [] Individual_Physical_group;Individual_Physical_group=NULL;
     }
-
 	//**********/ Physical Node Groups **********************//
     Physical_Group_Container.clear();
     status = H5Ovisit (id_Physical_Node_Groups, H5_INDEX_NAME, H5_ITER_NATIVE, op_func, NULL);
@@ -2183,6 +2181,7 @@ void pvESSI::Build_Maps(){
 	delete[] pvESSI_Constrained_Nodes; pvESSI_Constrained_Nodes = NULL;
 	delete[] Number_of_DOFs; Number_of_DOFs = NULL;
 	delete[] Constrained_Nodes; Constrained_Nodes = NULL;
+
 
 }
 
