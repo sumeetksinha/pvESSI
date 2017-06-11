@@ -323,11 +323,11 @@ protected:
 
   /************* Eigen Mode Analysis ***********************/
   hid_t id_Eigen_Mode_Analysis;
-  hid_t id_frequencies;
-  hid_t id_modes;
-  hid_t id_number_of_modes;
-  hid_t id_periods;
-  hid_t id_values;
+  hid_t id_Eigen_Frequencies;
+  hid_t id_Eigen_Modes;
+  hid_t id_Number_of_Eigen_Modes;
+  hid_t id_Eigen_periods;
+  hid_t id_Eigen_values;
 
   /************** Physical Groups ***************************/
   hid_t id_Physical_Element_Groups;

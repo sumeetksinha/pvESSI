@@ -125,15 +125,13 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 	// outInfo->Print(std::cout);
 
 	// Returns the current time of visualization (in sec)
-  	this->Node_Mesh_Current_Time = Time_Map.find( Node_Mesh_Info->Get(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP()))->second;
-
-  	float physical_time =  Node_Mesh_Info->Get(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP());
+  	float Node_Mesh_Current_Time =  Node_Mesh_Info->Get(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP());
 
 	TimeIndex1=0;
 	TimeIndex2=0;
 
 	for (int i=0; i<Number_of_Time_Steps; i++){
-		if(physical_time <= Time[i])
+		if(Node_Mesh_Current_Time <= Time[i])
 		{
 			TimeIndex2 = i;
 			break;
@@ -148,8 +146,8 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 		InterpolationFun2 = 0.5;
 	}
 	else{
-		InterpolationFun1 = (Time[TimeIndex2]-physical_time)/(Time[TimeIndex2]-Time[TimeIndex1]);
-		InterpolationFun2 = (physical_time-Time[TimeIndex1])/(Time[TimeIndex2]-Time[TimeIndex1]);
+		InterpolationFun1 = (Time[TimeIndex2]-Node_Mesh_Current_Time)/(Time[TimeIndex2]-Time[TimeIndex1]);
+		InterpolationFun2 = (Node_Mesh_Current_Time-Time[TimeIndex1])/(Time[TimeIndex2]-Time[TimeIndex1]);
 	}
 
   	// piece_no := process_id in paralllel visualization
@@ -160,7 +158,7 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 #ifdef DEBUG_MODE
 	cout << "piece_no               " << piece_no <<endl;
 	cout << "num_of_pieces          " << num_of_pieces << endl;
-	cout << "Node_Mesh_Current_Time " << Node_Mesh_Current_Time <<endl;
+	cout << "Current_Time[s]        " << Node_Mesh_Current_Time <<endl;
 	cout << "TimeIndex1             " << TimeIndex1 << endl;
 	cout << "TimeIndex2             " << TimeIndex2 << endl;
 	cout << "InterpolationFun1      " << InterpolationFun1 << endl;
@@ -599,7 +597,7 @@ void pvESSI::Build_Eigen_Modes_Node_Attributes(vtkSmartPointer<vtkUnstructuredGr
 #endif
 
 	///////////////////////////////////////////  Output Dataset for a particular time /////////////////////////////////////////////////////////////////////////////	
-	float *Node_Generalized_Displacements;this->INTERPOLATE_FLOAT_Time_Data_From_2_D_Dataset(id_Generalized_Displacements,Time_Index1, Time_Index2, Interpolation_Func1,Interpolation_Func2,&Node_Generalized_Displacements);
+	float *Node_Generalized_Displacements;this->INTERPOLATE_FLOAT_Time_Data_From_2_D_Dataset(id_Eigen_Modes,Time_Index1, Time_Index2, Interpolation_Func1,Interpolation_Func2,&Node_Generalized_Displacements);
 	/////////////////////////////////////////////////////////////// DataSets Visulization at Nodes //////////////////////////////////////////////////////////////////////////////////////
  	
  	if(this->Whether_Node_Mesh_Attributes_Initialized==false)
@@ -1463,10 +1461,11 @@ void pvESSI::Initialize(){
 	H5Eset_auto (NULL, NULL, NULL);  // To stop HDF5 from printing error message
 	this->id_Eigen_Mode_Analysis = H5Gopen(id_File, "Eigen_Mode_Analysis", H5P_DEFAULT);
 	if(this->id_Eigen_Mode_Analysis>0){
-		datasetId  = H5Dopen(id_File,"Eigen_Mode_Analysis/number_of_modes",H5P_DEFAULT);
+		datasetId  = H5Dopen(id_File,"Eigen_Mode_Analysis/Number_of_Eigen_Modes",H5P_DEFAULT);
 		H5Dread(datasetId, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,&Number_of_Time_Steps);
 		H5Dclose(datasetId);
 
+		Number_of_Time_Steps = Number_of_Time_Steps +1;
 		cout << "<<<<pvESSI>>>> Eigen_Mode_Analysis is On!!! \n" << endl;
 		eigen_mode_on = true;
 	}
@@ -1508,10 +1507,20 @@ void pvESSI::Initialize(){
 
 
 	Time = new double[this->Number_of_Time_Steps];
-	// Initializing Time vector
-	for(int p=0; p<Number_of_Time_Steps;p++)
-		this->Time[p]=Temp_Time[p];
-		// this->Time[p] = p;
+
+	if(eigen_mode_on)
+	{
+		// Initializing Time vector
+		for(int p=0; p<Number_of_Time_Steps;p++)
+			this->Time[p]=p;
+	}
+	else{
+
+		// Initializing Time vector
+		for(int p=0; p<Number_of_Time_Steps;p++)
+			this->Time[p]=Temp_Time[p];
+			// this->Time[p] = p;
+	}
 
 	Build_Time_Map(); 
 
@@ -1767,12 +1776,9 @@ void pvESSI::Domain_Initializer(int  Domain_Number){
 void pvESSI::openDatasetIds(){
 
 	if(eigen_mode_on){
-		this->id_frequencies					   = H5Dopen(id_File,"Eigen_Mode_Analysis/frequencies",H5P_DEFAULT); 	
-		this->id_modes 							   = H5Dopen(id_File,"Eigen_Mode_Analysis/modes",H5P_DEFAULT);
-		this->id_periods						   = H5Dopen(id_File,"Eigen_Mode_Analysis/periods",H5P_DEFAULT);
-		this->id_values  						   = H5Dopen(id_File,"Eigen_Mode_Analysis/values",H5P_DEFAULT);
+		this->id_Eigen_Frequencies					   = H5Dopen(id_File,"Eigen_Mode_Analysis/Eigen_Frequencies",H5P_DEFAULT); 	
+		this->id_Eigen_Modes 						   = H5Dopen(id_File,"Eigen_Mode_Analysis/Eigen_Modes",H5P_DEFAULT);
 	}
-
 	/************************** Open Dataset for reading and *******************************************************************/
 	this->id_Constrained_Nodes                 = H5Dopen(id_File, "Model/Nodes/Constrained_Nodes", H5P_DEFAULT);
 	this->id_Material_Tags                     = H5Dopen(id_File, "Model/Elements/Material_Tags", H5P_DEFAULT);
@@ -1799,10 +1805,8 @@ void pvESSI::openDatasetIds(){
 void pvESSI::closeDatasetIds(){
 
 	if(eigen_mode_on){
-		H5Dclose(this->id_frequencies);
-		H5Dclose(this->id_modes);
-		H5Dclose(this->id_periods);
-		H5Dclose(this->id_values );
+		H5Dclose(this->id_Eigen_Frequencies);
+		H5Dclose(this->id_Eigen_Modes);
 	}
 
 	/************************** Open Dataset for reading and *******************************************************************/
