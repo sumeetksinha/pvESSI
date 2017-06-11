@@ -160,7 +160,7 @@ protected:
   int Time_Step_Range[2];             // Range of Time Steps
   int Number_of_Time_Steps;           // Stores the Number of TimeSteps in the analysis
   int Number_of_Sub_Steps;            // Stores the Number of Substeps in the analysis
-  int Node_Mesh_Current_Time;         // Stores the current actual time in seconds for Node Mesh
+  double Node_Mesh_Current_Time;      // Stores the current actual time in seconds for Node Mesh
   int Gauss_Mesh_Current_Time;        // Stores the current actual time in seconds for Gauss Mesh
   int TimeIndex1, TimeIndex2;         // Stores TimeIndex1 and TimeIndex2 having current actual time
   float InterpolationFun1,InterpolationFun2; // Stores the interpolation function 1 and 2 respectively

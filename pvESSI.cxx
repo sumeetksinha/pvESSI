@@ -125,7 +125,7 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 	// outInfo->Print(std::cout);
 
 	// Returns the current time of visualization (in sec)
-  	float Node_Mesh_Current_Time =  Node_Mesh_Info->Get(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP());
+  	Node_Mesh_Current_Time =  Node_Mesh_Info->Get(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP());
 
 	TimeIndex1=0;
 	TimeIndex2=0;
@@ -205,15 +205,15 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 	for (int i = Start_Domian_Number; i<End_Domain_Number; i++){
 
 		this->domain_no = i;
-		Domain_Initializer(domain_no);
+		Domain_Initializer(domain_no); // also updates the domian_no
 
-		if (!Whether_Node_Mesh_build[i] and (!Show_Gauss_Mesh_Flag or eigen_mode_on or Enable_Displacement_Probing_Flag)){
+		if (!Whether_Node_Mesh_build[domain_no] and (!Show_Gauss_Mesh_Flag or eigen_mode_on or Enable_Displacement_Probing_Flag)){
 			this->Get_Node_Mesh(Visualization_UGrid_Node_Mesh);
-			Whether_Node_Mesh_build[i] = true;
+			Whether_Node_Mesh_build[domain_no] = true;
 		}
-		else if (!Whether_Gauss_Mesh_build[i] and Show_Gauss_Mesh_Flag){
+		else if (!Whether_Gauss_Mesh_build[domain_no] and Show_Gauss_Mesh_Flag){
 			this->Get_Gauss_Mesh(Visualization_UGrid_Gauss_Mesh);
-			Whether_Gauss_Mesh_build[i] = true;
+			Whether_Gauss_Mesh_build[domain_no] = true;
 				// this->Build_Delaunay3D_Gauss_Mesh(Gauss_Mesh);
 		}
 
@@ -423,24 +423,24 @@ void pvESSI::Build_Node_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Node_Mes
  	{
 	 	Generalized_Displacements = vtkSmartPointer<vtkFloatArray>::New(); 
 		this->Set_Meta_Array (Meta_Array_Map["Generalized_Displacements"]);
-		Generalized_Displacements->Allocate(Total_Number_of_Nodes*3);
+		Generalized_Displacements->SetNumberOfTuples(Total_Number_of_Nodes);
 			
 	 	if(Enable_uPU_Visualization_Flag)
 	 	{
 		 	Fluid_Displacements = vtkSmartPointer<vtkFloatArray>::New(); 
 			this->Set_Meta_Array(Meta_Array_Map["Fluid_Displacements"]);
-			Fluid_Displacements->Allocate(Total_Number_of_Nodes*3);
+			Fluid_Displacements->SetNumberOfTuples(Total_Number_of_Nodes);
 
 		 	Pore_Pressure = vtkSmartPointer<vtkFloatArray>::New(); 
 			this->Set_Meta_Array (Meta_Array_Map["Pore_Pressure"]);
-			Pore_Pressure->Allocate(Total_Number_of_Nodes);
+			Pore_Pressure->SetNumberOfTuples(Total_Number_of_Nodes);
 		}
 
 		if(enable_support_reactions){
 
 			Support_Reactions = vtkSmartPointer<vtkFloatArray>::New(); 
 			this->Set_Meta_Array (Meta_Array_Map["Support_Reactions"]);
-			Support_Reactions->Allocate(Total_Number_of_Nodes*3);
+			Support_Reactions->SetNumberOfTuples(Total_Number_of_Nodes);
 
 			Support_Reactions->FillComponent(0,0);
 			Support_Reactions->FillComponent(1,0);
@@ -604,8 +604,7 @@ void pvESSI::Build_Eigen_Modes_Node_Attributes(vtkSmartPointer<vtkUnstructuredGr
  	{
 	 	Generalized_Displacements = vtkSmartPointer<vtkFloatArray>::New(); 
 		this->Set_Meta_Array (Meta_Array_Map["Generalized_Displacements"]);
-		Generalized_Displacements->Allocate(Total_Number_of_Nodes*3);
-		// Generalized_Displacements->SetNumberOfValues(Total_Number_of_Nodes*3);
+		Generalized_Displacements->SetNumberOfTuples(Total_Number_of_Nodes);
 
 		this->Whether_Node_Mesh_Attributes_Initialized==false;
 	}
@@ -655,31 +654,31 @@ void pvESSI::Build_Gauss_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Gauss_M
  	{
 		Elastic_Strain = vtkSmartPointer<vtkFloatArray> ::New();
 		this->Set_Meta_Array (Meta_Array_Map["Elastic_Strain"]);
-		Elastic_Strain->Allocate(Total_Number_of_Gauss_Points*6);
+		Elastic_Strain->SetNumberOfTuples(Total_Number_of_Gauss_Points);
 
 		Plastic_Strain = vtkSmartPointer<vtkFloatArray> ::New();
 		this->Set_Meta_Array (Meta_Array_Map["Plastic_Strain"]);
-		Plastic_Strain->Allocate(Total_Number_of_Gauss_Points*6);
+		Plastic_Strain->SetNumberOfTuples(Total_Number_of_Gauss_Points);
 
 		Stress = vtkSmartPointer<vtkFloatArray> ::New();
 		this->Set_Meta_Array (Meta_Array_Map["Stress"]);
-		Stress->Allocate(Total_Number_of_Gauss_Points*6);
+		Stress->SetNumberOfTuples(Total_Number_of_Gauss_Points);
 
 		q = vtkSmartPointer<vtkFloatArray> ::New();
 		this->Set_Meta_Array (Meta_Array_Map["q"]);
-		q->Allocate(Total_Number_of_Gauss_Points);
+		q->SetNumberOfTuples(Total_Number_of_Gauss_Points);
 
 		p = vtkSmartPointer<vtkFloatArray> ::New();
 		this->Set_Meta_Array (Meta_Array_Map["p"]);
-		p->Allocate(Total_Number_of_Gauss_Points);
+		p->SetNumberOfTuples(Total_Number_of_Gauss_Points);
 
 		Plastic_Strain_q = vtkSmartPointer<vtkFloatArray> ::New();
 		this->Set_Meta_Array (Meta_Array_Map["Plastic_Strain_q"]);
-		Plastic_Strain_q->Allocate(Total_Number_of_Gauss_Points);
+		Plastic_Strain_q->SetNumberOfTuples(Total_Number_of_Gauss_Points);
 
 		Plastic_Strain_p = vtkSmartPointer<vtkFloatArray> ::New();
 		this->Set_Meta_Array (Meta_Array_Map["Plastic_Strain_p"]);
-		Plastic_Strain_p->Allocate(Total_Number_of_Gauss_Points);
+		Plastic_Strain_p->SetNumberOfTuples(Total_Number_of_Gauss_Points);
 
 
 		gauss_no_for_attributes = 0;
@@ -742,6 +741,13 @@ void pvESSI::Build_Gauss_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Gauss_M
 				Gauss_Outputs[Gauss_Output_Index+17],
 				Gauss_Outputs[Gauss_Output_Index+14]
 			};
+
+			// cout << "gauss_no_for_attributes " << gauss_no_for_attributes << "---> " << endl;
+			// for (int i = 0; i < 6; ++i)
+			// {
+			// 	cout << "  " << Stress_Tuple[i] ;
+			// }
+			// cout << endl;
 
 			Var_Plastic_p   = -1.0*(Gauss_Outputs[Gauss_Output_Index+6]+Gauss_Outputs[Gauss_Output_Index+7]+Gauss_Outputs[Gauss_Output_Index+8]);
 			Var_Plastic_q   = sqrt(2.0/9.0* (pow(Gauss_Outputs[Gauss_Output_Index+6]-Gauss_Outputs[Gauss_Output_Index+1],7) +
@@ -847,9 +853,9 @@ void pvESSI::Build_ProbeFilter_Gauss_Mesh(vtkSmartPointer<vtkUnstructuredGrid> P
 //===========================================================================
 void pvESSI::Get_Node_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh){
 
-#ifdef DEBUG_MODE
+// #ifdef DEBUG_MODE
 	PRINT_FUNCTION("pvESSI::Get_Node_Mesh");
-#endif
+// #endif
 
 	//////////////////////////////////////////////////// Reading Mesh Data ///////////////////////////////////////////////////////////////////////////////////////////
 	float *Node_Coordinates; FLOAT_Time_Data_From_1_D_Dataset(id_Coordinates,&Node_Coordinates);
@@ -882,23 +888,23 @@ void pvESSI::Get_Node_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh){
 
 		Node_Tag = vtkSmartPointer<vtkIntArray> ::New();
 		this->Set_Meta_Array (Meta_Array_Map["Node_Tag"]);
-		Node_Tag->Allocate(Total_Number_of_Nodes);
+		Node_Tag->SetNumberOfTuples(Total_Number_of_Nodes);
 
 		Material_Tag = vtkSmartPointer<vtkIntArray> ::New();
 		this->Set_Meta_Array (Meta_Array_Map["Material_Tag"]);
-		Material_Tag->Allocate(Total_Number_of_Elements);
+		Material_Tag->SetNumberOfTuples(Total_Number_of_Elements);
 
 		Element_Tag = vtkSmartPointer<vtkIntArray> ::New();
 		this->Set_Meta_Array (Meta_Array_Map["Element_Tag"]);
-		Element_Tag->Allocate(Total_Number_of_Elements);
+		Element_Tag->SetNumberOfTuples(Total_Number_of_Elements);
 
 		Class_Tag = vtkSmartPointer<vtkIntArray> ::New();
 		this->Set_Meta_Array (Meta_Array_Map["Class_Tag"]);
-		Class_Tag->Allocate(Total_Number_of_Elements);
+		Class_Tag->SetNumberOfTuples(Total_Number_of_Elements);
 
 		Boundary_Conditions = vtkSmartPointer<vtkIntArray> ::New();
 		this->Set_Meta_Array (Meta_Array_Map["Boundary_Conditions"]);
-		Boundary_Conditions->Allocate(Total_Number_of_Nodes*3);
+		Boundary_Conditions->SetNumberOfTuples(Total_Number_of_Nodes);
 		Boundary_Conditions->FillComponent (0, 0);
 		Boundary_Conditions->FillComponent (1, 0);
 		Boundary_Conditions->FillComponent (2, 0);
@@ -956,14 +962,13 @@ void pvESSI::Get_Node_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh){
 	Node_Mesh->GetPointData()->AddArray(Node_Tag);
 
 	/////////////////////////////////////////////// Building Boundary Conditions  ///////////////////////////////////////////////////////////////////////////
-	// for(int i = 0; i<Domain_Number_of_Constrained_Dofs[domain_no]; i++){
+	for(int i = 0; i<Domain_Number_of_Constrained_Dofs[domain_no]; i++){
 
-	// 	if(Constrained_DOFs[i]<3){
-	// 		Boundary_Conditions->SetComponent(ESSI_To_VTK_Node_Map[Constrained_Nodes[i]],Constrained_DOFs[i],1);
-	// 	}
+		if(Constrained_DOFs[i]<3){
+			Boundary_Conditions->SetComponent(ESSI_To_VTK_Node_Map[Constrained_Nodes[i]],Constrained_DOFs[i],1);
+		}
 
-	// }
-
+	}
 	Node_Mesh->GetPointData()->AddArray(Boundary_Conditions);
 
 	///////////////////////////////////////////////////////////////////// Building up the elements //////////////////////////////////////////////////////
@@ -1176,9 +1181,9 @@ void  pvESSI::Build_Physical_Element_Group_Mesh(vtkSmartPointer<vtkUnstructuredG
 //===========================================================================
 void pvESSI::Get_Gauss_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Gauss_Mesh){
 
-#ifdef DEBUG_MODE
+// #ifdef DEBUG_MODE
 	PRINT_FUNCTION("pvESSI::Get_Gauss_Mesh");
-#endif
+// #endif
 
 	/////////////////////////////////////////////////////////////////////// Reading Element Data ///////////////////////////////////////////////////////////////////////////////////////////
 	float *Element_Gauss_Point_Coordinates; FLOAT_Time_Data_From_1_D_Dataset(id_Gauss_Point_Coordinates,&Element_Gauss_Point_Coordinates);
@@ -1560,7 +1565,7 @@ void pvESSI::Initialize(){
 	Domain_Number_of_Gauss_Elements_Shared   = new int*[Number_of_Processes_Used];
 	Domain_Number_of_Contact_Elements_Shared = new int*[Number_of_Processes_Used];	
 
-  	//// Visualization Parameters 
+  	//// Visualization Parameters
 	Whether_Node_Mesh_build                  = new bool[Number_of_Processes_Used];
 	Whether_Gauss_Mesh_build                 = new bool[Number_of_Processes_Used];
 
