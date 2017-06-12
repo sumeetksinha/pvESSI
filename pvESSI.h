@@ -146,6 +146,7 @@ protected:
   int RequestData(vtkInformation *, vtkInformationVector **, vtkInformationVector *);
   int RequestInformation( vtkInformation *, vtkInformationVector **, vtkInformationVector* );
   int ProcessRequest(vtkInformation *, vtkInformationVector ** , vtkInformationVector * );
+  // int RequestUpdateExtent(vtkInformation *, vtkInformationVector ** , vtkInformationVector * );;
   static void ProgressFunction(vtkObject* caller, long unsigned int eventId, void* clientData, void* callData);
   
   //////////////////////// Important Variables /////////////////////////////////////////
@@ -339,6 +340,9 @@ protected:
   hid_t Group; 
   hid_t MemSpace;
   hid_t id_H5F_CLOSE_STRONG;
+  hid_t id_H5F_READ_ONLY;
+  hid_t id_H5F_READ_WRITE;
+
 
   /************** Visualization Control Variables **********/
   bool Enable_Gauss_To_Node_Interpolation_Flag;
@@ -446,6 +450,7 @@ private:
   void set_VTK_To_ESSI_Elements_Connectivity();
   void Initialize();
   void Build_Time_Map();
+  void Update_Time_Steps();
   void Domain_Initializer(int Piece_No); 
   void Initialize_Piece_data(int start, int end);
   void Close_File();

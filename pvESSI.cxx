@@ -103,8 +103,11 @@ pvESSI::pvESSI(){
 	id_H5F_CLOSE_STRONG = H5Pcreate(H5P_FILE_ACCESS);
 	H5Pset_fclose_degree(id_H5F_CLOSE_STRONG, H5F_CLOSE_STRONG);
 
-} 
+  	id_H5F_READ_ONLY = (H5F_ACC_RDONLY | H5F_ACC_SWMR_READ);
+  	id_H5F_READ_WRITE = H5F_ACC_RDWR;
 
+
+} 
 
 //============================================================================
 // RequestData responds to the request made by vtk Pipeleine
@@ -123,6 +126,18 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 
 	vtkInformation *Node_Mesh_Info = outputVector->GetInformationObject(0);
 	// outInfo->Print(std::cout);
+
+{
+
+	vtkInformation *Node_Mesh_Info = outputVector->GetInformationObject(0);
+
+	this->Update_Time_Steps();
+	double Time_range[2]={Time[0],Time[Number_of_Time_Steps-1]};
+
+	Node_Mesh_Info->Set(vtkStreamingDemandDrivenPipeline::TIME_STEPS(),Time, this->Number_of_Time_Steps);
+	Node_Mesh_Info->Set(vtkStreamingDemandDrivenPipeline::TIME_RANGE(),Time_range,2);
+
+}
 
 	// Returns the current time of visualization (in sec)
   	Node_Mesh_Current_Time =  Node_Mesh_Info->Get(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP());
@@ -284,6 +299,8 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 	Output_Node_Mesh->ShallowCopy(Visualization_Current_UGrid_Node_Mesh); // return the unstrutured mesh
 
 
+
+
 	return 1;
 }
 
@@ -299,7 +316,10 @@ int pvESSI::RequestInformation( vtkInformation *request, vtkInformationVector **
 	PRINT_FUNCTION("pvESSI::RequestInformation");
 #endif
 
-	if(this->Enable_Initialization_Flag) this->Initialize(); this->Enable_Initialization_Flag=false;
+	this->Update_Time_Steps();
+
+
+	if(this->Enable_Initialization_Flag){this->Initialize();} this->Enable_Initialization_Flag=false;
 
 	vtkInformation* Node_Mesh = outVec->GetInformationObject(0);
 
@@ -691,7 +711,7 @@ void pvESSI::Build_Gauss_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Gauss_M
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-
+	// cout << "id_Gauss_Outputs  " << id_Gauss_Outputs << endl;
 	//////////////////////////////////// Usefull information about tensor components order ///////////////////////////////////////////////////////////////////////////
 	// > Symmetric Tensor the order is 0 1 2 1 3 4 2 4 5 so like in a matrix
 	// > 0 1 2
@@ -853,9 +873,9 @@ void pvESSI::Build_ProbeFilter_Gauss_Mesh(vtkSmartPointer<vtkUnstructuredGrid> P
 //===========================================================================
 void pvESSI::Get_Node_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh){
 
-// #ifdef DEBUG_MODE
+#ifdef DEBUG_MODE
 	PRINT_FUNCTION("pvESSI::Get_Node_Mesh");
-// #endif
+#endif
 
 	//////////////////////////////////////////////////// Reading Mesh Data ///////////////////////////////////////////////////////////////////////////////////////////
 	float *Node_Coordinates; FLOAT_Time_Data_From_1_D_Dataset(id_Coordinates,&Node_Coordinates);
@@ -924,7 +944,7 @@ void pvESSI::Get_Node_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh){
 	if(Number_of_Processes_Used>1){	
 
 		std::string Source_File = GetSourceFile(this->FileName)+"feioutput";
-		hid_t id_Source_File = H5Fopen(Source_File.c_str(), H5F_ACC_RDONLY, id_H5F_CLOSE_STRONG);
+		hid_t id_Source_File = H5Fopen(Source_File.c_str(), id_H5F_READ_ONLY, id_H5F_CLOSE_STRONG);
 
 		id_Element_Partition = H5Dopen(id_Source_File, "/Model/Elements/Partition", H5P_DEFAULT);
 		INT_Time_Data_From_1_D_Dataset(id_Element_Partition,&Element_Partition);
@@ -1181,9 +1201,9 @@ void  pvESSI::Build_Physical_Element_Group_Mesh(vtkSmartPointer<vtkUnstructuredG
 //===========================================================================
 void pvESSI::Get_Gauss_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Gauss_Mesh){
 
-// #ifdef DEBUG_MODE
+#ifdef DEBUG_MODE
 	PRINT_FUNCTION("pvESSI::Get_Gauss_Mesh");
-// #endif
+#endif
 
 	/////////////////////////////////////////////////////////////////////// Reading Element Data ///////////////////////////////////////////////////////////////////////////////////////////
 	float *Element_Gauss_Point_Coordinates; FLOAT_Time_Data_From_1_D_Dataset(id_Gauss_Point_Coordinates,&Element_Gauss_Point_Coordinates);
@@ -1454,32 +1474,8 @@ void pvESSI::Initialize(){
 	/*************** Initialize Data Arrays **********************/
 	points = vtkSmartPointer<vtkPoints>::New();
 
-
     /***************** File_id **********************************/
-    this->id_File = H5Fopen(this->FileName, H5F_ACC_RDONLY, id_H5F_CLOSE_STRONG);;  
-
-	/***************** Time Steps *******************************/
-    datasetId = H5Dopen(id_File, "/Number_of_Time_Steps", H5P_DEFAULT);   
-	H5Dread(datasetId, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,&Number_of_Time_Steps);
-	H5Dclose(datasetId);
-
-	H5Eset_auto (NULL, NULL, NULL);  // To stop HDF5 from printing error message
-	this->id_Eigen_Mode_Analysis = H5Gopen(id_File, "Eigen_Mode_Analysis", H5P_DEFAULT);
-	if(this->id_Eigen_Mode_Analysis>0){
-		datasetId  = H5Dopen(id_File,"Eigen_Mode_Analysis/Number_of_Eigen_Modes",H5P_DEFAULT);
-		H5Dread(datasetId, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,&Number_of_Time_Steps);
-		H5Dclose(datasetId);
-
-		Number_of_Time_Steps = Number_of_Time_Steps +1;
-		cout << "<<<<pvESSI>>>> Eigen_Mode_Analysis is On!!! \n" << endl;
-		eigen_mode_on = true;
-	}
-	H5Gclose(this->id_Eigen_Mode_Analysis);
-
-	float* Temp_Time;
-	datasetId = H5Dopen(id_File, "/time", H5P_DEFAULT); 
-	FLOAT_Time_Data_From_1_D_Dataset(datasetId,&Temp_Time);
-	H5Dclose(datasetId);
+    this->id_File = H5Fopen(this->FileName, id_H5F_READ_ONLY, id_H5F_CLOSE_STRONG);;  
 
     /***************** Model Info *******************************/
 	datasetId      = H5Dopen(id_File, "/Number_of_Iterations", H5P_DEFAULT);
@@ -1509,25 +1505,6 @@ void pvESSI::Initialize(){
 
 	// close the file
 	H5Fclose(this->id_File);		
-
-
-	Time = new double[this->Number_of_Time_Steps];
-
-	if(eigen_mode_on)
-	{
-		// Initializing Time vector
-		for(int p=0; p<Number_of_Time_Steps;p++)
-			this->Time[p]=p;
-	}
-	else{
-
-		// Initializing Time vector
-		for(int p=0; p<Number_of_Time_Steps;p++)
-			this->Time[p]=Temp_Time[p];
-			// this->Time[p] = p;
-	}
-
-	Build_Time_Map(); 
 
 	if(Number_of_Processes_Used==1 || Process_Number>0){
 		this->single_file_visualization_mode = true;
@@ -1581,8 +1558,6 @@ void pvESSI::Initialize(){
 		Domain_Basic_Info_Initialized[i]=false;
 	}
 
-	delete [] Temp_Time; Temp_Time = NULL;
-
 }
 
 //===========================================================================
@@ -1624,8 +1599,7 @@ void pvESSI::Initialize_Piece_data(int start, int end)
 			filename = this->FileName;
 		}
 
-
-		id_Domain_File = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, id_H5F_CLOSE_STRONG);
+		id_Domain_File = H5Fopen(filename.c_str(), id_H5F_READ_ONLY, id_H5F_CLOSE_STRONG);
 
 		datasetId   = H5Dopen(id_Domain_File, "/Number_of_Elements", H5P_DEFAULT);
 		H5Dread(datasetId, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,&NumElements );
@@ -1703,7 +1677,7 @@ void pvESSI::Domain_Initializer(int  Domain_Number){
 		//********************* Building Avialable Physical Groups ***************************************************************/
 		// getting the master file containing physical group
 		std::string Source_File = GetSourceFile(this->FileName)+"feioutput";
-		hid_t id_Source_File = H5Fopen(Source_File.c_str(), H5F_ACC_RDONLY, id_H5F_CLOSE_STRONG);
+		hid_t id_Source_File = H5Fopen(Source_File.c_str(), id_H5F_READ_ONLY, id_H5F_CLOSE_STRONG);
 
 	    this->id_Physical_Element_Groups = H5Gopen(id_Source_File, "/Model/Physical_Groups/Physical_Element_Groups", H5P_DEFAULT);
 	    this->id_Physical_Node_Groups    = H5Gopen(id_Source_File, "/Model/Physical_Groups/Physical_Node_Groups", H5P_DEFAULT);
@@ -1732,14 +1706,14 @@ void pvESSI::Domain_Initializer(int  Domain_Number){
 	cout << "<<<<pvESSI>>>>  " << filename << " Time_Step " << Node_Mesh_Current_Time << endl << endl;;
 	
 	H5Fclose(this->id_File); // close the previous file
-	this->id_File = H5Fopen(filename, H5F_ACC_RDONLY, id_H5F_CLOSE_STRONG);
+	this->id_File = H5Fopen(filename, id_H5F_READ_ONLY, id_H5F_CLOSE_STRONG);
 
-	Domain_Write_Status[domain_no] = true;
+	// Domain_Write_Status[domain_no] = true;
 
 	if(this->Domain_Data_Build_Status[domain_no]==false or Enable_Building_of_Maps_Flag==true)
 	{
 
-		H5Eset_auto (NULL, NULL, NULL);  // To stop HDF% from printing error message
+		// H5Eset_auto (NULL, NULL, NULL);  // To stop HDF% from printing error message
 		this->id_pvESSI = H5Gopen(id_File, "/pvESSI", H5P_DEFAULT);  
 
 		if(Enable_Building_of_Maps_Flag==true)
@@ -1792,7 +1766,7 @@ void pvESSI::openDatasetIds(){
 	  
 	// /**************** Element Info ******************************/
 	this->id_Gauss_Point_Coordinates = H5Dopen(id_File, "Model/Elements/Gauss_Point_Coordinates", H5P_DEFAULT);
-	this->id_Element_Outputs = H5Dopen(id_File, "Model/Elements/Element_Outputs", H5P_DEFAULT);
+	// this->id_Element_Outputs = H5Dopen(id_File, "Model/Elements/Element_Outputs", H5P_DEFAULT);
 	this->id_Gauss_Outputs = H5Dopen(id_File, "Model/Elements/Gauss_Outputs", H5P_DEFAULT);
 	// this->id_Substep_Outputs = H5Dopen(id_File, "Model/Elements/Substep_Outputs", H5P_DEFAULT);
 
@@ -1822,7 +1796,7 @@ void pvESSI::closeDatasetIds(){
 	  
 	  // /**************** Element Info ******************************/
 	  H5Dclose(this->id_Gauss_Point_Coordinates);
-	  H5Dclose(this->id_Element_Outputs);
+	  // H5Dclose(this->id_Element_Outputs);
 	  H5Dclose(this->id_Gauss_Outputs);
 	  // this->id_Substep_Outputs = H5Dopen(id_File, "Model/Elements/Substep_Outputs", H5P_DEFAULT);
 
@@ -2106,7 +2080,7 @@ void pvESSI::Write_Local_Domain_Maps(int domain_no){
 	// and reopen in read only mode
 	H5Fclose(this->id_File);
 	const char * filename = Domain_FileName.c_str();
-	this->id_File = H5Fopen(filename, H5F_ACC_RDWR, id_H5F_CLOSE_STRONG);
+	this->id_File = H5Fopen(filename, id_H5F_READ_WRITE, id_H5F_CLOSE_STRONG);
 
 	hid_t datasetId;
 
@@ -2211,8 +2185,7 @@ void pvESSI::Write_Local_Domain_Maps(int domain_no){
 	delete[] Whether_Stress_Strain_Build; Whether_Stress_Strain_Build = NULL;
 
 	H5Fclose(this->id_File);
-	this->id_File = H5Fopen(filename, H5F_ACC_RDONLY, id_H5F_CLOSE_STRONG);
-
+	this->id_File = H5Fopen(filename, id_H5F_READ_ONLY, id_H5F_CLOSE_STRONG);
 
 }
 
@@ -2352,6 +2325,60 @@ void pvESSI::Build_Time_Map(){
 	return;
 }
 
+/*****************************************************************************
+* Updates the time vector information of the visualizaion
+*****************************************************************************/
+void pvESSI::Update_Time_Steps(){
+
+	hid_t datasetId; 
+
+	H5Fclose(this->id_File); // close if any instance of file is open
+    /***************** File_id **********************************/
+    this->id_File = H5Fopen(this->FileName, id_H5F_READ_ONLY, id_H5F_CLOSE_STRONG);;  
+
+	/***************** Time Steps *******************************/
+    datasetId = H5Dopen(id_File, "/Number_of_Time_Steps", H5P_DEFAULT);   
+	H5Dread(datasetId, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,&Number_of_Time_Steps);
+	H5Dclose(datasetId);
+
+	// H5Eset_auto (NULL, NULL, NULL);  // To stop HDF5 from printing error message
+	this->id_Eigen_Mode_Analysis = H5Gopen(id_File, "Eigen_Mode_Analysis", H5P_DEFAULT);
+	if(this->id_Eigen_Mode_Analysis>0){
+		datasetId  = H5Dopen(id_File,"Eigen_Mode_Analysis/Number_of_Eigen_Modes",H5P_DEFAULT);
+		H5Dread(datasetId, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,&Number_of_Time_Steps);
+		H5Dclose(datasetId);
+
+		Number_of_Time_Steps = Number_of_Time_Steps +1;
+		cout << "<<<<pvESSI>>>> Eigen_Mode_Analysis is On!!! \n" << endl;
+		eigen_mode_on = true;
+	}
+	H5Gclose(this->id_Eigen_Mode_Analysis);
+
+	float* Temp_Time;
+	datasetId = H5Dopen(id_File, "/time", H5P_DEFAULT); 
+	FLOAT_Time_Data_From_1_D_Dataset(datasetId,&Temp_Time);
+	H5Dclose(datasetId);
+
+	// close the file
+	H5Fclose(this->id_File);
+
+	Time = new double[this->Number_of_Time_Steps];
+
+	if(eigen_mode_on)
+	{
+		// Initializing Time vector
+		for(int p=0; p<Number_of_Time_Steps;p++)
+			this->Time[p]=p;
+	}
+	else{
+		// Initializing Time vector
+		for(int p=0; p<Number_of_Time_Steps;p++)
+			this->Time[p]=Temp_Time[p];
+			// this->Time[p] = p;
+	}
+
+	delete [] Temp_Time; Temp_Time = NULL;
+}
 
 /*****************************************************************************
 * Builds Meta Array map, so that it is easie to add attributes to vtkObject 
@@ -2786,6 +2813,7 @@ void pvESSI::INTERPOLATE_FLOAT_Time_Data_From_3_D_Dataset(hid_t datasetId, int t
 	cout << "DatasetId            " << datasetId << endl;
 #endif
 
+	H5Drefresh(datasetId);
 	DataSpace = H5Dget_space(datasetId);
 	H5Sget_simple_extent_dims(DataSpace, dims3_out, NULL);
 	float *DataArray1 = new float[dims3_out[0]*dims3_out[2]];
@@ -2798,6 +2826,7 @@ void pvESSI::INTERPOLATE_FLOAT_Time_Data_From_3_D_Dataset(hid_t datasetId, int t
     H5Sclose(MemSpace);
     H5Sclose(DataSpace);
 
+    H5Drefresh(datasetId);
 	DataSpace = H5Dget_space(datasetId);
 	H5Sget_simple_extent_dims(DataSpace, dims3_out, NULL);
 	float *DataArray2 = new float[dims3_out[0]*dims3_out[2]];
@@ -2828,6 +2857,7 @@ void pvESSI::FLOAT_Time_Data_From_2_D_Dataset(hid_t datasetId, int timeIndex, fl
 	cout << "DatasetId            " << datasetId << endl;
 #endif
 
+	H5Drefresh(datasetId);
 	DataSpace = H5Dget_space(datasetId);
 	H5Sget_simple_extent_dims(DataSpace, dims2_out, NULL);	
 	*DataArray = new float[dims2_out[0]];	
@@ -2837,6 +2867,7 @@ void pvESSI::FLOAT_Time_Data_From_2_D_Dataset(hid_t datasetId, int timeIndex, fl
 	H5Dread(datasetId, H5T_NATIVE_FLOAT, MemSpace, DataSpace, H5P_DEFAULT, *DataArray); 
 	H5Sclose(MemSpace);
 	H5Sclose(DataSpace); 
+
 }
 
 
@@ -2847,6 +2878,7 @@ void pvESSI::FLOAT_Time_Data_From_3_D_Dataset(hid_t datasetId, int timeIndex, fl
 	cout << "DatasetId            " << datasetId << endl;
 #endif
 
+	H5Drefresh(datasetId);
 	DataSpace = H5Dget_space(datasetId);
 	H5Sget_simple_extent_dims(DataSpace, dims3_out, NULL);
 	*DataArray = new float[dims3_out[0]*dims3_out[2]];
@@ -2869,6 +2901,7 @@ void pvESSI::INT_Time_Data_From_1_D_Dataset(hid_t datasetId, int** DataArray){
 	cout << "DatasetId            " << datasetId << endl;
 #endif
 
+	H5Drefresh(datasetId);
 	DataSpace = H5Dget_space(datasetId);
 	H5Sget_simple_extent_dims(DataSpace, dims1_out, NULL);
 	*DataArray= new int[dims1_out[0]];
@@ -2887,6 +2920,7 @@ void pvESSI::FLOAT_Time_Data_From_1_D_Dataset(hid_t datasetId, float** DataArray
 	cout << "DatasetId            " << datasetId << endl;
 #endif
 
+	H5Drefresh(datasetId);
 	DataSpace = H5Dget_space(datasetId);
 	H5Sget_simple_extent_dims(DataSpace, dims1_out, NULL);
 	*DataArray= new float[dims1_out[0]];
@@ -2935,7 +2969,7 @@ void pvESSI::Write_Stress_Field_At_Nodes(int TimeIndex1, float **DataArray){
 #endif
 
 	H5Fclose(this->id_File);
-	this->id_File = H5Fopen(Domain_FileName.c_str(), H5F_ACC_RDWR, id_H5F_CLOSE_STRONG);
+	this->id_File = H5Fopen(Domain_FileName.c_str(), id_H5F_READ_WRITE, id_H5F_CLOSE_STRONG);
 
 	this->id_Stress_and_Strain = H5Dopen(id_File, "/pvESSI/Field_at_Nodes/Stress_And_Strain", H5P_DEFAULT);
 	this->id_Whether_Stress_Strain_Build = H5Dopen(id_File, "/pvESSI/Field_at_Nodes/Whether_Stress_Strain_Build", H5P_DEFAULT);
@@ -2970,8 +3004,9 @@ void pvESSI::Write_Stress_Field_At_Nodes(int TimeIndex1, float **DataArray){
     H5Dclose(this->id_Whether_Stress_Strain_Build);
     H5Fclose(this->id_File);
 
-	this->id_File = H5Fopen(Domain_FileName.c_str(), H5F_ACC_RDONLY, id_H5F_CLOSE_STRONG);
+	this->id_File = H5Fopen(Domain_FileName.c_str(), id_H5F_READ_ONLY, id_H5F_CLOSE_STRONG);
 	this->openDatasetIds();
+
 }
 
 
