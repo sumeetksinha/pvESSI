@@ -1120,6 +1120,7 @@ void pvESSI::Get_Node_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh){
 //===========================================================================
 // Builds a mesh correponding to selected physical group of nodes and elements
 // Uses VTKSelection filter to generate the mesh 
+// Physical Grou of Nodes nand Elements 
 //===========================================================================
 void  pvESSI::Build_Physical_Element_Group_Mesh(vtkSmartPointer<vtkUnstructuredGrid> NodeMesh){
 
