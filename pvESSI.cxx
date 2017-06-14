@@ -213,7 +213,7 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 	else{ // if multiple files needs to be read and appeneded to get the given piece data
 		Start_Domian_Number = piece_no*ceil(((double)Number_of_Processes_Used)/((double)num_of_pieces));
 		End_Domain_Number   = Start_Domian_Number +ceil(((double)Number_of_Processes_Used)/((double)num_of_pieces));
-		End_Domain_Number = End_Domain_Number > (Number_of_Processes_Used-1) ? Number_of_Processes_Used-1:End_Domain_Number; 
+		End_Domain_Number   = End_Domain_Number > (Number_of_Processes_Used-1) ? Number_of_Processes_Used-1:End_Domain_Number; 
 	}
 
 	// initializes all the data that is required to form that piece 
@@ -222,11 +222,12 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
  	Initialize_Piece_data(Start_Domian_Number,End_Domain_Number);
 
 
-#ifdef DEBUG_MODE
+// #ifdef DEBUG_MODE
  	cout << "Start_Domain_Number    " << Start_Domian_Number << endl;
  	cout << "End_Domain_Number      " << End_Domain_Number << endl;
-#endif
+// #endif
 
+ 	cout << "<<<<pvESSI>>>> Piece No " << piece_no << endl;
 	for (int i = Start_Domian_Number; i<End_Domain_Number; i++){
 
 		this->domain_no = i;
@@ -905,7 +906,7 @@ void pvESSI::Build_ProbeFilter_Gauss_Mesh(vtkSmartPointer<vtkUnstructuredGrid> P
 	Probe_Input->ShallowCopy( ProbeFilter->GetOutput());
 
 	  // vtkSmartPointer<vtkGaussianSplatter> splatter = 
-	  //   vtkSmartPointer<vtkGaussianSplatter>::New();
+	  // vtkSmartPointer<vtkGaussianSplatter>::New();
 	  // splatter->SetInputData(Probe_Input);
 	  // splatter->SetSampleDimensions(50,50,50);
 	  // splatter->SetRadius(0.5);
