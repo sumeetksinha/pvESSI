@@ -27,6 +27,7 @@
 #include <map>
 #include <vector>
 #include "vtkExecutive.h"
+#include "vtkPVView.h"
 #include <sstream>
 #include "hdf5.h"
 #include "vtkProbeFilter.h"
@@ -79,6 +80,8 @@ pvESSI::pvESSI(){
 	this->Enable_Initialization_Flag=true;              	 // set the initialization flag to be true    
 	this->Whether_Physical_Group_Info_build=false;           // whether physical group of elements or nodes build
 
+	this->Show_Live_Simulation_Flag=false;                   // whether live simulation option is enabled
+
 	this->SetNumberOfInputPorts(0);							 // set numer of Input ports to be 0
 	this->SetNumberOfOutputPorts(1);						 // set numer of Input ports to be 1
 
@@ -127,6 +130,9 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 	vtkInformation *Node_Mesh_Info = outputVector->GetInformationObject(0);
 	// outInfo->Print(std::cout);
 
+	// Returns the current time of visualization (in sec)
+  	Node_Mesh_Current_Time =  Node_Mesh_Info->Get(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP());
+
 {
 
 	vtkInformation *Node_Mesh_Info = outputVector->GetInformationObject(0);
@@ -137,10 +143,14 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 	Node_Mesh_Info->Set(vtkStreamingDemandDrivenPipeline::TIME_STEPS(),Time, this->Number_of_Time_Steps);
 	Node_Mesh_Info->Set(vtkStreamingDemandDrivenPipeline::TIME_RANGE(),Time_range,2);
 
+	// this->Superclass::UpdateInformation();
+	// Node_Mesh_Info->SetViewTime(Node_Mesh_Current_Time);
+
+	// this->Superclass::Modified();
+
+
 }
 
-	// Returns the current time of visualization (in sec)
-  	Node_Mesh_Current_Time =  Node_Mesh_Info->Get(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP());
 
 	TimeIndex1=0;
 	TimeIndex2=0;
@@ -298,7 +308,12 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 
 	Output_Node_Mesh->ShallowCopy(Visualization_Current_UGrid_Node_Mesh); // return the unstrutured mesh
 
-
+	// static bool updateonce = true;
+	// if(updateonce){ 
+	// 	cout << " this->Superclass::Modified()" << endl;
+	// this->Modified();
+	// updateonce = false;
+	// }
 
 
 	return 1;
@@ -443,24 +458,36 @@ void pvESSI::Build_Node_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Node_Mes
  	{
 	 	Generalized_Displacements = vtkSmartPointer<vtkFloatArray>::New(); 
 		this->Set_Meta_Array (Meta_Array_Map["Generalized_Displacements"]);
-		Generalized_Displacements->SetNumberOfTuples(Total_Number_of_Nodes);
-			
+		Generalized_Displacements->Allocate(Total_Number_of_Nodes*3);
+		Generalized_Displacements->SetNumberOfValues(Total_Number_of_Nodes*3);
+		Generalized_Displacements->FillComponent(0,0);
+		Generalized_Displacements->FillComponent(1,0);
+		Generalized_Displacements->FillComponent(2,0);
+
 	 	if(Enable_uPU_Visualization_Flag)
 	 	{
 		 	Fluid_Displacements = vtkSmartPointer<vtkFloatArray>::New(); 
 			this->Set_Meta_Array(Meta_Array_Map["Fluid_Displacements"]);
-			Fluid_Displacements->SetNumberOfTuples(Total_Number_of_Nodes);
+			Fluid_Displacements->Allocate(Total_Number_of_Nodes*3);
+			Fluid_Displacements->SetNumberOfValues(Total_Number_of_Nodes*3);
+			Fluid_Displacements->FillComponent(0,0);
+			Fluid_Displacements->FillComponent(1,0);
+			Fluid_Displacements->FillComponent(2,0);
 
 		 	Pore_Pressure = vtkSmartPointer<vtkFloatArray>::New(); 
 			this->Set_Meta_Array (Meta_Array_Map["Pore_Pressure"]);
-			Pore_Pressure->SetNumberOfTuples(Total_Number_of_Nodes);
+			Pore_Pressure->Allocate(Total_Number_of_Nodes);
+			Pore_Pressure->SetNumberOfValues(Total_Number_of_Nodes);
+			Pore_Pressure->FillComponent(0,0);
 		}
 
 		if(enable_support_reactions){
 
 			Support_Reactions = vtkSmartPointer<vtkFloatArray>::New(); 
 			this->Set_Meta_Array (Meta_Array_Map["Support_Reactions"]);
-			Support_Reactions->SetNumberOfTuples(Total_Number_of_Nodes);
+			Support_Reactions->Allocate(Total_Number_of_Nodes*3);
+			Support_Reactions->SetNumberOfValues(Total_Number_of_Nodes*3);
+
 
 			Support_Reactions->FillComponent(0,0);
 			Support_Reactions->FillComponent(1,0);
@@ -624,7 +651,12 @@ void pvESSI::Build_Eigen_Modes_Node_Attributes(vtkSmartPointer<vtkUnstructuredGr
  	{
 	 	Generalized_Displacements = vtkSmartPointer<vtkFloatArray>::New(); 
 		this->Set_Meta_Array (Meta_Array_Map["Generalized_Displacements"]);
-		Generalized_Displacements->SetNumberOfTuples(Total_Number_of_Nodes);
+		Generalized_Displacements->Allocate(Total_Number_of_Nodes);
+		Generalized_Displacements->SetNumberOfValues(Total_Number_of_Nodes);
+		Generalized_Displacements->FillComponent(0,0);
+		Generalized_Displacements->FillComponent(1,0);
+		Generalized_Displacements->FillComponent(2,0);
+
 
 		this->Whether_Node_Mesh_Attributes_Initialized==false;
 	}
@@ -674,31 +706,52 @@ void pvESSI::Build_Gauss_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Gauss_M
  	{
 		Elastic_Strain = vtkSmartPointer<vtkFloatArray> ::New();
 		this->Set_Meta_Array (Meta_Array_Map["Elastic_Strain"]);
-		Elastic_Strain->SetNumberOfTuples(Total_Number_of_Gauss_Points);
+		Elastic_Strain->Allocate(Total_Number_of_Gauss_Points*6);
+		Elastic_Strain->SetNumberOfValues(Total_Number_of_Gauss_Points*6);
+		Elastic_Strain->FillComponent(0,0);Elastic_Strain->FillComponent(3,0);
+		Elastic_Strain->FillComponent(1,0);Elastic_Strain->FillComponent(4,0);
+		Elastic_Strain->FillComponent(2,0);Elastic_Strain->FillComponent(5,0);
+
 
 		Plastic_Strain = vtkSmartPointer<vtkFloatArray> ::New();
 		this->Set_Meta_Array (Meta_Array_Map["Plastic_Strain"]);
-		Plastic_Strain->SetNumberOfTuples(Total_Number_of_Gauss_Points);
+		Plastic_Strain->Allocate(Total_Number_of_Gauss_Points*6);
+		Plastic_Strain->SetNumberOfValues(Total_Number_of_Gauss_Points*6);
+		Plastic_Strain->FillComponent(0,0);Plastic_Strain->FillComponent(3,0);
+		Plastic_Strain->FillComponent(1,0);Plastic_Strain->FillComponent(4,0);
+		Plastic_Strain->FillComponent(2,0);Plastic_Strain->FillComponent(5,0);
 
 		Stress = vtkSmartPointer<vtkFloatArray> ::New();
 		this->Set_Meta_Array (Meta_Array_Map["Stress"]);
-		Stress->SetNumberOfTuples(Total_Number_of_Gauss_Points);
+		Stress->Allocate(Total_Number_of_Gauss_Points*6);
+		Stress->SetNumberOfValues(Total_Number_of_Gauss_Points*6);
+		Stress->FillComponent(0,0);Stress->FillComponent(3,0);
+		Stress->FillComponent(1,0);Stress->FillComponent(4,0);
+		Stress->FillComponent(2,0);Stress->FillComponent(5,0);
 
 		q = vtkSmartPointer<vtkFloatArray> ::New();
 		this->Set_Meta_Array (Meta_Array_Map["q"]);
-		q->SetNumberOfTuples(Total_Number_of_Gauss_Points);
+		q->Allocate(Total_Number_of_Gauss_Points);
+		q->SetNumberOfValues(Total_Number_of_Gauss_Points);
+		q->FillComponent(0,0);
 
 		p = vtkSmartPointer<vtkFloatArray> ::New();
 		this->Set_Meta_Array (Meta_Array_Map["p"]);
-		p->SetNumberOfTuples(Total_Number_of_Gauss_Points);
+		p->Allocate(Total_Number_of_Gauss_Points);
+		p->SetNumberOfValues(Total_Number_of_Gauss_Points);
+		p->FillComponent(0,0);
 
 		Plastic_Strain_q = vtkSmartPointer<vtkFloatArray> ::New();
 		this->Set_Meta_Array (Meta_Array_Map["Plastic_Strain_q"]);
-		Plastic_Strain_q->SetNumberOfTuples(Total_Number_of_Gauss_Points);
+		Plastic_Strain_q->Allocate(Total_Number_of_Gauss_Points);
+		Plastic_Strain_q->SetNumberOfValues(Total_Number_of_Gauss_Points);
+		Plastic_Strain_q->FillComponent(0,0);
 
 		Plastic_Strain_p = vtkSmartPointer<vtkFloatArray> ::New();
 		this->Set_Meta_Array (Meta_Array_Map["Plastic_Strain_p"]);
-		Plastic_Strain_p->SetNumberOfTuples(Total_Number_of_Gauss_Points);
+		Plastic_Strain_p->Allocate(Total_Number_of_Gauss_Points);
+		Plastic_Strain_p->SetNumberOfValues(Total_Number_of_Gauss_Points);
+		Plastic_Strain_p->FillComponent(0,0);
 
 
 		gauss_no_for_attributes = 0;
@@ -909,18 +962,22 @@ void pvESSI::Get_Node_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh){
 		Node_Tag = vtkSmartPointer<vtkIntArray> ::New();
 		this->Set_Meta_Array (Meta_Array_Map["Node_Tag"]);
 		Node_Tag->SetNumberOfTuples(Total_Number_of_Nodes);
+		Node_Tag->FillComponent(0,0);
 
 		Material_Tag = vtkSmartPointer<vtkIntArray> ::New();
 		this->Set_Meta_Array (Meta_Array_Map["Material_Tag"]);
 		Material_Tag->SetNumberOfTuples(Total_Number_of_Elements);
+		Material_Tag->FillComponent(0,0);
 
 		Element_Tag = vtkSmartPointer<vtkIntArray> ::New();
 		this->Set_Meta_Array (Meta_Array_Map["Element_Tag"]);
 		Element_Tag->SetNumberOfTuples(Total_Number_of_Elements);
+		Element_Tag->FillComponent(0,0);
 
 		Class_Tag = vtkSmartPointer<vtkIntArray> ::New();
 		this->Set_Meta_Array (Meta_Array_Map["Class_Tag"]);
 		Class_Tag->SetNumberOfTuples(Total_Number_of_Elements);
+		Class_Tag->FillComponent(0,0);
 
 		Boundary_Conditions = vtkSmartPointer<vtkIntArray> ::New();
 		this->Set_Meta_Array (Meta_Array_Map["Boundary_Conditions"]);
@@ -933,7 +990,9 @@ void pvESSI::Get_Node_Mesh(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh){
 
 			Partition_Info = vtkSmartPointer<vtkIntArray> ::New();
 			this->Set_Meta_Array (Meta_Array_Map["Partition_Info"]);
-			Partition_Info->Allocate(Total_Number_of_Elements);		
+			Partition_Info->Allocate(Total_Number_of_Elements);	
+			Partition_Info->SetNumberOfTuples(Total_Number_of_Elements);
+			Partition_Info->FillComponent(0,0);	
 		}
 
 		node_no=0;
@@ -1708,12 +1767,12 @@ void pvESSI::Domain_Initializer(int  Domain_Number){
 	H5Fclose(this->id_File); // close the previous file
 	this->id_File = H5Fopen(filename, id_H5F_READ_ONLY, id_H5F_CLOSE_STRONG);
 
-	// Domain_Write_Status[domain_no] = true;
+	Domain_Write_Status[domain_no] = true;
 
 	if(this->Domain_Data_Build_Status[domain_no]==false or Enable_Building_of_Maps_Flag==true)
 	{
 
-		// H5Eset_auto (NULL, NULL, NULL);  // To stop HDF% from printing error message
+		H5Eset_auto (NULL, NULL, NULL);  // To stop HDF% from printing error message
 		this->id_pvESSI = H5Gopen(id_File, "/pvESSI", H5P_DEFAULT);  
 
 		if(Enable_Building_of_Maps_Flag==true)
@@ -2332,6 +2391,7 @@ void pvESSI::Update_Time_Steps(){
 
 	hid_t datasetId; 
 
+	H5Eset_auto (NULL, NULL, NULL);  // To stop HDF5 from printing error message
 	H5Fclose(this->id_File); // close if any instance of file is open
     /***************** File_id **********************************/
     this->id_File = H5Fopen(this->FileName, id_H5F_READ_ONLY, id_H5F_CLOSE_STRONG);;  
@@ -2341,7 +2401,7 @@ void pvESSI::Update_Time_Steps(){
 	H5Dread(datasetId, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,&Number_of_Time_Steps);
 	H5Dclose(datasetId);
 
-	// H5Eset_auto (NULL, NULL, NULL);  // To stop HDF5 from printing error message
+	H5Eset_auto (NULL, NULL, NULL);  // To stop HDF5 from printing error message
 	this->id_Eigen_Mode_Analysis = H5Gopen(id_File, "Eigen_Mode_Analysis", H5P_DEFAULT);
 	if(this->id_Eigen_Mode_Analysis>0){
 		datasetId  = H5Dopen(id_File,"Eigen_Mode_Analysis/Number_of_Eigen_Modes",H5P_DEFAULT);
@@ -2971,38 +3031,45 @@ void pvESSI::Write_Stress_Field_At_Nodes(int TimeIndex1, float **DataArray){
 	H5Fclose(this->id_File);
 	this->id_File = H5Fopen(Domain_FileName.c_str(), id_H5F_READ_WRITE, id_H5F_CLOSE_STRONG);
 
-	this->id_Stress_and_Strain = H5Dopen(id_File, "/pvESSI/Field_at_Nodes/Stress_And_Strain", H5P_DEFAULT);
-	this->id_Whether_Stress_Strain_Build = H5Dopen(id_File, "/pvESSI/Field_at_Nodes/Whether_Stress_Strain_Build", H5P_DEFAULT);
+	if(this->id_File>0)
+	{
 
-	offset3[0]   = 0;  					     				 offset3[1]   = TimeIndex1;                             offset3[2] = 0;
-    count3 [0]   = Domain_Number_of_Nodes[this->domain_no];  count3 [2]   = this->Number_of_Strain_Strain_Info;     count3 [1] = 1;
-    dims2_out[0] = Domain_Number_of_Nodes[this->domain_no];	 dims2_out[1] = this->Number_of_Strain_Strain_Info;
+		this->id_Stress_and_Strain = H5Dopen(id_File, "/pvESSI/Field_at_Nodes/Stress_And_Strain", H5P_DEFAULT);
+		this->id_Whether_Stress_Strain_Build = H5Dopen(id_File, "/pvESSI/Field_at_Nodes/Whether_Stress_Strain_Build", H5P_DEFAULT);
 
-    DataSpace = H5Dget_space(id_Stress_and_Strain);
-    MemSpace = H5Screate_simple(2,dims2_out,NULL);
-    H5Sselect_hyperslab(DataSpace,H5S_SELECT_SET,offset3,NULL,count3,NULL);
-    H5Dwrite(id_Stress_and_Strain, H5T_NATIVE_FLOAT, MemSpace, DataSpace, H5P_DEFAULT, (*DataArray)); 
-    H5Sclose(MemSpace); status=H5Sclose(DataSpace);
+		offset3[0]   = 0;  					     				 offset3[1]   = TimeIndex1;                             offset3[2] = 0;
+	    count3 [0]   = Domain_Number_of_Nodes[this->domain_no];  count3 [2]   = this->Number_of_Strain_Strain_Info;     count3 [1] = 1;
+	    dims2_out[0] = Domain_Number_of_Nodes[this->domain_no];	 dims2_out[1] = this->Number_of_Strain_Strain_Info;
 
-
-	int Whether_Stress_Strain_Build = TimeIndex1;
-	count1[0]   =1;
-	dims1_out[0]=1;
-	index_i = (hsize_t)TimeIndex1;
-
-    HDF5_Write_INT_Array_Data(id_Whether_Stress_Strain_Build,
-	                          1,
-	                         dims1_out,
-	                         &index_i,
-	                         NULL,
-	                         count1,
-	                         NULL,
-	                         &Whether_Stress_Strain_Build); // Whether_Stress_Strain_Build_Index 
+	    DataSpace = H5Dget_space(id_Stress_and_Strain);
+	    MemSpace = H5Screate_simple(2,dims2_out,NULL);
+	    H5Sselect_hyperslab(DataSpace,H5S_SELECT_SET,offset3,NULL,count3,NULL);
+	    H5Dwrite(id_Stress_and_Strain, H5T_NATIVE_FLOAT, MemSpace, DataSpace, H5P_DEFAULT, (*DataArray)); 
+	    H5Sclose(MemSpace); status=H5Sclose(DataSpace);
 
 
-    H5Dclose(this->id_Stress_and_Strain);
-    H5Dclose(this->id_Whether_Stress_Strain_Build);
-    H5Fclose(this->id_File);
+		int Whether_Stress_Strain_Build = TimeIndex1;
+		count1[0]   =1;
+		dims1_out[0]=1;
+		index_i = (hsize_t)TimeIndex1;
+
+	    HDF5_Write_INT_Array_Data(id_Whether_Stress_Strain_Build,
+		                          1,
+		                         dims1_out,
+		                         &index_i,
+		                         NULL,
+		                         count1,
+		                         NULL,
+		                         &Whether_Stress_Strain_Build); // Whether_Stress_Strain_Build_Index 
+
+
+	    H5Dclose(this->id_Stress_and_Strain);
+	    H5Dclose(this->id_Whether_Stress_Strain_Build);
+
+	    cout << "<<<<pvESSI>>>> Storing Stress Field at nodes for future \n" << endl;
+	}
+	H5Fclose(this->id_File);
+
 
 	this->id_File = H5Fopen(Domain_FileName.c_str(), id_H5F_READ_ONLY, id_H5F_CLOSE_STRONG);
 	this->openDatasetIds();
@@ -3054,7 +3121,6 @@ void pvESSI::Extract_Stress_Field_At_Nodes(int Time_Index1, float **Node_Stress_
 	(*Node_Stress_And_Strain_Field) = DataArray;
 
 	if(Domain_Write_Status[domain_no]){
-		cout << "<<<<pvESSI>>>> Storing Stress Field at nodes for future \n" << endl;
 		Write_Stress_Field_At_Nodes(TimeIndex1, &DataArray);
 	}
 
@@ -3223,34 +3289,54 @@ void pvESSI::Build_Node_Stress(vtkSmartPointer<vtkUnstructuredGrid> Node_Mesh, i
 
  	if(Whether_Node_Mesh_Stress_Attributes_Initialized==false)
  	{
- 		Elastic_Strain = vtkSmartPointer<vtkFloatArray> ::New();
+		Elastic_Strain = vtkSmartPointer<vtkFloatArray> ::New();
 		this->Set_Meta_Array (Meta_Array_Map["Elastic_Strain"]);
 		Elastic_Strain->Allocate(Total_Number_of_Nodes*6);
+		Elastic_Strain->SetNumberOfValues(Total_Number_of_Nodes*6);
+		Elastic_Strain->FillComponent(0,0);Elastic_Strain->FillComponent(3,0);
+		Elastic_Strain->FillComponent(1,0);Elastic_Strain->FillComponent(4,0);
+		Elastic_Strain->FillComponent(2,0);Elastic_Strain->FillComponent(5,0);
+
 
 		Plastic_Strain = vtkSmartPointer<vtkFloatArray> ::New();
 		this->Set_Meta_Array (Meta_Array_Map["Plastic_Strain"]);
 		Plastic_Strain->Allocate(Total_Number_of_Nodes*6);
+		Plastic_Strain->SetNumberOfValues(Total_Number_of_Nodes*6);
+		Plastic_Strain->FillComponent(0,0);Plastic_Strain->FillComponent(3,0);
+		Plastic_Strain->FillComponent(1,0);Plastic_Strain->FillComponent(4,0);
+		Plastic_Strain->FillComponent(2,0);Plastic_Strain->FillComponent(5,0);
 
 		Stress = vtkSmartPointer<vtkFloatArray> ::New();
 		this->Set_Meta_Array (Meta_Array_Map["Stress"]);
 		Stress->Allocate(Total_Number_of_Nodes*6);
+		Stress->SetNumberOfValues(Total_Number_of_Nodes*6);
+		Stress->FillComponent(0,0);Stress->FillComponent(3,0);
+		Stress->FillComponent(1,0);Stress->FillComponent(4,0);
+		Stress->FillComponent(2,0);Stress->FillComponent(5,0);
 
 		q = vtkSmartPointer<vtkFloatArray> ::New();
 		this->Set_Meta_Array (Meta_Array_Map["q"]);
 		q->Allocate(Total_Number_of_Nodes);
+		q->SetNumberOfValues(Total_Number_of_Nodes);
+		q->FillComponent(0,0);
 
 		p = vtkSmartPointer<vtkFloatArray> ::New();
 		this->Set_Meta_Array (Meta_Array_Map["p"]);
 		p->Allocate(Total_Number_of_Nodes);
+		p->SetNumberOfValues(Total_Number_of_Nodes);
+		p->FillComponent(0,0);
 
 		Plastic_Strain_q = vtkSmartPointer<vtkFloatArray> ::New();
 		this->Set_Meta_Array (Meta_Array_Map["Plastic_Strain_q"]);
 		Plastic_Strain_q->Allocate(Total_Number_of_Nodes);
-
+		Plastic_Strain_q->SetNumberOfValues(Total_Number_of_Nodes);
+		Plastic_Strain_q->FillComponent(0,0);
 
 		Plastic_Strain_p = vtkSmartPointer<vtkFloatArray> ::New();
 		this->Set_Meta_Array (Meta_Array_Map["Plastic_Strain_p"]);
 		Plastic_Strain_p->Allocate(Total_Number_of_Nodes);
+		Plastic_Strain_p->SetNumberOfValues(Total_Number_of_Nodes);
+		Plastic_Strain_p->FillComponent(0,0);
 
 		this->Whether_Node_Mesh_Stress_Attributes_Initialized=true;
  	}

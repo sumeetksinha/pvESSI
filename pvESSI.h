@@ -68,6 +68,7 @@ public:
   void Enable_Physical_Element_Group_Selection(int x ){ if(!(x and Enable_Physical_Element_Group_Selection_Flag))this->Modified();  Enable_Physical_Element_Group_Selection_Flag=false; if(x) Enable_Physical_Element_Group_Selection_Flag=true;}
   void Disable_Contact_Relative_Displacement(int x ){ if(!(x and Disable_Contact_Relative_Displacement_Flag))this->Modified();  Disable_Contact_Relative_Displacement_Flag=false; if(x) Disable_Contact_Relative_Displacement_Flag=true;}
   void Show_Hide_Contact(int x ){ if(!(x and Show_Hide_Contact_Flag))this->Modified();  Show_Hide_Contact_Flag=true; if(x) Show_Hide_Contact_Flag=false;}
+  void Show_Live_Simulation(int x){ Show_Live_Simulation_Flag=false; if(x==1){Show_Live_Simulation_Flag=true; this->Modified(); } std::cout << "Show_Live_Simulation_Flag " << Show_Live_Simulation_Flag << std::endl; /*Show_Live_Simulation_Flag=true;*/}
 
 
   void PrintX(int x){}
@@ -357,6 +358,7 @@ protected:
   bool Enable_Physical_Node_Group_Selection_Flag;
   bool Disable_Contact_Relative_Displacement_Flag;
   bool Show_Hide_Contact_Flag;
+  bool Show_Live_Simulation_Flag;
 
   /************* Data Array Selection *********************/  
   vtkSmartPointer<vtkDataArraySelection> Physical_Node_Group;

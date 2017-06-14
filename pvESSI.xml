@@ -39,10 +39,18 @@
         </Documentation>        
       </IntVectorProperty>
 
-      <IntVectorProperty command="Show_Hide_Contact" default_values="0" number_of_elements="1" name="Show/Hide Contact">
+      <IntVectorProperty command="Show_Hide_Contact" default_values="0" number_of_elements="1" name="Show/Hide Contact" repeat_command ='1'>
         <BooleanDomain name="bool"/>
         <Documentation>
           This property specifies whether to show or hide Contacts. By Default, it hides contact.
+        </Documentation>        
+      </IntVectorProperty>
+
+      <IntVectorProperty command="Show_Live_Simulation" animateable="1" default_values="1" number_of_elements="1" name="Show Live Simulation">
+        <!-- <BooleanDomain name="bool"/> -->
+        <IntRangeDomain name="range" />
+        <Documentation>
+          This property specifies whether to go for live simulation.
         </Documentation>        
       </IntVectorProperty>
 
@@ -86,6 +94,7 @@
         <Property name="Enable Relative Displacement" />
         <Property name="Enable UPU Visualization" />
         <Property name="Show/Hide Contact" />
+        <property name="Show Live Simulation" />
       </PropertyGroup>
 
       <PropertyGroup label="pvESSI Gauss Mesh options" >
