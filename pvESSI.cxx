@@ -80,8 +80,6 @@ pvESSI::pvESSI(){
 	this->Enable_Initialization_Flag=true;              	 // set the initialization flag to be true    
 	this->Whether_Physical_Group_Info_build=false;           // whether physical group of elements or nodes build
 
-	this->Show_Live_Simulation_Flag=false;                   // whether live simulation option is enabled
-
 	this->SetNumberOfInputPorts(0);							 // set numer of Input ports to be 0
 	this->SetNumberOfOutputPorts(1);						 // set numer of Input ports to be 1
 
@@ -222,10 +220,10 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
  	Initialize_Piece_data(Start_Domian_Number,End_Domain_Number);
 
 
-// #ifdef DEBUG_MODE
+#ifdef DEBUG_MODE
  	cout << "Start_Domain_Number    " << Start_Domian_Number << endl;
  	cout << "End_Domain_Number      " << End_Domain_Number << endl;
-// #endif
+#endif
 
  	cout << "<<<<pvESSI>>>> Piece No " << piece_no << endl;
 	for (int i = Start_Domian_Number; i<End_Domain_Number; i++){
@@ -280,13 +278,11 @@ int pvESSI::RequestData(vtkInformation *vtkNotUsed(request),vtkInformationVector
 				Build_Gauss_Attributes(Visualization_Current_UGrid_Node_Mesh, TimeIndex1, TimeIndex2, InterpolationFun1, InterpolationFun2);
 			}
 		}
-
 	}
 
 	this->Whether_Node_Mesh_Attributes_Initialized=false;
 	this->Whether_Gauss_Mesh_Attributes_Initialized = false;
 	this->Whether_Node_Mesh_Stress_Attributes_Initialized = false;
-
 
 	// vtkSmartPointer<vtkUnstructuredGrid>  Visualization =  vtkSmartPointer<vtkUnstructuredGrid>::New();;
 
@@ -1601,11 +1597,12 @@ void pvESSI::Initialize(){
 	Domain_Number_of_Dofs                    = new int*[Number_of_Processes_Used];
 	Domain_Number_of_Elements_Shared         = new int*[Number_of_Processes_Used];
 	Domain_Number_of_Gauss_Elements_Shared   = new int*[Number_of_Processes_Used];
-	Domain_Number_of_Contact_Elements_Shared = new int*[Number_of_Processes_Used];	
+	Domain_Number_of_Contact_Elements_Shared = new int*[Number_of_Processes_Used];
 
   	//// Visualization Parameters
 	Whether_Node_Mesh_build                  = new bool[Number_of_Processes_Used];
 	Whether_Gauss_Mesh_build                 = new bool[Number_of_Processes_Used];
+	Domain_Building_of_Map_Status            = new bool[Number_of_Processes_Used];
 
 	for(int i=0; i<Number_of_Processes_Used;i++)
 	{
@@ -1619,6 +1616,17 @@ void pvESSI::Initialize(){
 		Domain_Basic_Info_Initialized[i]=false;
 	}
 
+}
+
+//===========================================================================
+// Set the building of map status to be true on 
+// request from GUI
+//===========================================================================
+void pvESSI::Set_Domain_Building_of_Map_Status()
+{
+	for(int i=0; i<Number_of_Processes_Used; i++)
+		Domain_Building_of_Map_Status[i]=true;
+	this->Modified();
 }
 
 //===========================================================================
@@ -1765,23 +1773,24 @@ void pvESSI::Domain_Initializer(int  Domain_Number){
 
 	/***************** File_id **********************************/
 	cout << "<<<<pvESSI>>>>  " << filename << " Time_Step " << Node_Mesh_Current_Time << endl << endl;;
+	// cout << "Domain_Building_of_Map_Status[domain_no] " << Domain_Building_of_Map_Status[domain_no] << endl;
 	
 	H5Fclose(this->id_File); // close the previous file
 	this->id_File = H5Fopen(filename, id_H5F_READ_ONLY, id_H5F_CLOSE_STRONG);
 
 	Domain_Write_Status[domain_no] = true;
 
-	if(this->Domain_Data_Build_Status[domain_no]==false or Enable_Building_of_Maps_Flag==true)
+	if(this->Domain_Data_Build_Status[domain_no]==false or Domain_Building_of_Map_Status[domain_no]==true)
 	{
 
 		H5Eset_auto (NULL, NULL, NULL);  // To stop HDF% from printing error message
 		this->id_pvESSI = H5Gopen(id_File, "/pvESSI", H5P_DEFAULT);  
 
-		if(Enable_Building_of_Maps_Flag==true)
+		if(Domain_Building_of_Map_Status[domain_no]==true)
 		{
-
 			this->Build_Local_Domain_Maps(domain_no);
 			this->Write_Local_Domain_Maps(domain_no);
+			Domain_Building_of_Map_Status[domain_no]=false;
 		}
 		else{
 			if(id_pvESSI>0) {// it can be read, so lets go and read it
@@ -1806,7 +1815,7 @@ void pvESSI::Domain_Initializer(int  Domain_Number){
 	cout << "Domain_Data_Build_Status        " << Domain_Data_Build_Status[domain_no] << endl;
 	cout << "Domain_Write_Status             " << Domain_Write_Status[domain_no] << endl;
 	cout << "Domain_Read_Status              " << Domain_Read_Status[domain_no]  << endl;
-	cout << "Enable_Building_of_Maps_Flag    " << Enable_Building_of_Maps_Flag << endl;
+	cout << "Domain_Building_of_Map_Status[domain_no]    " << Domain_Building_of_Map_Status[domain_no] << endl;
 #endif
 
 	this->openDatasetIds();
@@ -2143,107 +2152,120 @@ void pvESSI::Write_Local_Domain_Maps(int domain_no){
 	const char * filename = Domain_FileName.c_str();
 	this->id_File = H5Fopen(filename, id_H5F_READ_WRITE, id_H5F_CLOSE_STRONG);
 
-	hid_t datasetId;
+	if(this->id_File )
+	{	
+		cout << "<<<pvESSI>>>  Writing Maps to File " << endl;
 
-	/*********************************************** First Need to create Folders *********************************************************************/
-	id_pvESSI = H5Gcreate(id_File, "/pvESSI", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT); 
-	H5Gclose(id_pvESSI); 
 
-	datasetId = H5Gcreate(id_File, "/pvESSI/Field_at_Nodes", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT); 
-	H5Gclose(datasetId); 
+		int ret, status; 
+	    ret = H5Ldelete(this->id_File, "/pvESSI", H5P_DEFAULT);
+	    status = H5Lexists(this->id_File, "/pvESSI", H5P_DEFAULT);
 
-	dims1_out[0]= this->Domain_Number_of_Nodes[domain_no];
-	DataSpace = H5Screate_simple(1, dims1_out, NULL);
+		hid_t datasetId;
 
-	datasetId= H5Dcreate(id_File,"pvESSI/Node_Map",H5T_NATIVE_INT,DataSpace,H5P_DEFAULT,H5P_DEFAULT, H5P_DEFAULT);
-	H5Sclose(DataSpace);
-	H5Dwrite(datasetId, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,this->Domain_Node_Map[domain_no]);
-	H5Dclose(datasetId);
+		/*********************************************** First Need to create Folders *********************************************************************/
+		id_pvESSI = H5Gcreate(id_File, "/pvESSI", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT); 
+		H5Gclose(id_pvESSI); 
 
-	DataSpace = H5Screate_simple(1, dims1_out, NULL);
-	datasetId = H5Dcreate(id_File,"pvESSI/Number_of_DOfs",H5T_NATIVE_INT,DataSpace,H5P_DEFAULT,H5P_DEFAULT, H5P_DEFAULT);
-	H5Sclose(DataSpace);
-	H5Dwrite(datasetId, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Domain_Number_of_Dofs[domain_no]);
-	H5Dclose(datasetId);
+		datasetId = H5Gcreate(id_File, "/pvESSI/Field_at_Nodes", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT); 
+		H5Gclose(datasetId); 
 
-	DataSpace = H5Screate_simple(1, dims1_out, NULL);
-	datasetId = H5Dcreate(id_File,"pvESSI/Number_of_Elements_Shared",H5T_NATIVE_INT,DataSpace,H5P_DEFAULT,H5P_DEFAULT, H5P_DEFAULT);
-	H5Sclose(DataSpace);
-	H5Dwrite(datasetId, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Domain_Number_of_Elements_Shared[domain_no]);
-	H5Dclose(datasetId);
+		dims1_out[0]= this->Domain_Number_of_Nodes[domain_no];
+		DataSpace = H5Screate_simple(1, dims1_out, NULL);
 
-	DataSpace = H5Screate_simple(1, dims1_out, NULL);
-	datasetId = H5Dcreate(id_File,"pvESSI/Number_of_Gauss_Elements_Shared",H5T_NATIVE_INT,DataSpace,H5P_DEFAULT,H5P_DEFAULT, H5P_DEFAULT);
-	H5Sclose(DataSpace);
-	H5Dwrite(datasetId, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Domain_Number_of_Gauss_Elements_Shared[domain_no]);
-	H5Dclose(datasetId);
+		datasetId= H5Dcreate(id_File,"pvESSI/Node_Map",H5T_NATIVE_INT,DataSpace,H5P_DEFAULT,H5P_DEFAULT, H5P_DEFAULT);
+		H5Sclose(DataSpace);
+		H5Dwrite(datasetId, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,this->Domain_Node_Map[domain_no]);
+		H5Dclose(datasetId);
 
-	dims1_out[0]= this->Domain_Number_of_Elements[domain_no]; 
-	DataSpace = H5Screate_simple(1, dims1_out, NULL);
-	datasetId = H5Dcreate(id_File,"pvESSI/Element_Map",H5T_NATIVE_INT,DataSpace,H5P_DEFAULT,H5P_DEFAULT, H5P_DEFAULT);
-	H5Sclose(DataSpace);
-	H5Dwrite(datasetId, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Domain_Element_Map[domain_no]);
-	H5Dclose(datasetId);
+		DataSpace = H5Screate_simple(1, dims1_out, NULL);
+		datasetId = H5Dcreate(id_File,"pvESSI/Number_of_DOfs",H5T_NATIVE_INT,DataSpace,H5P_DEFAULT,H5P_DEFAULT, H5P_DEFAULT);
+		H5Sclose(DataSpace);
+		H5Dwrite(datasetId, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Domain_Number_of_Dofs[domain_no]);
+		H5Dclose(datasetId);
 
-	DataSpace = H5Screate_simple(1, dims1_out, NULL);
-	datasetId = H5Dcreate(id_File,"pvESSI/Class_Tags",H5T_NATIVE_INT,DataSpace,H5P_DEFAULT,H5P_DEFAULT, H5P_DEFAULT);
-	H5Sclose(DataSpace);
-	H5Dwrite(datasetId, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Domain_Class_Tags[domain_no]);
-	H5Dclose(datasetId);
+		DataSpace = H5Screate_simple(1, dims1_out, NULL);
+		datasetId = H5Dcreate(id_File,"pvESSI/Number_of_Elements_Shared",H5T_NATIVE_INT,DataSpace,H5P_DEFAULT,H5P_DEFAULT, H5P_DEFAULT);
+		H5Sclose(DataSpace);
+		H5Dwrite(datasetId, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Domain_Number_of_Elements_Shared[domain_no]);
+		H5Dclose(datasetId);
 
-	dims1_out[0]= this->Domain_Number_of_Connectivity_Nodes[domain_no]; 
-	DataSpace = H5Screate_simple(1, dims1_out, NULL);
-	datasetId = H5Dcreate(id_File,"pvESSI/Connectivity",H5T_NATIVE_INT,DataSpace,H5P_DEFAULT,H5P_DEFAULT, H5P_DEFAULT);
-	H5Sclose(DataSpace);
-	H5Dwrite(datasetId, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Domain_Connectivity[domain_no]);
-	H5Dclose(datasetId);
+		DataSpace = H5Screate_simple(1, dims1_out, NULL);
+		datasetId = H5Dcreate(id_File,"pvESSI/Number_of_Gauss_Elements_Shared",H5T_NATIVE_INT,DataSpace,H5P_DEFAULT,H5P_DEFAULT, H5P_DEFAULT);
+		H5Sclose(DataSpace);
+		H5Dwrite(datasetId, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Domain_Number_of_Gauss_Elements_Shared[domain_no]);
+		H5Dclose(datasetId);
 
-	dims1_out[0]= this->Domain_Pseudo_Number_of_Nodes[domain_no]; 
-	DataSpace = H5Screate_simple(1, dims1_out, NULL);
-	datasetId = H5Dcreate(id_File,"pvESSI/Inverse_Node_Map",H5T_NATIVE_INT,DataSpace,H5P_DEFAULT,H5P_DEFAULT, H5P_DEFAULT);
-	H5Sclose(DataSpace);
-	H5Dwrite(datasetId, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Domain_Inverse_Node_Map[domain_no]);
-	H5Dclose(datasetId);
+		dims1_out[0]= this->Domain_Number_of_Elements[domain_no]; 
+		DataSpace = H5Screate_simple(1, dims1_out, NULL);
+		datasetId = H5Dcreate(id_File,"pvESSI/Element_Map",H5T_NATIVE_INT,DataSpace,H5P_DEFAULT,H5P_DEFAULT, H5P_DEFAULT);
+		H5Sclose(DataSpace);
+		H5Dwrite(datasetId, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Domain_Element_Map[domain_no]);
+		H5Dclose(datasetId);
 
-	dims1_out[0]= Domain_Pseudo_Number_of_Elements[domain_no]; 
-	DataSpace = H5Screate_simple(1, dims1_out, NULL);
-	datasetId = H5Dcreate(id_File,"pvESSI/Inverse_Element_Map",H5T_NATIVE_INT,DataSpace,H5P_DEFAULT,H5P_DEFAULT, H5P_DEFAULT);
-	H5Sclose(DataSpace);
-	H5Dwrite(datasetId, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Domain_Inverse_Element_Map[domain_no]);
-	H5Dclose(datasetId);
+		DataSpace = H5Screate_simple(1, dims1_out, NULL);
+		datasetId = H5Dcreate(id_File,"pvESSI/Class_Tags",H5T_NATIVE_INT,DataSpace,H5P_DEFAULT,H5P_DEFAULT, H5P_DEFAULT);
+		H5Sclose(DataSpace);
+		H5Dwrite(datasetId, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Domain_Class_Tags[domain_no]);
+		H5Dclose(datasetId);
 
-	/************************************************* Write default Values of -1 for all time steps *****************************************/
-	dims1_out[0]= this->Number_of_Time_Steps; 
-	DataSpace = H5Screate_simple(1, dims1_out, NULL);
-	datasetId = H5Dcreate(id_File,"pvESSI/Field_at_Nodes/Whether_Stress_Strain_Build",H5T_NATIVE_INT,DataSpace,H5P_DEFAULT,H5P_DEFAULT, H5P_DEFAULT);
-	H5Sclose(DataSpace);
+		dims1_out[0]= this->Domain_Number_of_Connectivity_Nodes[domain_no]; 
+		DataSpace = H5Screate_simple(1, dims1_out, NULL);
+		datasetId = H5Dcreate(id_File,"pvESSI/Connectivity",H5T_NATIVE_INT,DataSpace,H5P_DEFAULT,H5P_DEFAULT, H5P_DEFAULT);
+		H5Sclose(DataSpace);
+		H5Dwrite(datasetId, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Domain_Connectivity[domain_no]);
+		H5Dclose(datasetId);
 
-	int *Whether_Stress_Strain_Build; Whether_Stress_Strain_Build = new int[Number_of_Time_Steps];
-	int index = -1;
-	while(++index<Number_of_Time_Steps){
-		Whether_Stress_Strain_Build[index]=-1;
+		dims1_out[0]= this->Domain_Pseudo_Number_of_Nodes[domain_no]; 
+		DataSpace = H5Screate_simple(1, dims1_out, NULL);
+		datasetId = H5Dcreate(id_File,"pvESSI/Inverse_Node_Map",H5T_NATIVE_INT,DataSpace,H5P_DEFAULT,H5P_DEFAULT, H5P_DEFAULT);
+		H5Sclose(DataSpace);
+		H5Dwrite(datasetId, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Domain_Inverse_Node_Map[domain_no]);
+		H5Dclose(datasetId);
+
+		dims1_out[0]= Domain_Pseudo_Number_of_Elements[domain_no]; 
+		DataSpace = H5Screate_simple(1, dims1_out, NULL);
+		datasetId = H5Dcreate(id_File,"pvESSI/Inverse_Element_Map",H5T_NATIVE_INT,DataSpace,H5P_DEFAULT,H5P_DEFAULT, H5P_DEFAULT);
+		H5Sclose(DataSpace);
+		H5Dwrite(datasetId, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT,Domain_Inverse_Element_Map[domain_no]);
+		H5Dclose(datasetId);
+
+		/************************************************* Write default Values of -1 for all time steps *****************************************/
+		dims1_out[0]= this->Number_of_Time_Steps; 
+		DataSpace = H5Screate_simple(1, dims1_out, NULL);
+		datasetId = H5Dcreate(id_File,"pvESSI/Field_at_Nodes/Whether_Stress_Strain_Build",H5T_NATIVE_INT,DataSpace,H5P_DEFAULT,H5P_DEFAULT, H5P_DEFAULT);
+		H5Sclose(DataSpace);
+
+		int *Whether_Stress_Strain_Build; Whether_Stress_Strain_Build = new int[Number_of_Time_Steps];
+		int index = -1;
+		while(++index<Number_of_Time_Steps){
+			Whether_Stress_Strain_Build[index]=-1;
+		}
+
+		count1[0]   =Number_of_Time_Steps;
+		dims1_out[0]=Number_of_Time_Steps;
+		index_i     =0;
+
+	    HDF5_Write_INT_Array_Data(datasetId, 1, dims1_out, &index_i, NULL, count1, NULL, Whether_Stress_Strain_Build); // Whether_Stress_Strain_Build
+	    H5Dclose(datasetId);
+
+		// *********************************************************** Creating Strain Dataset ****************************************************
+		dims3[0]=this->Domain_Number_of_Nodes[domain_no];       dims3[1]= this->Number_of_Time_Steps;   dims3[2]= this->Number_of_Strain_Strain_Info; 
+		maxdims3[0]=this->Domain_Number_of_Nodes[domain_no]; maxdims3[1]= this->Number_of_Time_Steps;   maxdims3[2]= this->Number_of_Strain_Strain_Info;
+		DataSpace = H5Screate_simple(3, dims3, maxdims3);
+
+	    hid_t prop = H5Pcreate (H5P_DATASET_CREATE);
+	    hsize_t chunk_dims[3] = {this->Domain_Number_of_Nodes[domain_no],1,this->Number_of_Strain_Strain_Info};
+	    H5Pset_chunk (prop, 3, chunk_dims);
+		datasetId= H5Dcreate(id_File,"pvESSI/Field_at_Nodes/Stress_And_Strain",H5T_NATIVE_DOUBLE,DataSpace,H5P_DEFAULT,prop, H5P_DEFAULT); 
+		status = H5Sclose(DataSpace);
+		H5Dclose(datasetId);
+
+		delete[] Whether_Stress_Strain_Build; Whether_Stress_Strain_Build = NULL;
 	}
-
-	count1[0]   =Number_of_Time_Steps;
-	dims1_out[0]=Number_of_Time_Steps;
-	index_i     =0;
-
-    HDF5_Write_INT_Array_Data(datasetId, 1, dims1_out, &index_i, NULL, count1, NULL, Whether_Stress_Strain_Build); // Whether_Stress_Strain_Build
-    H5Dclose(datasetId);
-
-	// *********************************************************** Creating Strain Dataset ****************************************************
-	dims3[0]=this->Domain_Number_of_Nodes[domain_no];       dims3[1]= this->Number_of_Time_Steps;   dims3[2]= this->Number_of_Strain_Strain_Info; 
-	maxdims3[0]=this->Domain_Number_of_Nodes[domain_no]; maxdims3[1]= this->Number_of_Time_Steps;   maxdims3[2]= this->Number_of_Strain_Strain_Info;
-	DataSpace = H5Screate_simple(3, dims3, maxdims3);
-
-    hid_t prop = H5Pcreate (H5P_DATASET_CREATE);
-    hsize_t chunk_dims[3] = {this->Domain_Number_of_Nodes[domain_no],1,this->Number_of_Strain_Strain_Info};
-    H5Pset_chunk (prop, 3, chunk_dims);
-	datasetId= H5Dcreate(id_File,"pvESSI/Field_at_Nodes/Stress_And_Strain",H5T_NATIVE_DOUBLE,DataSpace,H5P_DEFAULT,prop, H5P_DEFAULT); 
-	status = H5Sclose(DataSpace);
-	H5Dclose(datasetId);
-
-	delete[] Whether_Stress_Strain_Build; Whether_Stress_Strain_Build = NULL;
+	else{
+		cout << "<<<pvESSI>>>  File is not writable " << endl;
+	}
 
 	H5Fclose(this->id_File);
 	this->id_File = H5Fopen(filename, id_H5F_READ_ONLY, id_H5F_CLOSE_STRONG);

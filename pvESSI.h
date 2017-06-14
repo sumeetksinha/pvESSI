@@ -59,7 +59,6 @@ public:
   void PrintSelf(ostream& os, vtkIndent indent);
   void Enable_Gauss_To_Node_Interpolation(int x){ if(!(x and Enable_Gauss_To_Node_Interpolation_Flag))this->Modified();  Enable_Gauss_To_Node_Interpolation_Flag=false; if(x) Enable_Gauss_To_Node_Interpolation_Flag=true; }
   void Show_Gauss_Mesh(int x){ if(!(x and Show_Gauss_Mesh_Flag))this->Modified(); Show_Gauss_Mesh_Flag=false; if(x) Show_Gauss_Mesh_Flag=true;}
-  void Build_pvESSI_Folder(int x){ if(!(x and Enable_Building_of_Maps_Flag))this->Modified(); Enable_Building_of_Maps_Flag=false; if(x) Enable_Building_of_Maps_Flag=false; /*Enable_Initialization_Flag=true;*/}
   void Enable_uPU_Visualization(int x ){if(!(x and Enable_uPU_Visualization_Flag))this->Modified();  Enable_uPU_Visualization_Flag=false; if(x) Enable_uPU_Visualization_Flag=true;}
   void Enable_Relative_Displacement(int x ){if(!(x and Enable_Relative_Displacement_Flag))this->Modified();  Enable_Relative_Displacement_Flag=false; if(x) Enable_Relative_Displacement_Flag=true;}
   void Enable_Displacement_Probing(int x ){ if(!(x and Enable_Displacement_Probing_Flag))this->Modified();   Enable_Displacement_Probing_Flag=false; if(x) Enable_Displacement_Probing_Flag=true;}
@@ -68,9 +67,8 @@ public:
   void Enable_Physical_Element_Group_Selection(int x ){ if(!(x and Enable_Physical_Element_Group_Selection_Flag))this->Modified();  Enable_Physical_Element_Group_Selection_Flag=false; if(x) Enable_Physical_Element_Group_Selection_Flag=true;}
   void Disable_Contact_Relative_Displacement(int x ){ if(!(x and Disable_Contact_Relative_Displacement_Flag))this->Modified();  Disable_Contact_Relative_Displacement_Flag=false; if(x) Disable_Contact_Relative_Displacement_Flag=true;}
   void Show_Hide_Contact(int x ){ if(!(x and Show_Hide_Contact_Flag))this->Modified();  Show_Hide_Contact_Flag=true; if(x) Show_Hide_Contact_Flag=false;}
-  void Show_Live_Simulation(int x){ Show_Live_Simulation_Flag=false; if(x==1){Show_Live_Simulation_Flag=true; this->Modified(); } std::cout << "Show_Live_Simulation_Flag " << Show_Live_Simulation_Flag << std::endl; /*Show_Live_Simulation_Flag=true;*/}
 
-
+  void Set_Domain_Building_of_Map_Status();
   void PrintX(int x){}
 
   // static vtkInformationQuadratureSchemeDefinitionVectorKey* DICTIONARY();
@@ -206,6 +204,7 @@ protected:
   bool *Domain_Node_Map_Initialized ;   // Whether Domain Node Map has been initialized
   bool *Domain_Element_Map_Initialized; // Whether Domain Element Map initialized
   bool *Domain_Basic_Info_Initialized;  // Whether Basic Info Initialized
+  bool *Domain_Building_of_Map_Status;  // Whether Maps needs to be build again
 
   int  domain_no;                       // current Real ESSI domain_no or process Id output to be read 
   std::string Domain_FileName;          // current Real ESSI domain_no or process Id output filename
@@ -347,7 +346,6 @@ protected:
 
   /************** Visualization Control Variables **********/
   bool Enable_Gauss_To_Node_Interpolation_Flag;
-  bool Enable_Building_of_Maps_Flag;
   bool Enable_uPU_Visualization_Flag;
   bool Enable_Relative_Displacement_Flag;
   int  Reference_Displacement_Index_Flag;
@@ -358,7 +356,6 @@ protected:
   bool Enable_Physical_Node_Group_Selection_Flag;
   bool Disable_Contact_Relative_Displacement_Flag;
   bool Show_Hide_Contact_Flag;
-  bool Show_Live_Simulation_Flag;
 
   /************* Data Array Selection *********************/  
   vtkSmartPointer<vtkDataArraySelection> Physical_Node_Group;

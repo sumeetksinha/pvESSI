@@ -18,17 +18,13 @@
         </Documentation>
       </StringVectorProperty>
 
+      <Property name="Build pvESSI Folder" command="Set_Domain_Building_of_Map_Status" panel_widget="command_button"/>
+      <Property name="Refresh" command="Modified" panel_widget="command_button"/>
+
       <IntVectorProperty command="Enable_Gauss_To_Node_Interpolation" default_values="0" number_of_elements="1" name="Enable Gauss To Node Interpolation">
         <BooleanDomain name="bool"/>
         <Documentation>
           This property specifies whether to perform gauss to node interpolation or not.
-        </Documentation>        
-      </IntVectorProperty>
-
-      <IntVectorProperty command="Build_pvESSI_Folder" default_values="0" number_of_elements="1" name="Build pvESSI Folder">
-        <BooleanDomain name="bool"/>
-        <Documentation>
-          This property specifies whether to regenerate pvESSI folder.
         </Documentation>        
       </IntVectorProperty>
 
@@ -43,14 +39,6 @@
         <BooleanDomain name="bool"/>
         <Documentation>
           This property specifies whether to show or hide Contacts. By Default, it hides contact.
-        </Documentation>        
-      </IntVectorProperty>
-
-      <IntVectorProperty command="Show_Live_Simulation" animateable="1" default_values="1" number_of_elements="1" name="Show Live Simulation">
-        <!-- <BooleanDomain name="bool"/> -->
-        <IntRangeDomain name="range" />
-        <Documentation>
-          This property specifies whether to go for live simulation.
         </Documentation>        
       </IntVectorProperty>
 
@@ -88,16 +76,14 @@
         </Documentation>        
       </IntVectorProperty>
 
-      <PropertyGroup label="pvESSI build options" >
-        <Property name="Build pvESSI Folder" />
+      <PropertyGroup label="Visualization Options" >
         <Property name="Enable Gauss To Node Interpolation" />
         <Property name="Enable Relative Displacement" />
         <Property name="Enable UPU Visualization" />
         <Property name="Show/Hide Contact" />
-        <property name="Show Live Simulation" />
       </PropertyGroup>
 
-      <PropertyGroup label="pvESSI Gauss Mesh options" >
+      <PropertyGroup label="Gauss Mesh Visualization" >
         <Property name="Show Gauss Mesh"/>
         <Property name="Enable Displacement Probing" />
       </PropertyGroup>
@@ -130,70 +116,6 @@
         </ArraySelectionDomain>
         <Documentation>This property lists which cell-centered arrays storead.</Documentation>
       </StringVectorProperty>
-
-<!--       <StringVectorProperty command="VisualizationOptionsOnElementArrayStatus"
-                            element_types="2 0"
-                            information_property="VisualizationOptionsOnElementArrayInfo"
-                            label="On Element"
-                            name="VisualizationOptionsOnElementStatus"
-                            number_of_elements="0"
-                            number_of_elements_per_command="2"
-                            repeat_command="1">
-        <ArraySelectionDomain name="array_list">
-          <RequiredProperties>
-            <Property function="ArrayList"
-                      name="VisualizationOptionsOnElementArrayInfo" />
-          </RequiredProperties>
-        </ArraySelectionDomain>
-        <Documentation>This property lists which cell-centered arrays storead.</Documentation>
-      </StringVectorProperty>
- -->
-<!--       <StringVectorProperty command="VisualizationOptionsOnGaussArrayStatus"
-                            element_types="2 0"
-                            information_property="VisualizationOptionsOnGaussArrayInfo"
-                            label="On Element"
-                            name="VisualizationOptionsOnGaussStatus"
-                            number_of_elements="0"
-                            number_of_elements_per_command="2"
-                            repeat_command="1">
-        <ArraySelectionDomain name="array_list">
-          <RequiredProperties>
-            <Property function="ArrayList"
-                      name="VisualizationOptionsOnGaussArrayInfo" />
-          </RequiredProperties>
-        </ArraySelectionDomain>
-        <Documentation>This property lists which cell-centered arrays storead.</Documentation>
-      </StringVectorProperty> -->
-
-
-<!--       <StringVectorProperty information_only="1"
-                            name="PhysicalNodeGroupArrayInfo">
-        <ArraySelectionInformationHelper attribute_name="PhysicalNodeGroup" />
-      </StringVectorProperty>
-
-      <StringVectorProperty command="SetPhysicalNodeGroupArrayStatus"
-                            element_types="2 0"
-                            information_property="PhysicalNodeGroupArrayInfo"
-                            label="Physical Node Groups"
-                            name="PhysicalNodeGroupArrayStatus"
-                            number_of_elements="0"
-                            number_of_elements_per_command="2"
-                            repeat_command="1">
-        <ArraySelectionDomain name="array_list">
-          <RequiredProperties>
-            <Property function="ArrayList"
-                      name="PhysicalNodeGroupArrayInfo" />
-          </RequiredProperties>
-        </ArraySelectionDomain>
-        <Documentation>This property lists which cell-centered arrays storead.</Documentation>
-      </StringVectorProperty>
- -->
- 
-      <PropertyGroup label="Visualization Options" >
-        <Property name="VisualizationOptionsOnNodeStatus" />
-        <!-- <Property name="VisualizationOptionsOnElementStatus" /> -->
-        <!-- <Property name="VisualizationOptionsOnGaussStatus" /> -->
-      </PropertyGroup>
 
       <IntVectorProperty command="Enable_Physical_Element_Group_Selection" default_values="0" number_of_elements="1" name="Enable Physical Element Group Selection">
         <BooleanDomain name="bool"/>
