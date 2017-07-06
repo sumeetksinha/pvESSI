@@ -1,9 +1,12 @@
 cmake_minimum_required(VERSION 2.8)
 
-INCLUDE_DIRECTORIES(/home/sumeet/Softwares/RealESSI_ROOT/RealESSI_Dependencies/hdf5_sequential/include)
-LINK_DIRECTORIES(/home/sumeet/Softwares/RealESSI_ROOT/RealESSI_Dependencies/hdf5_sequential/lib)
-# LINK_LIBRARIES(hdf5)
+#INCLUDE_DIRECTORIES(/home/sumeet/Softwares/RealESSI_ROOT/RealESSI_Dependencies/hdf5_swmr/include)
+#LINK_DIRECTORIES(/home/sumeet/Softwares/RealESSI_ROOT/RealESSI_Dependencies/hdf5_swmr/lib)
 
+# INCLUDE_DIRECTORIES(/home/sumeet/Softwares/RealESSI_ROOT/RealESSI_Dependencies/hdf5_sequential/include)
+# LINK_DIRECTORIES(/home/sumeet/Softwares/RealESSI_ROOT/RealESSI_Dependencies/hdf5_sequential/lib)
+
+# LINK_LIBRARIES(hdf5)
 #LINK_LIBRARIES(hdf5_cpp hdf5 )
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
@@ -27,11 +30,11 @@ ENDIF ()
 
 
 
-include_directories(${VTK_INCLUDE_DIRS})
+# include_directories(${VTK_INCLUDE_DIRS})
 #include(wrap-python.cmake)
 
 ADD_PARAVIEW_PLUGIN(pvESSI "1.0"
    SERVER_MANAGER_XML pvESSI.xml
    SERVER_MANAGER_SOURCES pvESSI.cxx)
 
-target_link_libraries(pvESSI hdf5 ${deps})
+# target_link_libraries(pvESSI hdf5 ${deps})

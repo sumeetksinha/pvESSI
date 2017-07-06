@@ -40,6 +40,9 @@
 
 // #define DEBUG_MODE 1
 #define PRINT_FUNCTION(function)  	cout <<"\n====================================\n"<<function<<"\n====================================\n\n";
+#define HDF5_VERS_MAJOR    1
+#define HDF5_VERS_MINOR    10
+#define HDF5_VERS_RELEASE  0
 
 // LINK_LIBRARIES(hdf5_cpp hdf5 )
 
@@ -104,7 +107,11 @@ pvESSI::pvESSI(){
 	id_H5F_CLOSE_STRONG = H5Pcreate(H5P_FILE_ACCESS);
 	H5Pset_fclose_degree(id_H5F_CLOSE_STRONG, H5F_CLOSE_STRONG);
 
-  	id_H5F_READ_ONLY = (H5F_ACC_RDONLY | H5F_ACC_SWMR_READ);
+	#if  (H5_VERSION_GE(HDF5_VERS_MAJOR, HDF5_VERS_MINOR, HDF5_VERS_RELEASE) )  
+		id_H5F_READ_ONLY = (H5F_ACC_RDONLY | H5F_ACC_SWMR_READ);
+	#else
+		id_H5F_READ_ONLY = (H5F_ACC_RDONLY);
+	#endif
   	id_H5F_READ_WRITE = H5F_ACC_RDWR;
 
 
@@ -1614,6 +1621,7 @@ void pvESSI::Initialize(){
 		Domain_Node_Map_Initialized[i]=false;
 		Domain_Element_Map_Initialized[i]=false;
 		Domain_Basic_Info_Initialized[i]=false;
+		Domain_Building_of_Map_Status[i]=false;
 	}
 
 }
@@ -1779,6 +1787,8 @@ void pvESSI::Domain_Initializer(int  Domain_Number){
 	this->id_File = H5Fopen(filename, id_H5F_READ_ONLY, id_H5F_CLOSE_STRONG);
 
 	Domain_Write_Status[domain_no] = true;
+
+	// cout << "Domain_Building_of_Map_Status[domain_no]  "   << Domain_Building_of_Map_Status[domain_no] << endl;
 
 	if(this->Domain_Data_Build_Status[domain_no]==false or Domain_Building_of_Map_Status[domain_no]==true)
 	{
@@ -2897,7 +2907,9 @@ void pvESSI::INTERPOLATE_FLOAT_Time_Data_From_3_D_Dataset(hid_t datasetId, int t
 	cout << "DatasetId            " << datasetId << endl;
 #endif
 
-	H5Drefresh(datasetId);
+	#if  (H5_VERSION_GE(HDF5_VERS_MAJOR, HDF5_VERS_MINOR, HDF5_VERS_RELEASE) )  
+		H5Drefresh(datasetId); 
+	#endif
 	DataSpace = H5Dget_space(datasetId);
 	H5Sget_simple_extent_dims(DataSpace, dims3_out, NULL);
 	float *DataArray1 = new float[dims3_out[0]*dims3_out[2]];
@@ -2910,7 +2922,9 @@ void pvESSI::INTERPOLATE_FLOAT_Time_Data_From_3_D_Dataset(hid_t datasetId, int t
     H5Sclose(MemSpace);
     H5Sclose(DataSpace);
 
-    H5Drefresh(datasetId);
+    #if  (H5_VERSION_GE(HDF5_VERS_MAJOR, HDF5_VERS_MINOR, HDF5_VERS_RELEASE) )  
+    	H5Drefresh(datasetId); 
+    #endif
 	DataSpace = H5Dget_space(datasetId);
 	H5Sget_simple_extent_dims(DataSpace, dims3_out, NULL);
 	float *DataArray2 = new float[dims3_out[0]*dims3_out[2]];
@@ -2941,7 +2955,9 @@ void pvESSI::FLOAT_Time_Data_From_2_D_Dataset(hid_t datasetId, int timeIndex, fl
 	cout << "DatasetId            " << datasetId << endl;
 #endif
 
-	H5Drefresh(datasetId);
+	#if  (H5_VERSION_GE(HDF5_VERS_MAJOR, HDF5_VERS_MINOR, HDF5_VERS_RELEASE) )  
+		H5Drefresh(datasetId); 
+	#endif
 	DataSpace = H5Dget_space(datasetId);
 	H5Sget_simple_extent_dims(DataSpace, dims2_out, NULL);	
 	*DataArray = new float[dims2_out[0]];	
@@ -2962,7 +2978,9 @@ void pvESSI::FLOAT_Time_Data_From_3_D_Dataset(hid_t datasetId, int timeIndex, fl
 	cout << "DatasetId            " << datasetId << endl;
 #endif
 
-	H5Drefresh(datasetId);
+	#if  (H5_VERSION_GE(HDF5_VERS_MAJOR, HDF5_VERS_MINOR, HDF5_VERS_RELEASE) )  
+		H5Drefresh(datasetId); 
+	#endif
 	DataSpace = H5Dget_space(datasetId);
 	H5Sget_simple_extent_dims(DataSpace, dims3_out, NULL);
 	*DataArray = new float[dims3_out[0]*dims3_out[2]];
@@ -2985,7 +3003,9 @@ void pvESSI::INT_Time_Data_From_1_D_Dataset(hid_t datasetId, int** DataArray){
 	cout << "DatasetId            " << datasetId << endl;
 #endif
 
-	H5Drefresh(datasetId);
+	#if  (H5_VERSION_GE(HDF5_VERS_MAJOR, HDF5_VERS_MINOR, HDF5_VERS_RELEASE) )  
+		H5Drefresh(datasetId); 
+	#endif
 	DataSpace = H5Dget_space(datasetId);
 	H5Sget_simple_extent_dims(DataSpace, dims1_out, NULL);
 	*DataArray= new int[dims1_out[0]];
@@ -3004,7 +3024,9 @@ void pvESSI::FLOAT_Time_Data_From_1_D_Dataset(hid_t datasetId, float** DataArray
 	cout << "DatasetId            " << datasetId << endl;
 #endif
 
-	H5Drefresh(datasetId);
+	#if  (H5_VERSION_GE(HDF5_VERS_MAJOR, HDF5_VERS_MINOR, HDF5_VERS_RELEASE) )  
+		H5Drefresh(datasetId); 
+	#endif
 	DataSpace = H5Dget_space(datasetId);
 	H5Sget_simple_extent_dims(DataSpace, dims1_out, NULL);
 	*DataArray= new float[dims1_out[0]];
@@ -3030,6 +3052,7 @@ void pvESSI::Interpolate_Stress_Field_At_Nodes(int Time_Index1, int Time_Index2,
 	}
 	else if(Interpolation_Func2==1){
 		float *DataArray2; Extract_Stress_Field_At_Nodes(Time_Index2, &DataArray2);
+
 		*DataArray = DataArray2;
 		return;
 	}
@@ -3145,7 +3168,7 @@ void pvESSI::Extract_Stress_Field_At_Nodes(int Time_Index1, float **Node_Stress_
 	(*Node_Stress_And_Strain_Field) = DataArray;
 
 	if(Domain_Write_Status[domain_no]){
-		Write_Stress_Field_At_Nodes(TimeIndex1, &DataArray);
+		Write_Stress_Field_At_Nodes(Time_Index1, &DataArray);
 	}
 
 }
