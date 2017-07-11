@@ -2299,7 +2299,7 @@ void pvESSI::Write_Local_Domain_Maps(int domain_no){
 		DataSpace = H5Screate_simple(3, dims3, maxdims3);
 
 	    hid_t prop = H5Pcreate (H5P_DATASET_CREATE);
-	    hsize_t chunk_dims[3] = {this->Domain_Number_of_Nodes[domain_no],1,this->Number_of_Strain_Strain_Info};
+	    hsize_t chunk_dims[3] = {(hsize_t)this->Domain_Number_of_Nodes[domain_no],1,(hsize_t)this->Number_of_Strain_Strain_Info};
 	    H5Pset_chunk (prop, 3, chunk_dims);
 		datasetId= H5Dcreate(id_File,"pvESSI/Field_at_Nodes/Stress_And_Strain",H5T_NATIVE_DOUBLE,DataSpace,H5P_DEFAULT,prop, H5P_DEFAULT); 
 		status = H5Sclose(DataSpace);
