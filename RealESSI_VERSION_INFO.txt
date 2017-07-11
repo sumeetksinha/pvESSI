@@ -1,0 +1,8 @@
+Version Name   : Academic Version. Release date: May 3 2017 at 19:21:11. Tag: df932927d5
+Version Branch : sumeet
+Compile Date   : May  9 2017 at 15:07:04
+Compile User   : sumeet
+Compile Sysinfo: sumeet 4.4.0-75-generic x86_64 GNU/Linux
+Runtime User   : sumeet
+Runtime Sysinfo: sumeet 4.4.0-75-generic x86_64 GNU/Linux
+Time Now       : May 10 2017 at 07:22:55
