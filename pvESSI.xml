@@ -19,7 +19,7 @@
       </StringVectorProperty>
 
       <Property name="Build pvESSI Folder" command="Set_Domain_Building_of_Map_Status" panel_widget="command_button"/>
-      <Property name="Refresh" command="Modified" panel_widget="command_button"/>
+      <Property name="Refresh" command="Refresh_Command" panel_widget="command_button"/>
 
       <IntVectorProperty command="Enable_Gauss_To_Node_Interpolation" default_values="0" number_of_elements="1" name="Enable Gauss To Node Interpolation">
         <BooleanDomain name="bool"/>
@@ -55,13 +55,6 @@
         </Documentation>        
       </IntVectorProperty>
 
-      <IntVectorProperty command="Disable_Contact_Relative_Displacement" default_values="0" number_of_elements="1" name="Disable Contact Relative Displacement">
-        <BooleanDomain name="bool"/>
-        <Documentation>
-        This property specifies whether to disable the relative displacemnt for contact elements.
-        </Documentation>        
-      </IntVectorProperty>
-
       <IntVectorProperty command="Show_Gauss_Mesh" default_values="0" number_of_elements="1" name="Show Gauss Mesh">
         <BooleanDomain name="bool"/>
         <Documentation>
@@ -90,32 +83,8 @@
 
       <PropertyGroup label="Relative Displacement" >
         <Property name="Reference Index" />
-        <!-- <Property name="Disable Contact Relative Displacement" /> -->
       </PropertyGroup>
 
-
-      <!--  Array Selection GUI Component  For Visualization at Node-->
-      <StringVectorProperty information_only="1"
-                            name="VisualizationOptionsOnNodeArrayInfo">
-        <ArraySelectionInformationHelper attribute_name="VisualizationOptionsOnNode" />
-      </StringVectorProperty>
-
-      <StringVectorProperty command="VisualizationOptionsOnNodeArrayStatus"
-                            element_types="2 0"
-                            information_property="VisualizationOptionsOnNodeArrayInfo"
-                            label="On Node"
-                            name="VisualizationOptionsOnNodeStatus"
-                            number_of_elements="0"
-                            number_of_elements_per_command="2"
-                            repeat_command="1">
-        <ArraySelectionDomain name="array_list">
-          <RequiredProperties>
-            <Property function="ArrayList"
-                      name="VisualizationOptionsOnNodeArrayInfo" />
-          </RequiredProperties>
-        </ArraySelectionDomain>
-        <Documentation>This property lists which cell-centered arrays storead.</Documentation>
-      </StringVectorProperty>
 
       <IntVectorProperty command="Enable_Physical_Element_Group_Selection" default_values="0" number_of_elements="1" name="Enable Physical Element Group Selection">
         <BooleanDomain name="bool"/>
@@ -152,6 +121,12 @@
         <ArraySelectionInformationHelper attribute_name="PhysicalNodeGroup" />
       </StringVectorProperty>
 
+       <StringVectorProperty name="Element Tags"
+                            command="User_Defined_Element_Tag_Numbers"
+                            number_of_elements="1"
+                            default_values="">
+      </StringVectorProperty>
+
       <IntVectorProperty command="Enable_Physical_Node_Group_Selection" default_values="0" number_of_elements="1" name="Enable Physical Node Group Selection">
         <BooleanDomain name="bool"/>
         <Documentation>
@@ -176,16 +151,33 @@
         <Documentation>This property lists which cell-centered arrays storead.</Documentation>
       </StringVectorProperty>
 
- 
+      <StringVectorProperty name="Node Tags"
+                            command="User_Defined_Node_Tag_Numbers"
+                            number_of_elements="1"
+                            default_values="">
+      </StringVectorProperty>
+
       <PropertyGroup label="Physical Groups" >
         <Property name="Enable Physical Element Group Selection"/>
         <Property name="PhysicalElementGroupArrayStatus" />
+        <Property name="Element Tags" />
         <Property name="Enable Physical Node Group Selection"/>
         <Property name="PhysicalNodeGroupArrayStatus" />
+        <Property name="Node Tags" />
       </PropertyGroup>
 
+      <IntVectorProperty command="Enable_Actual_Time_Step_Values" default_values="1" number_of_elements="1" name="Enable Actual Time Step Values">
+        <BooleanDomain name="bool"/>
+        <Documentation>
+          This property specifies whether the time step values are index numbers or actual time values in sec.
+        </Documentation>        
+      </IntVectorProperty>
 
-      <!--  For Time Step  -->
+      <PropertyGroup label="Time Steps" >
+        <Property name="Enable Actual Time Step Values"/>
+      </PropertyGroup>
+
+      <!--  For Time Step  never remove this-->
       <DoubleVectorProperty name="TimestepValues" repeatable="1" information_only="1">
         <TimeStepsInformationHelper/>
         <Documentation>

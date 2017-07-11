@@ -34,6 +34,7 @@
 #include "vtkLookupTable.h"
 #include <string>
 #include <iostream>
+#include <sstream>
 #include <map>
 #include <vector>
 #include "vtkExecutive.h"
@@ -65,8 +66,59 @@ public:
   void Reference_Displacement_Index(int x ){if(x!=Reference_Displacement_Index_Flag)this->Modified();   Reference_Displacement_Index_Flag=x;}
   void Enable_Physical_Node_Group_Selection(int x ){ if(!(x and Enable_Physical_Node_Group_Selection_Flag))this->Modified();  Enable_Physical_Node_Group_Selection_Flag=false; if(x) Enable_Physical_Node_Group_Selection_Flag=true;}
   void Enable_Physical_Element_Group_Selection(int x ){ if(!(x and Enable_Physical_Element_Group_Selection_Flag))this->Modified();  Enable_Physical_Element_Group_Selection_Flag=false; if(x) Enable_Physical_Element_Group_Selection_Flag=true;}
-  void Disable_Contact_Relative_Displacement(int x ){ if(!(x and Disable_Contact_Relative_Displacement_Flag))this->Modified();  Disable_Contact_Relative_Displacement_Flag=false; if(x) Disable_Contact_Relative_Displacement_Flag=true;}
   void Show_Hide_Contact(int x ){ if(!(x and Show_Hide_Contact_Flag))this->Modified();  Show_Hide_Contact_Flag=true; if(x) Show_Hide_Contact_Flag=false;}
+  void Enable_Actual_Time_Step_Values(int x ){ if(!(x and Enable_Actual_Time_Step_Values_Flag))this->Modified();  Enable_Actual_Time_Step_Values_Flag=false; if(x) Enable_Actual_Time_Step_Values_Flag=true; std::cout << "Enable_Actual_Time_Step_Values " << Enable_Actual_Time_Step_Values_Flag << std::endl;}
+  void Refresh_Command(){this->Modified();}
+
+  //=======================================================================
+  // User defined Physical Group generation from string from Paraview GUI
+  //=======================================================================
+  void User_Defined_Element_Tag_Numbers(std::string INT_ARRAY)
+  {
+
+    std::stringstream ss(INT_ARRAY); int n;
+
+    User_Defined_Physical_Element_Group.clear();
+    while(ss >> n) { User_Defined_Physical_Element_Group.push_back(n);}
+
+    std::cout << "\n================================================================\n"; 
+    std::cout << "            User Defined Physical Element Group                     "; 
+    std::cout << "\n================================================================\n"; 
+    for (std::vector<int>::const_iterator ele  = User_Defined_Physical_Element_Group.begin(); ele != User_Defined_Physical_Element_Group.end(); ++ele)
+        std::cout << *ele << ' ';
+    std::cout << std::endl;
+
+    if(Enable_Physical_Element_Group_Selection_Flag) this->Modified();
+
+    return;
+  }
+
+
+  //=======================================================================
+  // User defined Physical Group generation from string from Paraview GUI
+  //=======================================================================
+  void User_Defined_Node_Tag_Numbers(std::string INT_ARRAY)
+  {
+
+    std::stringstream ss(INT_ARRAY); int n;
+
+    User_Defined_Physical_Node_Group.clear();
+    while(ss >> n) {User_Defined_Physical_Node_Group.push_back(n);}
+
+    std::cout << "\n================================================================\n";
+    std::cout << "               User Defined Physical Node Group                     ";
+    std::cout << "\n================================================================\n";
+    for (std::vector<int>::const_iterator ele = User_Defined_Physical_Node_Group.begin(); ele != User_Defined_Physical_Node_Group.end(); ++ele)
+        std::cout << *ele << ' ';
+    std::cout << std::endl;
+
+    if(Enable_Physical_Node_Group_Selection_Flag) this->Modified();
+
+
+    return;
+  }
+
+
 
   void Set_Domain_Building_of_Map_Status();
   void PrintX(int x){}
@@ -354,8 +406,8 @@ protected:
   bool Whether_Physical_Group_Info_build;
   bool Enable_Physical_Element_Group_Selection_Flag;
   bool Enable_Physical_Node_Group_Selection_Flag;
-  bool Disable_Contact_Relative_Displacement_Flag;
   bool Show_Hide_Contact_Flag;
+  bool Enable_Actual_Time_Step_Values_Flag; 
 
   /************* Data Array Selection *********************/  
   vtkSmartPointer<vtkDataArraySelection> Physical_Node_Group;
@@ -443,6 +495,10 @@ private:
   int **Number_of_Elements_Shared;         // Number of Elements Shared for Each ESSI Element in Current Visualization
   int **Number_of_gauss_Elements_Shared;   // Number Gauss Elements Shared for Each ESSI Element in Current Visualization
   int **Number_of_Element_Types_Shared;    // Number Contact Elements Shared for Each ESSI Element in Current Visualization
+
+
+  std::vector<int> User_Defined_Physical_Element_Group; // User Defined Physical Element Group
+  std::vector<int> User_Defined_Physical_Node_Group;    // Usr Defined Physical Node Group
 
   pvESSI(const pvESSI&);  // Not implemented.
   void operator=(const pvESSI&);  // Not implemented.

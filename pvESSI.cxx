@@ -36,6 +36,7 @@
 #include "vtkExtractSelection.h"
 #include "vtkSelection.h"
 #include "vtkGaussianSplatter.h"
+#include "vtkFileOutputWindow.h"
 
 
 // #define DEBUG_MODE 1
@@ -114,6 +115,11 @@ pvESSI::pvESSI(){
 	#endif
   	id_H5F_READ_WRITE = H5F_ACC_RDWR;
 
+
+	vtkSmartPointer<vtkFileOutputWindow> fileOutputWindow = vtkSmartPointer<vtkFileOutputWindow>::New();
+	fileOutputWindow->SetFileName("vtk_errors.txt");
+	vtkOutputWindow::SetInstance(fileOutputWindow);
+	// fileOutputWindow->Delete(); // now SetInstance owns the reference
 
 } 
 
@@ -827,6 +833,7 @@ void pvESSI::Build_Gauss_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Gauss_M
 			// cout << endl;
 
 			Var_Plastic_p   = -1.0*(Gauss_Outputs[Gauss_Output_Index+6]+Gauss_Outputs[Gauss_Output_Index+7]+Gauss_Outputs[Gauss_Output_Index+8]);
+			if(Var_Plastic_p==0) Var_Plastic_p = 1e-16; // to prevent sending of 0 to paraview
 			Var_Plastic_q   = sqrt(2.0/9.0* (pow(Gauss_Outputs[Gauss_Output_Index+6]-Gauss_Outputs[Gauss_Output_Index+1],7) +
 					   					 pow(Gauss_Outputs[Gauss_Output_Index+7]-Gauss_Outputs[Gauss_Output_Index+2],8) +
 					   					 pow(Gauss_Outputs[Gauss_Output_Index+8]-Gauss_Outputs[Gauss_Output_Index+1],6) + 6*
@@ -837,6 +844,7 @@ void pvESSI::Build_Gauss_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Gauss_M
 							  );
 
 			Var_p   	   = -1.0/3.0*(Gauss_Outputs[Gauss_Output_Index+12]+Gauss_Outputs[Gauss_Output_Index+13]+Gauss_Outputs[Gauss_Output_Index+14]);
+			if(Var_p==0) Var_p = 1e-16; // to prevent sending of 0 to paraview
 			Var_q 		   = sqrt(1.0/2.0* (pow(Gauss_Outputs[Gauss_Output_Index+12]-Gauss_Outputs[Gauss_Output_Index+13],2) +
 									   		pow(Gauss_Outputs[Gauss_Output_Index+13]-Gauss_Outputs[Gauss_Output_Index+14],2) +
 									   		pow(Gauss_Outputs[Gauss_Output_Index+14]-Gauss_Outputs[Gauss_Output_Index+13],2) + 6*
@@ -845,6 +853,7 @@ void pvESSI::Build_Gauss_Attributes(vtkSmartPointer<vtkUnstructuredGrid> Gauss_M
 									   			pow(Gauss_Outputs[Gauss_Output_Index+17],2))
 									  		)
 							 );
+
 
 			Elastic_Strain->InsertTypedTuple (gauss_no_for_attributes,El_Strain_Tuple);
 			Plastic_Strain->InsertTypedTuple (gauss_no_for_attributes,Pl_Strain_Tuple);
@@ -1144,6 +1153,13 @@ void  pvESSI::Build_Physical_Element_Group_Mesh(vtkSmartPointer<vtkUnstructuredG
     hid_t id_Physical_Group_Id;
     int number_of_Element_Ids=0,number_of_Node_Ids=0 ;
 
+    // opening the source file
+	std::string Source_File = GetSourceFile(this->FileName)+"feioutput";
+	hid_t id_Source_File = H5Fopen(Source_File.c_str(), id_H5F_READ_ONLY, id_H5F_CLOSE_STRONG);
+
+    this->id_Physical_Element_Groups = H5Gopen(id_Source_File, "/Model/Physical_Groups/Physical_Element_Groups", H5P_DEFAULT);
+    this->id_Physical_Node_Groups    = H5Gopen(id_Source_File, "/Model/Physical_Groups/Physical_Node_Groups", H5P_DEFAULT);
+
 	//**********/ Physical Element Groups **********************//
 	if(Enable_Physical_Element_Group_Selection_Flag)
 	{
@@ -1175,6 +1191,13 @@ void  pvESSI::Build_Physical_Element_Group_Mesh(vtkSmartPointer<vtkUnstructuredG
 
 			}
 		}
+
+	    for (std::vector<int>::const_iterator ele = User_Defined_Physical_Element_Group.begin(); ele != User_Defined_Physical_Element_Group.end(); ++ele)
+	    {
+	    	Element_Ids->InsertNextValue(*ele );
+			number_of_Element_Ids++;
+		}
+
 	}
 
 	if(Enable_Physical_Node_Group_Selection_Flag)
@@ -1208,7 +1231,19 @@ void  pvESSI::Build_Physical_Element_Group_Mesh(vtkSmartPointer<vtkUnstructuredG
 
 			}
 		}
+
+	    for (std::vector<int>::const_iterator ele = User_Defined_Physical_Node_Group.begin(); ele != User_Defined_Physical_Node_Group.end(); ++ele)
+	    {
+	    	Node_Ids->InsertNextValue(*ele );
+			number_of_Node_Ids++;
+		}
+
 	}
+
+	// closing the source file
+	H5Gclose(id_Physical_Element_Groups); 
+	H5Gclose(id_Physical_Node_Groups);
+	H5Fclose(id_Source_File); 
 
 	//************************************ Element Selection  **************************************/
 
@@ -1841,8 +1876,8 @@ void pvESSI::openDatasetIds(){
 	/************************** Open Dataset for reading and *******************************************************************/
 	this->id_Constrained_Nodes                 = H5Dopen(id_File, "Model/Nodes/Constrained_Nodes", H5P_DEFAULT);
 	this->id_Material_Tags                     = H5Dopen(id_File, "Model/Elements/Material_Tags", H5P_DEFAULT);
-	this->id_Physical_Element_Groups           = H5Gopen(id_File, "Model/Physical_Groups/Physical_Element_Groups", H5P_DEFAULT);
-	this->id_Physical_Node_Groups              = H5Gopen(id_File, "Model/Physical_Groups/Physical_Node_Groups", H5P_DEFAULT);
+	// this->id_Physical_Element_Groups           = H5Gopen(id_File, "Model/Physical_Groups/Physical_Element_Groups", H5P_DEFAULT);
+	// this->id_Physical_Node_Groups              = H5Gopen(id_File, "Model/Physical_Groups/Physical_Node_Groups", H5P_DEFAULT);
 	  
 	// /**************** Element Info ******************************/
 	this->id_Gauss_Point_Coordinates = H5Dopen(id_File, "Model/Elements/Gauss_Point_Coordinates", H5P_DEFAULT);
@@ -2458,9 +2493,9 @@ void pvESSI::Update_Time_Steps(){
 
 	Time = new double[this->Number_of_Time_Steps];
 
-	if(eigen_mode_on)
+	if(eigen_mode_on or Enable_Actual_Time_Step_Values_Flag==false)
 	{
-		// Initializing Time vector
+		// Initializing Time vector for eigen mode
 		for(int p=0; p<Number_of_Time_Steps;p++)
 			this->Time[p]=p;
 	}
@@ -3632,3 +3667,5 @@ herr_t pvESSI::op_func (hid_t loc_id, const char *name, const H5O_info_t *info,v
 
     return 0;
 }
+
+
