@@ -18,6 +18,9 @@
         </Documentation>
       </StringVectorProperty>
 
+      <Property name="Build pvESSI Folder" command="Set_Domain_Building_of_Map_Status" panel_widget="command_button"/>
+      <Property name="Refresh" command="Refresh_Command" panel_widget="command_button"/>
+
       <IntVectorProperty command="Enable_Gauss_To_Node_Interpolation" default_values="0" number_of_elements="1" name="Enable Gauss To Node Interpolation">
         <BooleanDomain name="bool"/>
         <Documentation>
@@ -25,17 +28,17 @@
         </Documentation>        
       </IntVectorProperty>
 
-      <IntVectorProperty command="Build_pvESSI_Folder" default_values="0" number_of_elements="1" name="Build pvESSI Folder">
-        <BooleanDomain name="bool"/>
-        <Documentation>
-          This property specifies whether to regenerate pvESSI folder.
-        </Documentation>        
-      </IntVectorProperty>
-
       <IntVectorProperty command="Enable_uPU_Visualization" default_values="0" number_of_elements="1" name="Enable UPU Visualization">
         <BooleanDomain name="bool"/>
         <Documentation>
           This property specifies whether to show upU displacements.
+        </Documentation>        
+      </IntVectorProperty>
+
+      <IntVectorProperty command="Show_Hide_Contact" default_values="0" number_of_elements="1" name="Show/Hide Contact" repeat_command ='1'>
+        <BooleanDomain name="bool"/>
+        <Documentation>
+          This property specifies whether to show or hide Contacts. By Default, it hides contact.
         </Documentation>        
       </IntVectorProperty>
 
@@ -66,14 +69,14 @@
         </Documentation>        
       </IntVectorProperty>
 
-      <PropertyGroup label="pvESSI build options" >
-        <Property name="Build pvESSI Folder" />
+      <PropertyGroup label="Visualization Options" >
         <Property name="Enable Gauss To Node Interpolation" />
         <Property name="Enable Relative Displacement" />
         <Property name="Enable UPU Visualization" />
+        <Property name="Show/Hide Contact" />
       </PropertyGroup>
 
-      <PropertyGroup label="pvESSI Gauss Mesh options" >
+      <PropertyGroup label="Gauss Mesh Visualization" >
         <Property name="Show Gauss Mesh"/>
         <Property name="Enable Displacement Probing" />
       </PropertyGroup>
@@ -81,6 +84,7 @@
       <PropertyGroup label="Relative Displacement" >
         <Property name="Reference Index" />
       </PropertyGroup>
+
 
       <IntVectorProperty command="Enable_Physical_Element_Group_Selection" default_values="0" number_of_elements="1" name="Enable Physical Element Group Selection">
         <BooleanDomain name="bool"/>
@@ -117,6 +121,12 @@
         <ArraySelectionInformationHelper attribute_name="PhysicalNodeGroup" />
       </StringVectorProperty>
 
+       <StringVectorProperty name="Element Tags"
+                            command="User_Defined_Element_Tag_Numbers"
+                            number_of_elements="1"
+                            default_values="">
+      </StringVectorProperty>
+
       <IntVectorProperty command="Enable_Physical_Node_Group_Selection" default_values="0" number_of_elements="1" name="Enable Physical Node Group Selection">
         <BooleanDomain name="bool"/>
         <Documentation>
@@ -141,16 +151,33 @@
         <Documentation>This property lists which cell-centered arrays storead.</Documentation>
       </StringVectorProperty>
 
- 
+      <StringVectorProperty name="Node Tags"
+                            command="User_Defined_Node_Tag_Numbers"
+                            number_of_elements="1"
+                            default_values="">
+      </StringVectorProperty>
+
       <PropertyGroup label="Physical Groups" >
         <Property name="Enable Physical Element Group Selection"/>
         <Property name="PhysicalElementGroupArrayStatus" />
+        <Property name="Element Tags" />
         <Property name="Enable Physical Node Group Selection"/>
         <Property name="PhysicalNodeGroupArrayStatus" />
+        <Property name="Node Tags" />
       </PropertyGroup>
 
+      <IntVectorProperty command="Enable_Actual_Time_Step_Values" default_values="1" number_of_elements="1" name="Enable Actual Time Step Values">
+        <BooleanDomain name="bool"/>
+        <Documentation>
+          This property specifies whether the time step values are index numbers or actual time values in sec.
+        </Documentation>        
+      </IntVectorProperty>
 
-      <!--  For Time Step  -->
+      <PropertyGroup label="Time Steps" >
+        <Property name="Enable Actual Time Step Values"/>
+      </PropertyGroup>
+
+      <!--  For Time Step  never remove this-->
       <DoubleVectorProperty name="TimestepValues" repeatable="1" information_only="1">
         <TimeStepsInformationHelper/>
         <Documentation>
