@@ -5,6 +5,8 @@ pvESSI
 
 It is plugin for visualizing the output of [ReaL ESSI Simulator System](http://real-essi.info/), a 3D finite element program specifically developed for high fidelity modeling and simulation of Earthquake Soil/Rock Structure Interaction problems. It reads ESSI (HDF5) .feioutput file.
 
+<center>![pvESSI Usage](./Icons/usage.gif) </center>
+
 ### Installation
 
 Currently, the plugin is not distributable type. There are two ways to install the plugin. First (A), is to build the plugin along with the paraview source and the other method (B) is to build the plugin externally and then integrate with paraview. The second option assumes that paraview is already build fro source into the system. For both ways, the steps are documented below. Although both ways require paraview to be present, it is encouraged to build pvESSI along with paraview source.
