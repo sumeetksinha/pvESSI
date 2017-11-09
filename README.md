@@ -5,7 +5,9 @@ pvESSI
 
 It is plugin for visualizing the output of [ReaL ESSI Simulator System](http://real-essi.info/), a 3D finite element program specifically developed for high fidelity modeling and simulation of Earthquake Soil/Rock Structure Interaction problems. It reads ESSI (HDF5) .feioutput file.
 
-<center>![pvESSI Usage](./Icons/usage.gif) </center>
+<p align="center">
+  <img src="https://raw.githubusercontent.com/SumeetSinha/pvESSI/master/Icons/usage.gif">
+</p>
 
 ### Installation
 
